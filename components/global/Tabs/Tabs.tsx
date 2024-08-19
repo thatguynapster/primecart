@@ -2,7 +2,7 @@ import { ComponentType } from "react";
 import { Nav, Tabs, TabsProps } from "@restart/ui";
 
 import { Tab } from "./Components/Tab";
-import { classNames } from "@/lib";
+import { classNames } from "@/lib/helpers";
 
 export interface LocalTabsProps extends TabsProps {
   tabs: { name: any; slug: string; component: ComponentType }[];

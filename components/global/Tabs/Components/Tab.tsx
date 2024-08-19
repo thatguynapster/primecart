@@ -1,4 +1,4 @@
-import { classNames } from "@/lib";
+import { classNames } from "@/lib/helpers";
 import { useNavItem, NavItemProps } from "@restart/ui/NavItem";
 
 // eslint-disable-next-line

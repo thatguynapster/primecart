@@ -1,9 +1,8 @@
 "use client";
 
-import { classNames } from "@/lib";
+import { classNames } from "@/lib/helpers";
 import React, { HtmlHTMLAttributes } from "react";
-import styled from "styled-components";
-import { Field } from "..";
+import { Error } from "./";
 
 export interface GroupProps
   extends Omit<HtmlHTMLAttributes<HTMLDivElement>, "prefix"> {
@@ -70,14 +69,10 @@ export function Group({
         </>
       )}
       {/* </div> */}
-      <Field.Error
+      <Error
         className={classNames(`field-error`, errorClassName)}
         {...{ name, error, withFormik }}
       />
     </div>
   );
 }
-
-/**
- * styles
- */

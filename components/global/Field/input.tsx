@@ -2,7 +2,7 @@
 
 import { forwardRef } from "react";
 import { Field, FieldAttributes } from "formik";
-import { classNames } from "@/lib";
+import { classNames } from "@/lib/helpers";
 
 export interface InputProps extends FieldAttributes<any> {
   withFormik?: boolean;
