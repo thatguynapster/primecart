@@ -11,7 +11,7 @@ const Logo = ({}: Props) => {
         {/* light mode logo */}
         <Image
           src={"/img/logo.png"}
-          alt={"Proffer Aid International Foundation"}
+          alt={"PrimeCart"}
           fill
           sizes="(max-width: 1200px) 100vw, (max-width: 768px) 50vw, 33vw"
           className="dark:hidden"
@@ -19,7 +19,7 @@ const Logo = ({}: Props) => {
         {/* dark mode logo */}
         <Image
           src={"/img/logo-white.png"}
-          alt={"Proffer Aid International Foundation"}
+          alt={"PrimeCart"}
           fill
           sizes="(max-width: 1200px) 100vw, (max-width: 768px) 50vw, 33vw"
           className="hidden dark:block"
