@@ -7,13 +7,15 @@ import TrendingUpIcon from "@/components/global/icons/trend-up";
 import { classNames } from "@/lib/helpers";
 import { Montserrat } from "next/font/google";
 import Image from "next/image";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 const font = Montserrat({ subsets: ["latin"] });
 
 export default function Home() {
   return (
     <main className="flex min-h-[calc(100vh-84px)] flex-col items-center gap-16 px-4 py-12">
-      <div className="flex flex-col gap-6 w-full max-w-[960px]">
+      <div className="flex flex-col gap-6 w-full max-w-[960px] items-center">
         <h1 className="text-6xl lg:text-[5rem] font-medium text-center bg-gradient-to-br from-dark dark:from-[#9A9C9C] to-[#9A9C9C] dark:to-dark text-transparent bg-clip-text">
           Build & Grow Your Online Store with Ease
         </h1>
@@ -23,12 +25,19 @@ export default function Home() {
           business—all in one place.
         </p>
 
-        <Button
-          className={classNames("w-max mx-auto !rounded-full")}
-          variant="outline"
+        <Link
+          href={"/business"}
+          className={classNames(
+            "!rounded-full !btn-outline",
+            "bg-light text-dark border-dark",
+            "dark:bg-dark dark:text-light dark:border-light",
+            "rounded-lg border-2",
+            "py-2 px-4",
+            "w-max"
+          )}
         >
           Sign up
-        </Button>
+        </Link>
       </div>
 
       <div className="relative w-full max-w-[960px] h-[187px] lg:h-[472px]">
@@ -54,7 +63,10 @@ export default function Home() {
 
       <div className="flex flex-wrap gap-6 justify-center max-w-[1200px]">
         {features.map(({ description, icon, title }) => (
-          <div className="flex flex-col gap-4 p-14 border-2 border-dark dark:border-light rounded-2xl max-w-[488px]">
+          <div
+            key={title}
+            className="flex flex-col gap-4 p-14 border-2 border-dark dark:border-light rounded-2xl max-w-[488px]"
+          >
             <div className="p-2.5 bg-dark dark:bg-light rounded-lg w-max">
               {icon}
             </div>
@@ -64,19 +76,26 @@ export default function Home() {
         ))}
       </div>
 
-      <div className="flex flex-col gap-6 rounded-2xl border-2 border-dark p-8 lg:p-16 w-full max-w-[1200px]">
+      <div className="flex flex-col gap-6 rounded-2xl border-2 border-dark p-8 lg:p-16 w-full max-w-[1200px] items-center">
         <h2 className="text-5xl font-bold text-center">
           Ready to launch your store?
         </h2>
 
         <p className="text-lg text-center">Start for free today!</p>
 
-        <Button
-          className={classNames("w-max mx-auto !rounded-full")}
-          variant="outline"
+        <Link
+          href={"/business"}
+          className={classNames(
+            "!rounded-full !btn-outline",
+            "bg-light text-dark border-dark",
+            "dark:bg-dark dark:text-light dark:border-light",
+            "rounded-lg border-2",
+            "py-2 px-4",
+            "w-max"
+          )}
         >
           Sign up
-        </Button>
+        </Link>
       </div>
     </main>
   );

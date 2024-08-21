@@ -1,5 +1,3 @@
-"use client";
-
 import React from "react";
 
 import {
@@ -15,6 +13,8 @@ import { ModeToggle } from "../global/mode-toggle";
 import { classNames } from "@/lib/helpers";
 import { Button } from "../global/button";
 import Logo from "./logo";
+import { useRouter } from "next/navigation";
+import { currentUser } from "@clerk/nextjs/server";
 
 type Props = {};
 
@@ -24,7 +24,9 @@ const navigation = [
   { name: "About Us", href: "#about-us", current: false },
 ];
 
-const Navigation = ({}: Props) => {
+const Navigation = async ({}: Props) => {
+  const authUser = await currentUser();
+
   return (
     <div className="min-h-full sticky top-0 z-10 glass">
       <Popover as="header" className={classNames("", "")}>
@@ -58,7 +60,7 @@ const Navigation = ({}: Props) => {
             {/* Right section on desktop */}
             <div className="flex gap-4 items-center">
               <nav className="hidden lg:flex space-x-4">
-                {navigation.map(({ current, href, name }) => (
+                {navigation.map(({ href, name }) => (
                   <a
                     key={name}
                     href={href}
@@ -71,12 +73,18 @@ const Navigation = ({}: Props) => {
                 ))}
               </nav>
 
-              <Button
-                className={classNames("!rounded-full !btn-outline")}
-                variant="outline"
+              <Link
+                href={"/business"}
+                className={classNames(
+                  "!rounded-full !btn-outline",
+                  "bg-light text-dark border-dark",
+                  "dark:bg-dark dark:text-light dark:border-light",
+                  "rounded-lg border-2",
+                  "py-2 px-4"
+                )}
               >
-                Login
-              </Button>
+                {authUser ? "Dashboard" : "Login"}
+              </Link>
 
               <ModeToggle />
             </div>
@@ -115,7 +123,7 @@ const Navigation = ({}: Props) => {
                   </div>
                 </div>
                 <div className="mt-3 space-y-1 px-2">
-                  {navigation.map(({ current, href, name }, i) => (
+                  {navigation.map(({ href, name }, i) => (
                     <Link
                       key={name}
                       className={classNames(
