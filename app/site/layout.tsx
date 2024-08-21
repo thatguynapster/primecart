@@ -1,3 +1,4 @@
+import Footer from "@/components/site/footer";
 import Navigation from "@/components/site/navigation";
 import { classNames } from "@/lib/helpers";
 import React, { ReactNode } from "react";
@@ -15,6 +16,7 @@ const SiteLayout = ({ children }: Props) => {
     >
       <Navigation />
       {children}
+      <Footer />
     </main>
   );
 };

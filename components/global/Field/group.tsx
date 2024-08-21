@@ -51,14 +51,6 @@ export function Group({
           {required && <span className="text-danger-main text-error">*</span>}
         </label>
       )}
-      {/* <div
-        className={classNames(
-          "bg-white dark:bg-neutral-gray",
-          "border border-dark",
-          "h-max"
-          // as !== "textarea" && "border-x-0 border-t-0"
-        )}
-      > */}
       {children && (
         <>
           {React.Children.map(
@@ -68,7 +60,6 @@ export function Group({
           )}
         </>
       )}
-      {/* </div> */}
       <Error
         className={classNames(`field-error`, errorClassName)}
         {...{ name, error, withFormik }}

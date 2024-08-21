@@ -1,9 +1,10 @@
+import { Montserrat } from "next/font/google";
 import type { Metadata } from "next";
-import { DM_Sans } from "next/font/google";
-import "./globals.css";
-import { ThemeProvider } from "@/providers/theme-provider";
 
-const font = DM_Sans({ subsets: ["latin"] });
+import { ThemeProvider } from "@/providers/theme-provider";
+import "./globals.css";
+
+const font = Montserrat({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "PrimeCart",

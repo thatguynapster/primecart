@@ -3,49 +3,28 @@
 import React from "react";
 
 import {
-  Menu,
-  MenuButton,
-  MenuItem,
-  MenuItems,
   Popover,
   PopoverBackdrop,
   PopoverButton,
   PopoverPanel,
 } from "@headlessui/react";
-import { Bars3Icon, BellIcon, XMarkIcon } from "@heroicons/react/24/outline";
-import { MagnifyingGlassIcon } from "@heroicons/react/20/solid";
-import { classNames } from "@/lib/helpers";
-import Image from "next/image";
+import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Button } from "../global/button";
+
 import { ModeToggle } from "../global/mode-toggle";
+import { classNames } from "@/lib/helpers";
+import { Button } from "../global/button";
 import Logo from "./logo";
 
 type Props = {};
 
-const user = {
-  name: "Tom Cook",
-  email: "tom@example.com",
-  imageUrl:
-    "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80",
-};
 const navigation = [
   { name: "Features", href: "#features", current: false },
   { name: "Pricing", href: "#pricing", current: false },
   { name: "About Us", href: "#about-us", current: false },
 ];
 
-const Navigation = (props: Props) => {
-  const pathname = usePathname();
-
-  // const _handleActive = (link: string) => {
-  //   if (pathname.split("/")[1] === link.split("/")[1]) {
-  //     return true;
-  //   }
-  //   return false;
-  // };
-
+const Navigation = ({}: Props) => {
   return (
     <div className="min-h-full sticky top-0 z-10 glass">
       <Popover as="header" className={classNames("", "")}>
@@ -70,7 +49,10 @@ const Navigation = (props: Props) => {
               </div>
 
               {/* Logo */}
-              <Logo />
+              <div className="flex gap-4 items-center">
+                <Logo />
+                <p className="text-uppercase"></p>
+              </div>
             </div>
 
             {/* Right section on desktop */}
@@ -89,7 +71,10 @@ const Navigation = (props: Props) => {
                 ))}
               </nav>
 
-              <Button className={classNames("!rounded-full !btn-outline")}>
+              <Button
+                className={classNames("!rounded-full !btn-outline")}
+                variant="outline"
+              >
                 Login
               </Button>
 
@@ -132,6 +117,7 @@ const Navigation = (props: Props) => {
                 <div className="mt-3 space-y-1 px-2">
                   {navigation.map(({ current, href, name }, i) => (
                     <Link
+                      key={name}
                       className={classNames(
                         "block rounded-md px-3 py-2 text-base font-medium text-gray-900 hover:bg-gray-100 hover:text-gray-800"
                       )}
