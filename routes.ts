@@ -1,5 +1,6 @@
 export const routes = {
-  launchpad: "/business/launchpad",
+  setup: "/business",
+  launchpad: "/business/:business_id/launchpad",
   dashboard: "/business/dashboard",
   orders: { index: "/business/orders", details: "/business/orders/:order_id" },
   inventory: {

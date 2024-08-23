@@ -11,7 +11,7 @@ type Props = {};
 
 const Page = async (props: Props) => {
   const authUser = await currentUser();
-  if (!authUser) return redirect("/sign-in");
+  if (!authUser) return redirect("/business/sign-in");
 
   const user: Partial<User> = {
     username:
@@ -26,9 +26,12 @@ const Page = async (props: Props) => {
   };
 
   const authUserDetails = await getAuthUserDetails();
-  if (!authUserDetails) return <BusinessDetails {...{ user }} />;
+  console.log("auth user details:", authUserDetails);
+  if (!authUserDetails?.business) return <BusinessDetails {...{ user }} />;
 
-  redirect(routes.launchpad);
+  redirect(
+    routes.launchpad.replace(":business_id", authUserDetails.business?.$id)
+  );
 };
 
 export default Page;

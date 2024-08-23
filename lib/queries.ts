@@ -78,3 +78,16 @@ export const createBusiness = async (data: Business) => {
     throw new Error("Failed to create business", { cause: error });
   }
 };
+
+export const getBusinessDetails = async (id: string) => {
+  const user = await currentUser();
+  if (!user) return;
+
+  const businessData = await db.listDocuments(
+    process.env["APPWRITE_DATABASE_ID"]!,
+    collection_id("business"),
+    [Query.equal("$id", id)]
+  );
+
+  return businessData.documents[0];
+};

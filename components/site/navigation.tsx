@@ -13,6 +13,7 @@ import Link from "next/link";
 import { ModeToggle } from "../global/mode-toggle";
 import { classNames } from "@/lib/helpers";
 import Logo from "./logo";
+import { routes } from "@/routes";
 
 type Props = {};
 
@@ -71,7 +72,7 @@ const Navigation = async ({}: Props) => {
                 ))}
               </nav>
               <Link
-                href={"/business"}
+                href={routes.setup}
                 className={classNames(
                   "!rounded-full !btn-outline",
                   "bg-light text-dark border-dark",

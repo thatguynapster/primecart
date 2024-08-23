@@ -5,6 +5,7 @@ import ShieldIcon from "@/components/global/icons/shield";
 import ToolsIcon from "@/components/global/icons/tools";
 import TrendingUpIcon from "@/components/global/icons/trend-up";
 import { classNames } from "@/lib/helpers";
+import { routes } from "@/routes";
 import { Montserrat } from "next/font/google";
 import Image from "next/image";
 import Link from "next/link";
@@ -26,7 +27,7 @@ export default function Home() {
         </p>
 
         <Link
-          href={"/business"}
+          href={routes.setup}
           className={classNames(
             "!rounded-full !btn-outline",
             "bg-light text-dark border-dark",
@@ -84,7 +85,7 @@ export default function Home() {
         <p className="text-lg text-center">Start for free today!</p>
 
         <Link
-          href={"/business"}
+          href={routes.setup}
           className={classNames(
             "!rounded-full !btn-outline",
             "bg-light text-dark border-dark",

@@ -14,7 +14,8 @@ import { Business, Location } from "@/lib/types";
 import * as schema from "@/lib/schema";
 import { routes } from "@/routes";
 import { currentUser } from "@clerk/nextjs/server";
-import { createBusiness, createUser } from "@/lib/queries";
+import { createBusiness, createUser, getAuthUserDetails } from "@/lib/queries";
+import useStore from "@/hooks/useStore";
 
 type Props = { user: any };
 
@@ -32,6 +33,7 @@ interface FormData {
 
 const BusinessDetails = ({ user }: Props) => {
   const router = useRouter();
+  const { setStore } = useStore();
 
   const [logoID, setLogoId] = useState<string>();
 
@@ -72,19 +74,24 @@ const BusinessDetails = ({ user }: Props) => {
   ) => {
     try {
       // create user
-      const newUser = await createUser(user);
+
+      // check if user already exists
+      let existingUser = await getAuthUserDetails();
+      console.log(existingUser);
+
+      if (!existingUser) existingUser = await createUser(user);
 
       // create business
       const businessData = {
         ...values,
         location: JSON.stringify(values.location),
-        user: newUser.$id,
+        user: existingUser.$id,
       };
 
-      await createBusiness(businessData);
+      const business = await createBusiness(businessData);
 
       toast.success("account created");
-      router.push(routes.launchpad);
+      router.push(routes.launchpad.replace(":business_id", business.$id));
     } catch (error) {
       console.log(error);
       toast.error("Failed to create business");
