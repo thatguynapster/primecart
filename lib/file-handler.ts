@@ -4,15 +4,12 @@ import { ID, db, storage } from "./appwrite";
 const bucket_id = (bucket: "business" | "product" | "media") => {
   switch (bucket) {
     case "business":
-      console.log(process.env.NEXT_PUBLIC_APPWRITE_BUSINESS_BUCKET_ID!);
       return process.env.NEXT_PUBLIC_APPWRITE_BUSINESS_BUCKET_ID!;
 
     case "product":
-      console.log(process.env.NEXT_PUBLIC_APPWRITE_PRODUCTS_BUCKET_ID!);
       return process.env.NEXT_PUBLIC_APPWRITE_PRODUCTS_BUCKET_ID!;
 
     default:
-      console.log(process.env.NEXT_PUBLIC_APPWRITE_MEDIA_BUCKET_ID!);
       return process.env.NEXT_PUBLIC_APPWRITE_MEDIA_BUCKET_ID!;
   }
 };
@@ -33,7 +30,6 @@ export const uploadFile = async ({
           throw new Error(error);
         }
       );
-    console.log(upload);
 
     return {
       file_id: upload.$id,

@@ -48,7 +48,6 @@ const BusinessDetails = ({ user }: Props) => {
     });
     setFieldValue("logo", response?.href);
     setLogoId(response?.file_id);
-    console.log(response);
   };
 
   const deleteFile = async ({
@@ -56,7 +55,6 @@ const BusinessDetails = ({ user }: Props) => {
   }: {
     actions: Pick<FormikHelpers<Partial<Business>>, "setFieldValue">;
   }) => {
-    console.log(logoID);
     toast.loading("removing logo", { duration: Infinity });
 
     await removeFile({
@@ -73,12 +71,8 @@ const BusinessDetails = ({ user }: Props) => {
     actions: Pick<FormikHelpers<Partial<FormData>>, "setSubmitting">
   ) => {
     try {
-      console.log(values, user);
-
       // create user
-      console.log("creating user");
       const newUser = await createUser(user);
-      console.log(newUser);
 
       // create business
       const businessData = {
@@ -86,10 +80,9 @@ const BusinessDetails = ({ user }: Props) => {
         location: JSON.stringify(values.location),
         user: newUser.$id,
       };
-      console.log(businessData);
-      console.log("creating business");
-      const business = await createBusiness(businessData);
-      console.log(business);
+
+      await createBusiness(businessData);
+
       toast.success("account created");
       router.push(routes.launchpad);
     } catch (error) {
@@ -143,9 +136,8 @@ const BusinessDetails = ({ user }: Props) => {
           zip_code: "",
         }}
         onSubmit={(values, { setSubmitting }) => {
-          console.log("submitting...");
           setSubmitting(true);
-          console.log(values);
+
           handleSubmit(values, { setSubmitting });
         }}
       >
@@ -226,7 +218,7 @@ const BusinessDetails = ({ user }: Props) => {
 
             <div className="flex gap-4">
               <Field.Group
-                className="!mb-0"
+                className="w-full"
                 name="phone"
                 label="Business Phone Number"
                 required
@@ -302,7 +294,6 @@ const BusinessDetails = ({ user }: Props) => {
               type="submit"
               disabled={!isValid}
               onClick={() => {
-                console.log("submit form data");
                 handleSubmit();
               }}
               {...{ isSubmitting }}

@@ -3,6 +3,7 @@
 import { clerkClient, currentUser } from "@clerk/nextjs/server";
 import { ID, db, storage } from "./appwrite";
 import { Business, User } from "./types";
+import { Query } from "appwrite";
 
 type Collections = "business" | "notifications" | "users";
 
@@ -20,7 +21,6 @@ const collection_id = (collection: Collections) => {
 };
 
 export const createUser = async (data: User) => {
-  console.log(collection_id("users"));
   try {
     const user = await db
       .createDocument(
@@ -32,11 +32,10 @@ export const createUser = async (data: User) => {
       .then(
         (response) => response,
         (error) => {
-          console.log(error);
           throw new Error(error);
         }
       );
-    console.log(user);
+
     return user;
   } catch (error) {
     console.log(error);
@@ -44,9 +43,20 @@ export const createUser = async (data: User) => {
   }
 };
 
-export const createBusiness = async (data: Business) => {
-  console.log(collection_id("business"));
+export const getAuthUserDetails = async () => {
+  const user = await currentUser();
+  if (!user) return;
 
+  const userData = await db.listDocuments(
+    process.env["APPWRITE_DATABASE_ID"]!,
+    collection_id("users"),
+    [Query.equal("email", user.emailAddresses[0].emailAddress)]
+  );
+
+  return userData.documents?.[0];
+};
+
+export const createBusiness = async (data: Business) => {
   try {
     const business = await db
       .createDocument(
@@ -58,11 +68,10 @@ export const createBusiness = async (data: Business) => {
       .then(
         (response) => response,
         (error) => {
-          console.log(error);
           throw new Error(error);
         }
       );
-    console.log(business);
+
     return business;
   } catch (error) {
     console.log(error);

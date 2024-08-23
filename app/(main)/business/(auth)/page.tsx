@@ -1,6 +1,8 @@
 import BusinessDetails from "@/components/forms/business-details";
 import SingleFileUpload from "@/components/global/single-file-upload";
+import { getAuthUserDetails } from "@/lib/queries";
 import { User } from "@/lib/types";
+import { routes } from "@/routes";
 import { currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import React from "react";
@@ -23,7 +25,10 @@ const Page = async (props: Props) => {
     email: authUser.emailAddresses[0].emailAddress,
   };
 
-  return <BusinessDetails {...{ user }} />;
+  const authUserDetails = await getAuthUserDetails();
+  if (!authUserDetails) return <BusinessDetails {...{ user }} />;
+
+  redirect(routes.launchpad);
 };
 
 export default Page;
