@@ -1,3 +1,5 @@
+"use client";
+
 import { ClerkProvider } from "@clerk/nextjs";
 import { useTheme } from "next-themes";
 import { dark } from "@clerk/themes";

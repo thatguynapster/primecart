@@ -3,6 +3,9 @@ import type { Metadata } from "next";
 
 import { ThemeProvider } from "@/providers/theme-provider";
 import "./globals.css";
+import { classNames } from "@/lib/helpers";
+import { MapProvider } from "@/providers/map";
+import { Toaster } from "react-hot-toast";
 
 const font = Montserrat({ subsets: ["latin"] });
 
@@ -15,18 +18,20 @@ export const metadata: Metadata = {
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: any;
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={font.className}>
+      <body className={classNames(font.className, "bg-light")}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
           enableSystem
           disableTransitionOnChange
         >
-          {children}
+          <MapProvider>{children}</MapProvider>
+
+          <Toaster position="top-right" toastOptions={{ duration: 5000 }} />
         </ThemeProvider>
       </body>
     </html>

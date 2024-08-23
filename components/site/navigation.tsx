@@ -1,5 +1,4 @@
 import React from "react";
-
 import {
   Popover,
   PopoverBackdrop,
@@ -7,14 +6,13 @@ import {
   PopoverPanel,
 } from "@headlessui/react";
 import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
+import { currentUser } from "@clerk/nextjs/server";
+import { UserButton } from "@clerk/nextjs";
 import Link from "next/link";
 
 import { ModeToggle } from "../global/mode-toggle";
 import { classNames } from "@/lib/helpers";
-import { Button } from "../global/button";
 import Logo from "./logo";
-import { useRouter } from "next/navigation";
-import { currentUser } from "@clerk/nextjs/server";
 
 type Props = {};
 
@@ -72,7 +70,6 @@ const Navigation = async ({}: Props) => {
                   </a>
                 ))}
               </nav>
-
               <Link
                 href={"/business"}
                 className={classNames(
@@ -85,6 +82,12 @@ const Navigation = async ({}: Props) => {
               >
                 {authUser ? "Dashboard" : "Login"}
               </Link>
+
+              {authUser && (
+                <div className="w-7 h-7 rounded-full bg-dark dark:bg-light">
+                  <UserButton />
+                </div>
+              )}
 
               <ModeToggle />
             </div>

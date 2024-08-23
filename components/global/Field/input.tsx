@@ -20,16 +20,12 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         ref={ref}
         className={classNames(
           className,
-          "text-sm h-max w-full px-4 py-3",
-          "disabled:bg-neutral-30 disabled:text-neutral-400",
-          "placeholder:text-neutral-400",
-          "caret-primary",
-          "bg-white",
-
-          "bg-white dark:bg-neutral-gray",
-          "border border-dark",
-          "h-max",
-
+          "border-2 border-dark dark:border-light",
+          "caret-dark dark:caret-light",
+          "w-full px-3.5 py-2.5 text-sm",
+          "disabled:cursor-not-allowed",
+          "bg-light dark:bg-dark",
+          "placeholder:text-gray",
           props.as !== "textarea" && "border-x-0 border-t-0"
         )}
         {...props}

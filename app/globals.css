@@ -27,3 +27,21 @@
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
 }
+
+/* scrollbar style */ /* width */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+  @apply bg-gray;
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+  @apply bg-dark/85;
+}
+
+/* END: scrollbar style */

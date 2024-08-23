@@ -30,13 +30,19 @@ export function ModeToggle() {
       >
         <div className="flex flex-col gap-2">
           <MenuItem>
-            <div onClick={() => setTheme("light")}>Light</div>
+            <div className="cursor-pointer" onClick={() => setTheme("light")}>
+              Light
+            </div>
           </MenuItem>
           <MenuItem>
-            <div onClick={() => setTheme("dark")}>Dark</div>
+            <div className="cursor-pointer" onClick={() => setTheme("dark")}>
+              Dark
+            </div>
           </MenuItem>
           <MenuItem>
-            <div onClick={() => setTheme("system")}>System</div>
+            <div className="cursor-pointer" onClick={() => setTheme("system")}>
+              System
+            </div>
           </MenuItem>
         </div>
       </MenuItems>
