@@ -2,12 +2,12 @@ import Image from "next/image";
 import Link from "next/link";
 import React from "react";
 
-type Props = {};
+type Props = { size: number };
 
-const Logo = ({}: Props) => {
+const Logo = ({ size }: Props) => {
   return (
     <Link href={"/site"}>
-      <div className="relative w-8 h-8">
+      <div className="relative" style={{ width: size, height: size }}>
         {/* light mode logo */}
         <Image
           src={"/img/logo.png"}

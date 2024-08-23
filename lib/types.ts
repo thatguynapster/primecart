@@ -31,3 +31,13 @@ export type Location = {
   longitude: number;
   latitude: number;
 };
+
+export type sidebarOption = {
+  name: string;
+  icon: string;
+  link?: string;
+  subOptions?: {
+    name: string;
+    link: string;
+  }[];
+};

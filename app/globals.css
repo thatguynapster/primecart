@@ -43,5 +43,9 @@
 ::-webkit-scrollbar-thumb {
   @apply bg-dark/85;
 }
-
 /* END: scrollbar style */
+
+.cl-avatarBox {
+  width: 2rem;
+  height: 2rem;
+}

@@ -5,7 +5,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { classNames } from "@/lib/helpers";
 import { PlusIcon, Trash2 } from "lucide-react";
 import { FormikHelpers } from "formik";
-import { Spinner } from "./icons";
+import Spinner from "./icons/spinner";
 
 type UploadProps = {
   value: string;

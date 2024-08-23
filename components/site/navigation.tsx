@@ -51,7 +51,7 @@ const Navigation = async ({}: Props) => {
 
               {/* Logo */}
               <div className="flex gap-4 items-center">
-                <Logo />
+                <Logo size={32} />
                 <p className="text-uppercase"></p>
               </div>
             </div>
@@ -116,7 +116,7 @@ const Navigation = async ({}: Props) => {
             >
               <div className="pb-2 pt-3">
                 <div className="flex items-center justify-between px-4">
-                  <Logo />
+                  <Logo size={32} />
 
                   <div className="-mr-2">
                     <PopoverButton className="relative inline-flex items-center justify-center rounded-md p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-500 focus:outline-none">

@@ -1,15 +1,13 @@
-import { Button } from "@/components/global/button";
 import GlobeIcon from "@/components/global/icons/globe";
 import MoneyIconCircle from "@/components/global/icons/money";
-import ShieldIcon from "@/components/global/icons/shield";
 import ToolsIcon from "@/components/global/icons/tools";
 import TrendingUpIcon from "@/components/global/icons/trend-up";
 import { classNames } from "@/lib/helpers";
 import { routes } from "@/routes";
+import { ShieldCheckIcon } from "@heroicons/react/24/outline";
 import { Montserrat } from "next/font/google";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 
 const font = Montserrat({ subsets: ["latin"] });
 
@@ -153,9 +151,8 @@ const features = [
   },
   {
     icon: (
-      <ShieldIcon
-        size={32}
-        className="text-white dark:text-dark"
+      <ShieldCheckIcon
+        className="w-8 h-8 text-white dark:text-dark"
         color="white"
       />
     ),
