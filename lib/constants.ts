@@ -5,6 +5,9 @@ import Dashboard from "@/components/global/icons/dashboard";
 import Finance from "@/components/global/icons/finance";
 import Inventory from "@/components/global/icons/inventory";
 import Settings from "@/components/global/icons/settings";
+import SubNavStart from "@/components/global/icons/sub-nav-start";
+import SubNavMid from "@/components/global/icons/sub-nav-mid";
+import SubNavEnd from "@/components/global/icons/sub-nav-end";
 
 export const icons = [
   {
@@ -41,5 +44,20 @@ export const icons = [
     value: "settings",
     label: "Settings",
     path: Settings,
+  },
+  {
+    value: "subNavStart",
+    label: "Sub Start Icon",
+    path: SubNavStart,
+  },
+  {
+    value: "subNavMid",
+    label: "Sub Mid Icon",
+    path: SubNavMid,
+  },
+  {
+    value: "subNavEnd",
+    label: "Sub End Icon",
+    path: SubNavEnd,
   },
 ];

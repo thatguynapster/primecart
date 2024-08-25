@@ -23,22 +23,22 @@ const Sidebar = async ({ id }: Props) => {
     {
       name: "Dashboard",
       icon: "dashboard",
-      link: routes.dashboard,
+      link: routes.dashboard.replace(":business_id", user.business.$id),
     },
     {
       name: "Orders",
       icon: "cart",
-      link: routes.inventory.index,
+      link: routes.inventory.index.replace(":business_id", user.business.$id),
     },
     {
       name: "Inventory",
       icon: "inventory",
-      link: routes.inventory.index,
+      link: routes.inventory.index.replace(":business_id", user.business.$id),
     },
     {
       name: "Customers",
       icon: "customer",
-      link: routes.customers.index,
+      link: routes.customers.index.replace(":business_id", user.business.$id),
     },
     {
       name: "Finances",
@@ -46,18 +46,34 @@ const Sidebar = async ({ id }: Props) => {
       subOptions: [
         {
           name: "Overview",
-          link: routes.finances.overview,
+          icon: "subNavStart",
+          link: routes.finances.overview.replace(
+            ":business_id",
+            user.business.$id
+          ),
         },
         {
           name: "Payouts",
-          link: routes.finances.payout,
+          icon: "subNavEnd",
+          link: routes.finances.payout.replace(
+            ":business_id",
+            user.business.$id
+          ),
+        },
+        {
+          name: "Payouts",
+          icon: "subNavEnd",
+          link: routes.finances.payout.replace(
+            ":business_id",
+            user.business.$id
+          ),
         },
       ],
     },
     {
       name: "Settings",
       icon: "settings",
-      link: routes.settings,
+      link: routes.settings.replace(":business_id", user.business.$id),
     },
   ];
 

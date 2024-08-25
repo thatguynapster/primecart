@@ -38,6 +38,7 @@ export type sidebarOption = {
   link?: string;
   subOptions?: {
     name: string;
+    icon: string;
     link: string;
   }[];
 };
