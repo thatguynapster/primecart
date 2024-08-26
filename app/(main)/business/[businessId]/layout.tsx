@@ -1,5 +1,6 @@
 import InfoBar from "@/components/info-bar";
 import Sidebar from "@/components/sidebar";
+import useStore from "@/hooks/useStore";
 import { classNames } from "@/lib/helpers";
 import { getBusinessDetails } from "@/lib/queries";
 import { routes } from "@/routes";

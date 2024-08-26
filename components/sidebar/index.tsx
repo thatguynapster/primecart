@@ -2,6 +2,7 @@ import React from "react";
 import MenuOptions from "./menu-options";
 import { routes } from "@/routes";
 import { getAuthUserDetails } from "@/lib/queries";
+import useStore from "@/hooks/useStore";
 
 type Props = {
   id: string;
@@ -11,8 +12,6 @@ const Sidebar = async ({ id }: Props) => {
 
   if (!user) return null;
   if (!user.business) return;
-
-  let sidebarLogo = user.business.logo || "/plura-logo.svg";
 
   const sidebarOptions = [
     {

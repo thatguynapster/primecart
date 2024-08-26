@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { Fragment, useEffect, useMemo, useState } from "react";
 import {
   Sheet,
   SheetContent,
@@ -20,7 +20,7 @@ import { icons } from "@/lib/constants";
 import { Button } from "../global/button";
 import { sidebarOption } from "@/lib/types";
 import { classNames } from "@/lib/helpers";
-import Logo from "../site/logo";
+import ThemedImage from "../site/logo";
 import { usePathname } from "next/navigation";
 import {
   Accordion,
@@ -76,7 +76,9 @@ const MenuOptions = ({ id, sidebarOptions, defaultOpen }: Props) => {
         <SheetDescription></SheetDescription>
         <div className="flex flex-col gap-8">
           <SheetTitle className="flex flex-col items-center gap-2">
-            <Logo size={48} />
+            <Link href={"/site"}>
+              <ThemedImage size={48} />
+            </Link>
             <p className="uppercase">primecart</p>
           </SheetTitle>
 
@@ -90,7 +92,7 @@ const MenuOptions = ({ id, sidebarOptions, defaultOpen }: Props) => {
               const active = pathname.includes(option.name.toLowerCase());
 
               return (
-                <>
+                <Fragment key={option.name}>
                   {!option.subOptions ? (
                     <Link
                       key={option.name}
@@ -168,7 +170,7 @@ const MenuOptions = ({ id, sidebarOptions, defaultOpen }: Props) => {
                       </AccordionItem>
                     </Accordion>
                   )}
-                </>
+                </Fragment>
               );
             })}
           </nav>
@@ -179,33 +181,3 @@ const MenuOptions = ({ id, sidebarOptions, defaultOpen }: Props) => {
 };
 
 export default MenuOptions;
-
-const Option = ({
-  active,
-  icon,
-  option,
-}: {
-  active: boolean;
-  icon: any;
-  option: sidebarOption;
-}) => {
-  return (
-    <Link
-      key={option.name}
-      href={option.link ?? "#"}
-      className={clsx(
-        "flex items-center gap-2",
-        "px-3 py-2 font-medium",
-        "hover:bg-transparent rounded-lg transition-all",
-        {
-          "border-2 border-dark dark:border-light text-dark dark:text-light":
-            active,
-        },
-        { "text-gray": !active }
-      )}
-    >
-      {icon}
-      <span>{option.name}</span>
-    </Link>
-  );
-};

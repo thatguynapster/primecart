@@ -2,10 +2,11 @@
 
 import { clerkClient, currentUser } from "@clerk/nextjs/server";
 import { ID, db, storage } from "./appwrite";
-import { Business, User } from "./types";
+import { Business, PaymentData, User } from "./types";
 import { Query } from "appwrite";
+import { cache } from "react";
 
-type Collections = "business" | "notifications" | "users";
+type Collections = "business" | "notifications" | "users" | "payment";
 
 const collection_id = (collection: Collections) => {
   switch (collection) {
@@ -17,6 +18,9 @@ const collection_id = (collection: Collections) => {
 
     case "users":
       return process.env["APPWRITE_USERS_COLLECTION"]!;
+
+    case "payment":
+      return process.env["APPWRITE_PAYMENT_COLLECTION"]!;
   }
 };
 
@@ -47,13 +51,18 @@ export const getAuthUserDetails = async () => {
   const user = await currentUser();
   if (!user) return;
 
-  const userData = await db.listDocuments(
-    process.env["APPWRITE_DATABASE_ID"]!,
-    collection_id("users"),
-    [Query.equal("email", user.emailAddresses[0].emailAddress)]
-  );
+  try {
+    const userData = await db.listDocuments(
+      process.env["APPWRITE_DATABASE_ID"]!,
+      collection_id("users"),
+      [Query.equal("email", user.emailAddresses[0].emailAddress)]
+    );
 
-  return userData.documents?.[0];
+    return userData.documents?.[0];
+  } catch (error) {
+    console.log(error);
+    throw new Error("Failed to get user details", { cause: error });
+  }
 };
 
 export const createBusiness = async (data: Business) => {
@@ -79,15 +88,92 @@ export const createBusiness = async (data: Business) => {
   }
 };
 
-export const getBusinessDetails = async (id: string) => {
+export const getBusinessDetails = cache(async (id: string) => {
   const user = await currentUser();
   if (!user) return;
 
-  const businessData = await db.listDocuments(
-    process.env["APPWRITE_DATABASE_ID"]!,
-    collection_id("business"),
-    [Query.equal("$id", id)]
-  );
+  try {
+    const businessData = await db.listDocuments(
+      process.env["APPWRITE_DATABASE_ID"]!,
+      collection_id("business"),
+      [Query.equal("$id", id)]
+    );
+    return businessData.documents[0];
+  } catch (error) {
+    console.log(error);
+    throw new Error("Failed to get business details", { cause: error });
+  }
+});
 
-  return businessData.documents[0];
+export const upsertPaymentDetails = async (
+  business: string,
+  data: PaymentData
+) => {
+  const user = await currentUser();
+  if (!user) return;
+
+  try {
+    const paymentExists = await db.listDocuments(
+      process.env["APPWRITE_DATABASE_ID"]!,
+      collection_id("payment"),
+      [Query.equal("business", business)]
+    );
+
+    // payment details exist. update data
+    if (paymentExists.total > 0) {
+      const paymentUpdate = await db.updateDocument(
+        process.env["APPWRITE_DATABASE_ID"]!,
+        collection_id("payment"),
+        paymentExists.documents[0].$id,
+        {
+          ...data,
+          ...(data.payment_type === "momo"
+            ? { momo: JSON.stringify(data.momo) }
+            : { bank: JSON.stringify(data.bank) }),
+        }
+      );
+
+      return paymentUpdate;
+    }
+
+    // create payment details
+    const paymentDetails = await db
+      .createDocument(
+        process.env["APPWRITE_DATABASE_ID"]!,
+        collection_id("payment"),
+        ID.unique(),
+        {
+          ...data,
+          ...(data.payment_type === "momo"
+            ? { momo: JSON.stringify(data.momo) }
+            : { bank: JSON.stringify(data.bank) }),
+        }
+      )
+      .then(
+        (response) => response,
+        (error) => {
+          throw new Error(error);
+        }
+      );
+
+    return paymentDetails;
+  } catch (error) {
+    console.log(error);
+    throw new Error("Failed to add payment details", { cause: error });
+  }
+};
+
+export const getPaymentDetails = async (business: string) => {
+  try {
+    const paymentDetails = await db.listDocuments(
+      process.env["APPWRITE_DATABASE_ID"]!,
+      collection_id("payment"),
+      [Query.equal("business", business)]
+    );
+
+    return paymentDetails.documents[0];
+  } catch (error) {
+    console.log(error);
+    throw new Error("Failed to get payment details", { cause: error });
+  }
 };

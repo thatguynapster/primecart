@@ -33,7 +33,6 @@ interface FormData {
 
 const BusinessDetails = ({ user }: Props) => {
   const router = useRouter();
-  const { setStore } = useStore();
 
   const [logoID, setLogoId] = useState<string>();
 

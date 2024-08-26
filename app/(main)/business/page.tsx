@@ -1,13 +1,17 @@
-import BusinessDetails from "@/components/forms/business-details";
-import SingleFileUpload from "@/components/global/single-file-upload";
-import { getAuthUserDetails } from "@/lib/queries";
-import { User } from "@/lib/types";
-import { routes } from "@/routes";
 import { currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import { Inter } from "next/font/google";
 import React from "react";
 
+import BusinessDetails from "@/components/forms/business-details";
+import { getAuthUserDetails } from "@/lib/queries";
+import { classNames } from "@/lib/helpers";
+import { User } from "@/lib/types";
+import { routes } from "@/routes";
+
 type Props = {};
+
+const font = Inter({ subsets: ["latin"] });
 
 const Page = async (props: Props) => {
   const authUser = await currentUser();
@@ -26,8 +30,17 @@ const Page = async (props: Props) => {
   };
 
   const authUserDetails = await getAuthUserDetails();
-  console.log("auth user details:", authUserDetails);
-  if (!authUserDetails?.business) return <BusinessDetails {...{ user }} />;
+  if (!authUserDetails?.business)
+    return (
+      <div
+        className={classNames(
+          font.className,
+          "flex items-center justify-center min-h-screen"
+        )}
+      >
+        <BusinessDetails {...{ user }} />;
+      </div>
+    );
 
   redirect(
     routes.launchpad.replace(":business_id", authUserDetails.business?.$id)

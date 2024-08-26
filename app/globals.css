@@ -40,12 +40,12 @@
 
 /* Track */
 ::-webkit-scrollbar-track {
-  @apply bg-gray;
+  @apply bg-gray dark:bg-dark-muted;
 }
 
 /* Handle */
 ::-webkit-scrollbar-thumb {
-  @apply bg-dark/85;
+  @apply bg-dark/85 dark:bg-light/85;
 }
 /* END: scrollbar style */
 

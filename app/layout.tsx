@@ -6,6 +6,7 @@ import "./globals.css";
 import { classNames } from "@/lib/helpers";
 import { MapProvider } from "@/providers/map";
 import { Toaster } from "react-hot-toast";
+import ModalProvider from "@/providers/modal-provider";
 
 const font = Montserrat({ subsets: ["latin"] });
 
@@ -29,9 +30,11 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <MapProvider>{children}</MapProvider>
+          <ModalProvider>
+            <MapProvider>{children}</MapProvider>
 
-          <Toaster position="top-right" toastOptions={{ duration: 5000 }} />
+            <Toaster position="top-right" toastOptions={{ duration: 5000 }} />
+          </ModalProvider>
         </ThemeProvider>
       </body>
     </html>

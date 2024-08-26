@@ -1,3 +1,6 @@
+import { BankData } from "@/components/forms/payment-details/bank";
+import { MomoData } from "@/components/forms/payment-details/momo";
+
 export type User = {
   username: string;
   password: string | null;
@@ -41,4 +44,11 @@ export type sidebarOption = {
     icon: string;
     link: string;
   }[];
+};
+
+export type PaymentData = {
+  business: string;
+  payment_type: "momo" | "bank";
+  momo?: MomoData;
+  bank?: BankData;
 };

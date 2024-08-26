@@ -79,7 +79,7 @@ export function Places({
   return (
     <Autocomplete
       className="w-full h-full"
-      restrictions={{ country }}
+      // restrictions={{ country }}
       onLoad={(autocomplete) => {
         autocompleteRef.current = autocomplete;
       }}

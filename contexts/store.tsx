@@ -8,7 +8,7 @@ import {
 } from "react";
 
 export interface StoreInterface {
-  business: Business;
+  business: string;
 }
 
 export const StoreContext = createContext<{
