@@ -1,46 +1,28 @@
 "use server";
 
-import { clerkClient, currentUser } from "@clerk/nextjs/server";
-import { ID, db, storage } from "./appwrite";
-import { Business, PaymentData, User } from "./types";
-import { Query } from "appwrite";
+import { Business, Users, Payment } from "@prisma/client";
+import { currentUser } from "@clerk/nextjs/server";
 import { cache } from "react";
 
-type Collections = "business" | "notifications" | "users" | "payment";
+import { db } from "./db";
 
-const collection_id = (collection: Collections) => {
-  switch (collection) {
-    case "business":
-      return process.env["APPWRITE_BUSINESS_COLLECTION"]!;
+export const initUser = async (userUpdate?: Users) => {
+  const user = await currentUser();
+  if (!user) return;
 
-    case "notifications":
-      return process.env["APPWRITE_NOTIFICAITONS_COLLECTION"]!;
-
-    case "users":
-      return process.env["APPWRITE_USERS_COLLECTION"]!;
-
-    case "payment":
-      return process.env["APPWRITE_PAYMENT_COLLECTION"]!;
-  }
-};
-
-export const createUser = async (data: User) => {
   try {
-    const user = await db
-      .createDocument(
-        process.env["APPWRITE_DATABASE_ID"]!,
-        collection_id("users"),
-        ID.unique(),
-        data
-      )
-      .then(
-        (response) => response,
-        (error) => {
-          throw new Error(error);
-        }
-      );
+    const userData = await db.users.upsert({
+      where: { email: user.emailAddresses[0].emailAddress },
+      update: { ...userUpdate },
+      create: {
+        avatar: user.imageUrl,
+        email: user.emailAddresses[0].emailAddress,
+        first_name: user.firstName ?? "",
+        last_name: user.lastName ?? "",
+      },
+    });
 
-    return user;
+    return userData;
   } catch (error) {
     console.log(error);
     throw new Error("Failed to create user", { cause: error });
@@ -52,36 +34,31 @@ export const getAuthUserDetails = async () => {
   if (!user) return;
 
   try {
-    const userData = await db.listDocuments(
-      process.env["APPWRITE_DATABASE_ID"]!,
-      collection_id("users"),
-      [Query.equal("email", user.emailAddresses[0].emailAddress)]
-    );
+    const userData = await db.users.findUnique({
+      where: {
+        email: user.emailAddresses[0].emailAddress,
+      },
+      include: {
+        business: true,
+      },
+    });
 
-    return userData.documents?.[0];
+    return userData;
   } catch (error) {
     console.log(error);
     throw new Error("Failed to get user details", { cause: error });
   }
 };
 
-export const createBusiness = async (data: Business) => {
+export const createBusiness = async (business: Omit<Business, "id">) => {
   try {
-    const business = await db
-      .createDocument(
-        process.env["APPWRITE_DATABASE_ID"]!,
-        collection_id("business"),
-        ID.unique(),
-        data
-      )
-      .then(
-        (response) => response,
-        (error) => {
-          throw new Error(error);
-        }
-      );
+    const businessDetails = await db.business.create({
+      data: {
+        ...business,
+      },
+    });
 
-    return business;
+    return businessDetails;
   } catch (error) {
     console.log(error);
     throw new Error("Failed to create business", { cause: error });
@@ -93,12 +70,13 @@ export const getBusinessDetails = cache(async (id: string) => {
   if (!user) return;
 
   try {
-    const businessData = await db.listDocuments(
-      process.env["APPWRITE_DATABASE_ID"]!,
-      collection_id("business"),
-      [Query.equal("$id", id)]
-    );
-    return businessData.documents[0];
+    const business = await db.business.findUnique({
+      where: {
+        id,
+      },
+    });
+
+    return business;
   } catch (error) {
     console.log(error);
     throw new Error("Failed to get business details", { cause: error });
@@ -107,54 +85,19 @@ export const getBusinessDetails = cache(async (id: string) => {
 
 export const upsertPaymentDetails = async (
   business: string,
-  data: PaymentData
+  data: Omit<Payment, "id">
 ) => {
   const user = await currentUser();
   if (!user) return;
 
   try {
-    const paymentExists = await db.listDocuments(
-      process.env["APPWRITE_DATABASE_ID"]!,
-      collection_id("payment"),
-      [Query.equal("business", business)]
-    );
-
-    // payment details exist. update data
-    if (paymentExists.total > 0) {
-      const paymentUpdate = await db.updateDocument(
-        process.env["APPWRITE_DATABASE_ID"]!,
-        collection_id("payment"),
-        paymentExists.documents[0].$id,
-        {
-          ...data,
-          ...(data.payment_type === "momo"
-            ? { momo: JSON.stringify(data.momo) }
-            : { bank: JSON.stringify(data.bank) }),
-        }
-      );
-
-      return paymentUpdate;
-    }
-
-    // create payment details
-    const paymentDetails = await db
-      .createDocument(
-        process.env["APPWRITE_DATABASE_ID"]!,
-        collection_id("payment"),
-        ID.unique(),
-        {
-          ...data,
-          ...(data.payment_type === "momo"
-            ? { momo: JSON.stringify(data.momo) }
-            : { bank: JSON.stringify(data.bank) }),
-        }
-      )
-      .then(
-        (response) => response,
-        (error) => {
-          throw new Error(error);
-        }
-      );
+    const paymentDetails = await db.payment.upsert({
+      where: {
+        business_id: business,
+      },
+      update: { ...data },
+      create: { ...data },
+    });
 
     return paymentDetails;
   } catch (error) {
@@ -163,15 +106,15 @@ export const upsertPaymentDetails = async (
   }
 };
 
-export const getPaymentDetails = async (business: string) => {
+export const getPaymentDetails = async (id: string) => {
   try {
-    const paymentDetails = await db.listDocuments(
-      process.env["APPWRITE_DATABASE_ID"]!,
-      collection_id("payment"),
-      [Query.equal("business", business)]
-    );
+    const paymentDetails = await db.payment.findUnique({
+      where: {
+        business_id: id,
+      },
+    });
 
-    return paymentDetails.documents[0];
+    return paymentDetails ?? { bank: null, momo: null };
   } catch (error) {
     console.log(error);
     throw new Error("Failed to get payment details", { cause: error });

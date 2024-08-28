@@ -12,29 +12,44 @@ import MoMo, { MomoData } from "./forms/payment-details/momo";
 import Bank, { BankData } from "./forms/payment-details/bank";
 import { PaymentData } from "@/lib/types";
 import { Button } from "./global/button";
+import { Payment } from "@prisma/client";
+import { useRouter } from "next/navigation";
 
 type Props = { business: string };
 
 const PaymentDetailsButton = ({ business }: Props) => {
-  console.log("business:", business);
   const { setOpen, setClose } = useModal();
-  // const [data, setData] = useState<PaymentData>();
+  const router = useRouter();
   const [payment, setPayment] = useState<{
-    bank?: BankData;
-    momo?: MomoData;
+    bank: BankData | null;
+    momo: MomoData | null;
   }>();
+
+  const fetchPaymentDetails = async () => {
+    try {
+      let payment = await getPaymentDetails(business);
+
+      setPayment({
+        bank: payment.bank,
+        momo: payment.momo,
+      });
+    } catch (error) {
+      console.log(error);
+    }
+  };
 
   const savePayment = async ({
     data,
     actions: { setSubmitting },
   }: {
-    data: PaymentData;
-    actions: Pick<FormikHelpers<PaymentData>, "setSubmitting">;
+    data: Omit<Payment, "id">;
+    actions: Pick<FormikHelpers<Payment>, "setSubmitting">;
   }) => {
     try {
       await upsertPaymentDetails(business, data);
       toast.success("Updated payment details");
       setClose();
+      fetchPaymentDetails();
     } catch (error) {
       console.log(error);
       toast.error("Failed to add payment details");
@@ -44,20 +59,6 @@ const PaymentDetailsButton = ({ business }: Props) => {
   };
 
   useEffect(() => {
-    const fetchPaymentDetails = async () => {
-      try {
-        let payment = await getPaymentDetails(business);
-        console.log(payment);
-
-        setPayment({
-          bank: JSON.parse(payment.bank),
-          momo: JSON.parse(payment.momo),
-        });
-      } catch (error) {
-        toast.error("Failed to get payment details");
-      }
-    };
-
     fetchPaymentDetails();
   }, []);
 
@@ -81,9 +82,10 @@ const PaymentDetailsButton = ({ business }: Props) => {
                     onSave={(values, { setSubmitting }) => {
                       savePayment({
                         data: {
-                          business: business,
+                          business_id: business,
                           payment_type: "momo",
                           momo: { ...values },
+                          bank: payment?.bank ?? null,
                         },
                         actions: { setSubmitting },
                       });
@@ -97,9 +99,10 @@ const PaymentDetailsButton = ({ business }: Props) => {
                     onSave={(values, { setSubmitting }) => {
                       savePayment({
                         data: {
-                          business: business,
+                          business_id: business,
                           payment_type: "bank",
                           bank: { ...values },
+                          momo: payment?.momo ?? null,
                         },
                         actions: { setSubmitting },
                       });
