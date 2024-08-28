@@ -2,7 +2,7 @@ import { Button } from "@/components/global/button";
 import PaymentDetailsButton from "@/components/payment-details-button";
 import ThemedImage from "@/components/site/logo";
 import { classNames } from "@/lib/helpers";
-import { getBusinessDetails } from "@/lib/queries";
+import { getBusinessDetails, getPaymentDetails } from "@/lib/queries";
 import { routes } from "@/routes";
 import { CheckCircleIcon } from "lucide-react";
 import Image from "next/image";
@@ -13,10 +13,11 @@ type Props = { params: { businessId: string } };
 
 const LaunchpadPage = async ({ params: { businessId } }: Props) => {
   const business = await getBusinessDetails(businessId);
+  const payment = await getPaymentDetails(businessId);
 
   if (!business) return;
 
-  const allDetailsExist: boolean =
+  const allDetailsExist =
     business?.name &&
     business?.email &&
     business?.logo &&
@@ -27,6 +28,8 @@ const LaunchpadPage = async ({ params: { businessId } }: Props) => {
     business?.state &&
     business?.state &&
     business?.zip_code;
+
+  const paymentAdded = payment.bank || payment.momo;
 
   return (
     <div
@@ -60,7 +63,14 @@ const LaunchpadPage = async ({ params: { businessId } }: Props) => {
           </p>
         </div>
 
-        <PaymentDetailsButton business={business.$id} />
+        {paymentAdded ? (
+          <CheckCircleIcon
+            size={50}
+            className="text-dark dark:text-light p-2 flex-shrink-0"
+          />
+        ) : (
+          <PaymentDetailsButton business={business.id} />
+        )}
       </div>
 
       <div className="flex p-2.5 justify-between items-center">

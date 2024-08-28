@@ -17,27 +17,27 @@ const Sidebar = async ({ id }: Props) => {
     {
       name: "Launchpad",
       icon: "clipboard",
-      link: routes.launchpad.replace(":business_id", user.business.$id),
+      link: routes.launchpad.replace(":business_id", user.business.id),
     },
     {
       name: "Dashboard",
       icon: "dashboard",
-      link: routes.dashboard.replace(":business_id", user.business.$id),
+      link: routes.dashboard.replace(":business_id", user.business.id),
     },
     {
       name: "Orders",
       icon: "cart",
-      link: routes.inventory.index.replace(":business_id", user.business.$id),
+      link: routes.inventory.index.replace(":business_id", user.business.id),
     },
     {
       name: "Inventory",
       icon: "inventory",
-      link: routes.inventory.index.replace(":business_id", user.business.$id),
+      link: routes.inventory.index.replace(":business_id", user.business.id),
     },
     {
       name: "Customers",
       icon: "customer",
-      link: routes.customers.index.replace(":business_id", user.business.$id),
+      link: routes.customers.index.replace(":business_id", user.business.id),
     },
     {
       name: "Finances",
@@ -48,7 +48,7 @@ const Sidebar = async ({ id }: Props) => {
           icon: "subNavStart",
           link: routes.finances.overview.replace(
             ":business_id",
-            user.business.$id
+            user.business.id
           ),
         },
         {
@@ -56,7 +56,7 @@ const Sidebar = async ({ id }: Props) => {
           icon: "subNavEnd",
           link: routes.finances.payout.replace(
             ":business_id",
-            user.business.$id
+            user.business.id
           ),
         },
         {
@@ -64,7 +64,7 @@ const Sidebar = async ({ id }: Props) => {
           icon: "subNavEnd",
           link: routes.finances.payout.replace(
             ":business_id",
-            user.business.$id
+            user.business.id
           ),
         },
       ],
@@ -72,7 +72,7 @@ const Sidebar = async ({ id }: Props) => {
     {
       name: "Settings",
       icon: "settings",
-      link: routes.settings.replace(":business_id", user.business.$id),
+      link: routes.settings.replace(":business_id", user.business.id),
     },
   ];
 

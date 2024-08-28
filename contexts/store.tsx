@@ -1,4 +1,3 @@
-import { Business } from "@/lib/types";
 import {
   Dispatch,
   SetStateAction,

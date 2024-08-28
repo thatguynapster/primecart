@@ -9,7 +9,7 @@ import * as schema from "@/lib/schema";
 import { Button } from "@/components/global/button";
 
 type Props = {
-  data?: BankData;
+  data?: BankData | null;
   onSave: (
     values: BankData,
     actions: Pick<FormikHelpers<BankData>, "setSubmitting">

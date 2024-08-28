@@ -37,12 +37,10 @@
   width: 5px;
   height: 5px;
 }
-
 /* Track */
 ::-webkit-scrollbar-track {
   @apply bg-gray dark:bg-dark-muted;
 }
-
 /* Handle */
 ::-webkit-scrollbar-thumb {
   @apply bg-dark/85 dark:bg-light/85;

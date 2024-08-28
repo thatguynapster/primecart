@@ -2,16 +2,14 @@
 
 import { useState } from "react";
 import {
-  Label,
   Listbox,
   ListboxButton,
   ListboxOption,
   ListboxOptions,
 } from "@headlessui/react";
 import { CheckIcon } from "@heroicons/react/20/solid";
+import { ChevronsUpDownIcon } from "lucide-react";
 import { classNames } from "@/lib/helpers";
-import { ChevronDownIcon, ChevronsUpDownIcon } from "lucide-react";
-import { MomoData } from "@/components/forms/payment-details/momo";
 
 type Options = { label: string; value: string };
 type Props = {
@@ -19,6 +17,7 @@ type Props = {
   options: Options[];
   placeholder: string;
   value: string;
+  defaultValue: string;
 };
 
 export default function Select({
@@ -26,9 +25,11 @@ export default function Select({
   options,
   placeholder,
   value,
+  defaultValue,
 }: Props) {
   const [selected, setSelected] = useState(
-    options.find((option) => option.value === value)!
+    options.find((option) => option.value === value) ??
+      options.find((option) => option.value === defaultValue)
   );
 
   return (

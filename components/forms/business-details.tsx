@@ -2,22 +2,22 @@
 
 import { Form, Formik, FormikHelpers } from "formik";
 import { useRouter } from "next/navigation";
+import { Business } from "@prisma/client";
 import React, { useState } from "react";
 import toast from "react-hot-toast";
-import { object, ref } from "yup";
+import { object } from "yup";
 
 import { removeFile, uploadFile } from "@/lib/file-handler";
 import SingleFileUpload from "../global/single-file-upload";
+import { createBusiness, initUser } from "@/lib/queries";
 import * as Field from "@/components/global/Field";
+import { classNames } from "@/lib/helpers";
 import { Button } from "../global/button";
-import { Business, Location } from "@/lib/types";
+import { Location } from "@/lib/types";
 import * as schema from "@/lib/schema";
 import { routes } from "@/routes";
-import { currentUser } from "@clerk/nextjs/server";
-import { createBusiness, createUser, getAuthUserDetails } from "@/lib/queries";
-import useStore from "@/hooks/useStore";
 
-type Props = { user: any };
+type Props = { data?: Partial<Business> };
 
 interface FormData {
   name: string;
@@ -31,7 +31,7 @@ interface FormData {
   zip_code: string;
 }
 
-const BusinessDetails = ({ user }: Props) => {
+const BusinessDetails = ({ data }: Props) => {
   const router = useRouter();
 
   const [logoID, setLogoId] = useState<string>();
@@ -73,24 +73,34 @@ const BusinessDetails = ({ user }: Props) => {
   ) => {
     try {
       // create user
+      const authUser = await initUser();
 
-      // check if user already exists
-      let existingUser = await getAuthUserDetails();
-      console.log(existingUser);
-
-      if (!existingUser) existingUser = await createUser(user);
-
-      // create business
-      const businessData = {
-        ...values,
-        location: JSON.stringify(values.location),
-        user: existingUser.$id,
-      };
-
-      const business = await createBusiness(businessData);
+      const business = await createBusiness({
+        name: values.name,
+        email: values.email,
+        logo: values.logo,
+        phone: values.phone,
+        country: values.country,
+        city: values.city,
+        state: values.state,
+        zip_code: values.zip_code,
+        is_deleted: false,
+        deletedAt: null,
+        user_id: authUser?.id!,
+        location: {
+          address: values.location.address,
+          country: values.location.country,
+          country_code: values.location.country_code,
+          city: values.location.city,
+          longitude: values.location.longitude,
+          latitude: values.location.latitude,
+          region: values.location.region,
+        },
+      });
 
       toast.success("account created");
-      router.push(routes.launchpad.replace(":business_id", business.$id));
+
+      router.push(routes.launchpad.replace(":business_id", business.id));
     } catch (error) {
       console.log(error);
       toast.error("Failed to create business");
@@ -100,7 +110,14 @@ const BusinessDetails = ({ user }: Props) => {
   };
 
   return (
-    <div className="flex flex-col gap-4 w-full max-w-[850px] border-2 p-6 rounded-xl">
+    <div
+      className={classNames(
+        "flex flex-col gap-4",
+        "w-full max-w-[850px]",
+        "border-2 p-6 rounded-xl",
+        "bg-light dark:bg-dark"
+      )}
+    >
       <h1 className="text-xl text-center font-bold">Business Information</h1>
 
       <p className="text-sm font-medium text-center">
@@ -134,6 +151,8 @@ const BusinessDetails = ({ user }: Props) => {
             longitude: 0,
             country: "",
             city: "",
+            country_code: "",
+            region: "",
           },
           phone: "",
           country: "",

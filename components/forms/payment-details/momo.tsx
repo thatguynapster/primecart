@@ -10,7 +10,7 @@ import { Button } from "@/components/global/button";
 import { PaymentData } from "@/lib/types";
 
 type Props = {
-  data?: MomoData;
+  data?: MomoData | null;
   onSave: (
     values: MomoData,
     actions: Pick<FormikHelpers<MomoData>, "setSubmitting">
@@ -48,7 +48,7 @@ const MoMo = ({ data, onSave }: Props) => {
         account_name: schema.requireFullName("Account Name"),
       })}
       initialValues={{
-        provider: data?.provider || "",
+        provider: data?.provider || "MTN",
         account_number: data?.account_number || "",
         account_name: data?.account_name || "",
       }}
@@ -74,6 +74,7 @@ const MoMo = ({ data, onSave }: Props) => {
             required
           >
             <Field.Select
+              defaultValue={providers[0].value}
               value={values.provider}
               options={providers}
               onChange={({ value }: { value: MomoData["provider"] }) => {
