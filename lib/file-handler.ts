@@ -1,7 +1,7 @@
-import { clerkClient, currentUser } from "@clerk/nextjs/server";
-import { ID, db, storage } from "./appwrite";
+import { ID, storage } from "./appwrite";
+import { Bucket } from "./types";
 
-const bucket_id = (bucket: "business" | "product" | "media") => {
+const bucket_id = (bucket: Bucket) => {
   switch (bucket) {
     case "business":
       return process.env.NEXT_PUBLIC_APPWRITE_BUSINESS_BUCKET_ID!;
@@ -45,7 +45,7 @@ export const removeFile = async ({
   bucket,
   file_id,
 }: {
-  bucket: "business" | "product" | "media";
+  bucket: Bucket;
   file_id: string;
 }) => {
   try {
@@ -54,4 +54,19 @@ export const removeFile = async ({
   } catch (error) {
     throw new Error("Failed to delete image");
   }
+};
+
+export const handleImageUpload = async (file: File, bucket: Bucket) => {
+  const response = await uploadFile({
+    bucket,
+    file,
+  });
+  return response;
+};
+
+export const deleteFile = async (logoID: string, bucket: Bucket) => {
+  await removeFile({
+    bucket,
+    file_id: logoID!,
+  });
 };

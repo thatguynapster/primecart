@@ -9,11 +9,11 @@ import Image from "next/image";
 import { redirect } from "next/navigation";
 import React from "react";
 
-type Props = { params: { businessId: string } };
+type Props = { params: { business_id: string } };
 
-const LaunchpadPage = async ({ params: { businessId } }: Props) => {
-  const business = await getBusinessDetails(businessId);
-  const payment = await getPaymentDetails(businessId);
+const LaunchpadPage = async ({ params: { business_id } }: Props) => {
+  const business = await getBusinessDetails(business_id);
+  const payment = await getPaymentDetails(business_id);
 
   if (!business) return;
 

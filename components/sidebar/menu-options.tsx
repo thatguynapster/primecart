@@ -70,7 +70,7 @@ const MenuOptions = ({ id, sidebarOptions, defaultOpen }: Props) => {
         className={clsx(
           "backdrop-blur-xl fixed top-0 border-r-2",
           { "hidden md:inline-block z-0 w-[280px]": defaultOpen },
-          { "inline-block md:hidden z-[100] w-full": !defaultOpen }
+          { "inline-block md:hidden z-[100]": !defaultOpen }
         )}
       >
         <SheetDescription></SheetDescription>

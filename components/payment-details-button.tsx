@@ -47,9 +47,9 @@ const PaymentDetailsButton = ({ business }: Props) => {
   }) => {
     try {
       await upsertPaymentDetails(business, data);
+      await fetchPaymentDetails();
       toast.success("Updated payment details");
       setClose();
-      fetchPaymentDetails();
     } catch (error) {
       console.log(error);
       toast.error("Failed to add payment details");

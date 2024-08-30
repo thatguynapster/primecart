@@ -7,7 +7,12 @@ import React, { useState } from "react";
 import toast from "react-hot-toast";
 import { object } from "yup";
 
-import { removeFile, uploadFile } from "@/lib/file-handler";
+import {
+  deleteFile,
+  handleImageUpload,
+  removeFile,
+  uploadFile,
+} from "@/lib/file-handler";
 import SingleFileUpload from "../global/single-file-upload";
 import { createBusiness, initUser } from "@/lib/queries";
 import * as Field from "@/components/global/Field";
@@ -35,37 +40,6 @@ const BusinessDetails = ({ data }: Props) => {
   const router = useRouter();
 
   const [logoID, setLogoId] = useState<string>();
-
-  const handleImageUpload = async ({
-    file,
-    actions: { setFieldValue },
-  }: {
-    file: File;
-    actions: Pick<FormikHelpers<Partial<Business>>, "setFieldValue">;
-  }) => {
-    const response = await uploadFile({
-      bucket: "business",
-      file,
-    });
-    setFieldValue("logo", response?.href);
-    setLogoId(response?.file_id);
-  };
-
-  const deleteFile = async ({
-    actions: { setFieldValue },
-  }: {
-    actions: Pick<FormikHelpers<Partial<Business>>, "setFieldValue">;
-  }) => {
-    toast.loading("removing logo", { duration: Infinity });
-
-    await removeFile({
-      bucket: "business",
-      file_id: logoID!,
-    });
-
-    setFieldValue("logo", "");
-    toast.dismiss();
-  };
 
   const handleSubmit = async (
     values: FormData,
@@ -185,11 +159,18 @@ const BusinessDetails = ({ data }: Props) => {
                 value={values.logo}
                 name="images"
                 type={"image"}
-                onValueChanged={(file: File) => {
-                  handleImageUpload({ file, actions: { setFieldValue } });
+                onValueChanged={async (file: File) => {
+                  const uploaded_file = await handleImageUpload(
+                    file,
+                    "business"
+                  );
+                  setFieldValue("logo", uploaded_file.href);
+                  setLogoId(uploaded_file.file_id);
                 }}
-                deleteFile={() => {
-                  deleteFile({ actions: { setFieldValue } });
+                deleteFile={async () => {
+                  await deleteFile(logoID!, "business");
+
+                  setFieldValue("logo", "");
                 }}
                 {...{ setFieldTouched }}
               />

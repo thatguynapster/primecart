@@ -28,3 +28,5 @@ export type PaymentData = {
   momo?: MomoData;
   bank?: BankData;
 };
+
+export type Bucket = "business" | "product" | "media";

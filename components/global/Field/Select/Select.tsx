@@ -11,16 +11,18 @@ import { CheckIcon } from "@heroicons/react/20/solid";
 import { ChevronsUpDownIcon } from "lucide-react";
 import { classNames } from "@/lib/helpers";
 
-type Options = { label: string; value: string };
+export type SelectOptions = { label: string; value: string };
 type Props = {
-  onChange: (option: any) => void;
-  options: Options[];
+  addNew?: { text: string; action: () => void };
+  onChange: (option: SelectOptions) => void;
+  options: SelectOptions[];
   placeholder: string;
   value: string;
   defaultValue: string;
 };
 
 export default function Select({
+  addNew,
   onChange,
   options,
   placeholder,
@@ -34,7 +36,7 @@ export default function Select({
 
   return (
     <Listbox value={selected} onChange={setSelected}>
-      <div className="relative mt-2">
+      <div className="relative">
         <ListboxButton
           className={classNames(
             "relative w-full cursor-default px-3.5 py-2.5 text-left text-sm",
@@ -90,6 +92,28 @@ export default function Select({
               </span>
             </ListboxOption>
           ))}
+
+          {addNew && (
+            <ListboxOption
+              value={"new"}
+              className={classNames(
+                "group relative cursor-default select-none",
+                "py-2 pl-8 pr-4",
+                "data-[focus]:text-light dark:data-[focus]:text-dark",
+                "cursor-pointer"
+              )}
+              onClick={addNew.action}
+            >
+              <span
+                className={classNames(
+                  "block truncate font-normal group-data-[selected]:font-semibold",
+                  "text-blue-600 font-semibold"
+                )}
+              >
+                {addNew.text ?? "Add New"}
+              </span>
+            </ListboxOption>
+          )}
         </ListboxOptions>
       </div>
     </Listbox>

@@ -8,6 +8,7 @@ import * as Field from "@/components/global/Field";
 import * as schema from "@/lib/schema";
 import { Button } from "@/components/global/button";
 import { PaymentData } from "@/lib/types";
+import { SelectOptions } from "@/components/global/Field/Select/Select";
 
 type Props = {
   data?: MomoData | null;
@@ -77,7 +78,7 @@ const MoMo = ({ data, onSave }: Props) => {
               defaultValue={providers[0].value}
               value={values.provider}
               options={providers}
-              onChange={({ value }: { value: MomoData["provider"] }) => {
+              onChange={({ value }: SelectOptions) => {
                 setFieldValue("provider", value);
               }}
               placeholder="Momo Provider"

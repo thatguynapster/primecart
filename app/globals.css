@@ -51,3 +51,7 @@
   width: 2rem;
   height: 2rem;
 }
+
+.ProseMirror {
+  @apply min-h-24;
+}

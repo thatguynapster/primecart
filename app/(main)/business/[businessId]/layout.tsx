@@ -8,10 +8,10 @@ import { currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import React, { ReactNode } from "react";
 
-type Props = { children: ReactNode; params: { businessId: string } };
+type Props = { children: ReactNode; params: { business_id: string } };
 
-const Layout = async ({ children, params: { businessId } }: Props) => {
-  const business = await getBusinessDetails(businessId);
+const Layout = async ({ children, params: { business_id } }: Props) => {
+  const business = await getBusinessDetails(business_id);
 
   const user = await currentUser();
 
@@ -27,13 +27,11 @@ const Layout = async ({ children, params: { businessId } }: Props) => {
         "dark:bg-dark dark:text-light"
       )}
     >
-      <Sidebar id={businessId} />
+      <Sidebar id={business_id} />
 
-      <div className="md:pl-[280px]">
-        <InfoBar />
-        <div className="relative mt-16 p-6 min-h-[calc(100vh-64px)] overflow-y-auto">
-          {children}
-        </div>
+      <InfoBar />
+      <div className="md:pl-[280px] h-full min-h-[calc(100vh-64px)] overflow-y-auto">
+        <div className="relative mt-16 p-6">{children}</div>
       </div>
     </div>
   );

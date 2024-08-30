@@ -51,6 +51,7 @@ model Business {
   user     Users      @relation(fields: [user_id], references: [id])
   products Products[]
   payment  Payment[]
+  categories  ProductCategories[]
 }
 
 type Bank {
@@ -83,28 +84,34 @@ model Payment {
 }
 
 model Products {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
   name        String
   description String
   images      String[]
   is_deleted  Boolean
-  deletedAt   DateTime
+  deletedAt   DateTime?
+  cost_price String
 
-  businessId String   @db.ObjectId
-  business   Business @relation(fields: [businessId], references: [id])
+  business_id String   @db.ObjectId
+  business   Business @relation(fields: [business_id], references: [id])
 
-  categoryId String            @db.ObjectId
-  category   ProductCategories @relation(fields: [categoryId], references: [id])
+  category_id String            @db.ObjectId
+  category   ProductCategories @relation(fields: [category_id], references: [id])
+
+  orders OrderProducts[]
 
   variations ProductVariations[] // One-to-many relationship with ProductVariation
 }
 
 model ProductCategories {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
   name        String
   description String
   is_deleted  Boolean
-  deletedAt   DateTime
+  deletedAt   DateTime?
+
+  business_id String   @db.ObjectId
+  business   Business @relation(fields: [business_id], references: [id])
 
   products Products[] // One-to-many relationship
 }
@@ -112,14 +119,14 @@ model ProductCategories {
 model ProductVariations {
   id         String    @id @default(auto()) @map("_id") @db.ObjectId
   sku        String
-  price      Float
+  price      String
   quantity   Int
-  attributes Json[]
+  attributes Json
   is_deleted Boolean
   deletedAt  DateTime?
 
-  productId String   @db.ObjectId
-  product   Products @relation(fields: [productId], references: [id])
+  product_id String   @db.ObjectId
+  product   Products @relation(fields: [product_id], references: [id])
 
   orders OrderProducts[]
 }
@@ -139,6 +146,9 @@ model OrderProducts {
 
   quantity Int
 
+  product_id String   @unique @db.ObjectId
+  product    Products @relation(fields: [product_id], references: [id])
+
   product_variation_id String            @db.ObjectId
   product_variation    ProductVariations @relation(fields: [product_variation_id], references: [id])
 
@@ -149,7 +159,7 @@ model OrderProducts {
 model OrderPayment {
   id          String @id @default(uuid()) @map("_id")
   provider    String // Payment provider, e.g., Stripe, PayPal
-  checkoutUrl String // URL for the checkout process
+  checkout_url String // URL for the checkout process
   status      String // Payment status, e.g., pending, completed, failed - obtained from payment provideer
 
   order_id String?        @unique // Ensures a one-to-one relationship

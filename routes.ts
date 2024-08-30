@@ -8,7 +8,7 @@ export const routes = {
   },
   inventory: {
     index: "/business/:business_id/inventory",
-    details: "/business/:business_id/inventory/:inventory_id",
+    details: "/business/:business_id/inventory/:product_id",
   },
   customers: {
     index: "/business/:business_id/customers",

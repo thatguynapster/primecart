@@ -13,9 +13,9 @@ const SubNavStart = (props: IconProps) => {
       <path
         d="M21 19H19C11.4575 19 7.68629 19 5.34315 21.3431C3 23.6863 3 27.4575 3 35L3 38"
         stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="square"
-        stroke-linejoin="round"
+        strokeWidth="2"
+        strokeLinecap="square"
+        strokeLinejoin="round"
       />
     </svg>
   );

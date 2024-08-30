@@ -59,14 +59,6 @@ const Sidebar = async ({ id }: Props) => {
             user.business.id
           ),
         },
-        {
-          name: "Payouts",
-          icon: "subNavEnd",
-          link: routes.finances.payout.replace(
-            ":business_id",
-            user.business.id
-          ),
-        },
       ],
     },
     {
