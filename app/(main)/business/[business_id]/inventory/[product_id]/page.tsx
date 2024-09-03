@@ -4,14 +4,14 @@ import ProductImages from "@/components/inventory/product-images";
 import { classNames } from "@/lib/helpers";
 import React from "react";
 
-type Props = { params: { product_id: string } };
+type Props = { params: { business_id: string; product_id: string } };
 
-const ProductDetailsPage = ({ params: { product_id } }: Props) => {
+const ProductDetailsPage = ({ params: { business_id, product_id } }: Props) => {
   return (
     <div className="flex flex-col gap-4">
       <BackButton showText={false} withIcon={true} />
 
-      <ProductDetails />
+      <ProductDetails {...{ business_id }} />
     </div>
   );
 };

@@ -15,16 +15,35 @@ import * as Field from "@/components/global/Field";
 import { Button } from "../global/button";
 import { Table } from "../global/Table";
 import * as schema from "@/lib/schema";
-import { useRouter } from "next/navigation";
+import { redirect, useRouter } from "next/navigation";
+import { createProduct } from "@/lib/queries";
+import { routes } from "@/routes";
+import toast from "react-hot-toast";
 
-type Props = { data?: Products };
+type Props = { business_id: string; data?: Products };
 
-const ProductDetails = ({ data }: Props) => {
+interface Variation {
+  price: number;
+  quantity: number;
+  attributes: Record<string, string>;
+}
+interface FormData {
+  name: string;
+  description: string;
+  images: string[];
+  business_id: string;
+  category_id: string;
+  cost_price: number;
+
+  variations: Variation[];
+}
+
+const ProductDetails = ({ business_id, data }: Props) => {
   const { setOpen, setClose } = useModal();
   const router = useRouter();
 
   const [editVariant, setEditVariant] = useState<{
-    values: Partial<ProductVariations>;
+    values: Variation;
     index: number;
   } | null>(null);
 
@@ -32,28 +51,28 @@ const ProductDetails = ({ data }: Props) => {
   const categories: SelectOptions[] = [
     {
       label: "Category 1",
-      value: "category_1",
+      value: "66ce5ab722337a2f84311559",
     },
   ];
 
   //  WIP: create product in db
-  const createProduct = async (
-    product: Partial<Products & { variants: Partial<ProductVariations>[] }>,
-    {
-      setSubmitting,
-      resetForm,
-    }: Pick<
-      FormikHelpers<Products & { variants: Partial<ProductVariations>[] }>,
-      "setSubmitting" | "resetForm"
-    >
+  const _createProduct = async (
+    product: FormData,
+    { setSubmitting }: Pick<FormikHelpers<FormData>, "setSubmitting">
   ) => {
-    console.log(product);
+    try {
+      console.log(product);
+      const { variations: _, ...productData } = product;
 
-    setTimeout(() => {
-      // resetForm();
-      // setSubmitting(false);
-      router.back();
-    }, 3000);
+      await createProduct(productData, [...product.variations]);
+
+      toast.success(`Product ${product.name} added.`);
+      router.push(routes.inventory.index.replace(":business_id", business_id));
+    } catch (error) {
+      throw new Error("Failed to create product", { cause: error });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -62,31 +81,23 @@ const ProductDetails = ({ data }: Props) => {
       enableReinitialize
       validationSchema={object({
         name: schema.requireString("Product Name"),
-        cost_price: schema.requireString("Cost Price"),
-        category_id: schema.requireString("Category"),
         images: schema.requireArray("Product Images").min(1),
+        category_id: schema.requireString("Category"),
+        cost_price: schema.requireNumber("Cost Price"),
       })}
       initialValues={{
         name: "",
         description: "",
         images: [],
-        business_id: "",
-        category_id: "",
-        cost_price: "",
+        business_id: business_id,
+        category_id: categories[0].value ?? "",
+        cost_price: 0,
 
-        variants: [],
+        variations: [],
       }}
-      onSubmit={async (
-        values: Partial<Products & { variants: Partial<ProductVariations>[] }>,
-        {
-          setSubmitting,
-          resetForm,
-        }: Pick<
-          FormikHelpers<Products & { variants: Partial<ProductVariations>[] }>,
-          "setSubmitting" | "resetForm"
-        >
-      ) => {
-        await createProduct(values, { setSubmitting, resetForm });
+      onSubmit={(values: FormData, { setSubmitting }) => {
+        setSubmitting(true);
+        _createProduct(values, { setSubmitting });
       }}
     >
       {({ values, isValid, isSubmitting, handleSubmit, setFieldValue }) => (
@@ -98,7 +109,7 @@ const ProductDetails = ({ data }: Props) => {
                 <Field.Group
                   className="w-full"
                   name="name"
-                  label="Product Name"
+                  label="Name"
                   required
                 >
                   <Field.Input
@@ -106,7 +117,7 @@ const ProductDetails = ({ data }: Props) => {
                     name="name"
                     type="text"
                     value={values.name}
-                    placeholder="Bleeder Crafts"
+                    placeholder="Eg: Google Pixel 8 Pro"
                   />
                 </Field.Group>
 
@@ -123,7 +134,6 @@ const ProductDetails = ({ data }: Props) => {
                         setOpen(<AddCategoryModal {...{ setClose }} />);
                       },
                     }}
-                    defaultValue={categories[0].value}
                     value={values.category_id!}
                     options={categories}
                     onChange={({ value }: SelectOptions) => {
@@ -156,7 +166,7 @@ const ProductDetails = ({ data }: Props) => {
                   min={0}
                   step={0.1}
                   value={values.cost_price}
-                  placeholder="Bleeder Crafts"
+                  placeholder="Eg: 10.99"
                 />
               </Field.Group>
             </div>
@@ -174,10 +184,10 @@ const ProductDetails = ({ data }: Props) => {
                   </thead>
 
                   <tbody className="divide-y">
-                    {values.variants?.map((variant, i) => (
+                    {values.variations?.map((variant, i) => (
                       <tr key={i} className="group">
                         <Table.TD>
-                          {Object.values(variant.attributes!)
+                          {Object.values(variant.attributes)
                             .map((attr, i) => attr)
                             .join(" / ")}
                         </Table.TD>
@@ -191,7 +201,10 @@ const ProductDetails = ({ data }: Props) => {
                               <div
                                 className="p-2 cursor-pointer"
                                 onClick={() => {
-                                  setEditVariant({ values: variant, index: i });
+                                  setEditVariant({
+                                    values: variant,
+                                    index: i,
+                                  });
                                 }}
                               >
                                 <Pencil size={16} />
@@ -199,7 +212,9 @@ const ProductDetails = ({ data }: Props) => {
                               <div
                                 className="p-2 cursor-pointer bg-error rounded-lg"
                                 onClick={() => {
-                                  const updatedVariants = [...values.variants!];
+                                  const updatedVariants = [
+                                    ...values.variations!,
+                                  ];
                                   updatedVariants.splice(i, 1);
 
                                   setFieldValue("variants", updatedVariants);
@@ -212,32 +227,35 @@ const ProductDetails = ({ data }: Props) => {
                         </Table.TD>
                       </tr>
                     ))}
+
+                    {!values.variations?.length && (
+                      <Table.Empty
+                        field="variants"
+                        title="Save a variant to see them here"
+                      />
+                    )}
                   </tbody>
                 </Table>
               </div>
 
               <VariantDetails
                 data={editVariant}
-                addVariant={(variants, { setSubmitting }) => {
+                addVariant={(variants) => {
                   //  check if editing product
                   if (editVariant) {
-                    const updatedVariants = [...values.variants!];
+                    const updatedVariants = [...values.variations!];
                     updatedVariants[editVariant.index] = variants;
 
                     setEditVariant(null);
-                    return setFieldValue("variants", updatedVariants);
+                    console.log(updatedVariants);
+                    return setFieldValue("variations", updatedVariants);
                   }
 
-                  console.log(variants);
-
-                  const newVariants = [...values.variants!];
+                  const newVariants = [...values.variations!];
                   newVariants.push(variants);
+                  console.log(newVariants);
 
-                  setFieldValue("variants", newVariants);
-
-                  setTimeout(() => {
-                    setSubmitting(false);
-                  }, 3000);
+                  setFieldValue("variations", newVariants);
                 }}
               />
             </div>
@@ -245,7 +263,7 @@ const ProductDetails = ({ data }: Props) => {
             <Button
               className="w-max"
               disabled={!isValid}
-              type="button"
+              type="submit"
               onClick={() => {
                 handleSubmit();
               }}

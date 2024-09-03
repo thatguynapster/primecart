@@ -111,12 +111,15 @@ const MultipleFileUpload = ({
         )}
 
         {!files.length && (
-          <p
-            className="text-sm text-info text-center cursor-pointer"
-            onClick={() => imageRef.current.click()}
-          >
-            Select File
-          </p>
+          <div className="w-20 text-center">
+            <p
+              className="text-sm text-info text-center cursor-pointer"
+              onClick={() => imageRef.current.click()}
+            >
+              Select File
+            </p>
+            <em className="text-sm">Max {limit} images</em>
+          </div>
         )}
 
         {files.length > 0 &&
@@ -152,7 +155,7 @@ const MultipleFileUpload = ({
                       className="rotate-0 scale-100 transition-all"
                     />
 
-                    <span className="sr-only">Image Opttions</span>
+                    <span className="sr-only">Image Options</span>
                   </MenuButton>
 
                   <MenuItems

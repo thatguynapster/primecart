@@ -37,6 +37,7 @@ const ProductImages = ({ onUpdate }: Props) => {
         <Image
           src={images[0]?.href ?? "/img/logo.png"}
           alt={"Product Thumbnail"}
+          priority
           fill
           // width={306}
           // height={306}

@@ -24,7 +24,9 @@ const InventoryPage = async ({ params: { business_id } }: Props) => {
       deletedAt: null,
       business_id: "",
       category_id: "",
-      cost_price: "",
+      cost_price: 0,
+      createdAt: null,
+      updatedAt: null,
     },
     {
       id: "some-random-id-2",
@@ -35,7 +37,9 @@ const InventoryPage = async ({ params: { business_id } }: Props) => {
       deletedAt: null,
       business_id: "",
       category_id: "",
-      cost_price: "",
+      cost_price: 0,
+      createdAt: null,
+      updatedAt: null,
     },
     {
       id: "some-random-id-3",
@@ -46,7 +50,9 @@ const InventoryPage = async ({ params: { business_id } }: Props) => {
       deletedAt: null,
       business_id: "",
       category_id: "",
-      cost_price: "",
+      cost_price: 0,
+      createdAt: null,
+      updatedAt: null,
     },
     {
       id: "some-random-id-4",
@@ -57,7 +63,9 @@ const InventoryPage = async ({ params: { business_id } }: Props) => {
       deletedAt: null,
       business_id: "",
       category_id: "",
-      cost_price: "",
+      cost_price: 0,
+      createdAt: null,
+      updatedAt: null,
     },
   ];
   return (

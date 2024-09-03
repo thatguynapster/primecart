@@ -1,6 +1,12 @@
 "use server";
 
-import { Business, Users, Payment } from "@prisma/client";
+import {
+  Business,
+  Users,
+  Payment,
+  Products,
+  ProductVariations,
+} from "@prisma/client";
 import { currentUser } from "@clerk/nextjs/server";
 import { cache } from "react";
 
@@ -50,7 +56,9 @@ export const getAuthUserDetails = async () => {
   }
 };
 
-export const createBusiness = async (business: Omit<Business, "id">) => {
+export const createBusiness = async (
+  business: Omit<Business, "id" | "createdAt" | "updatedAt">
+) => {
   try {
     const businessDetails = await db.business.create({
       data: {
@@ -85,7 +93,7 @@ export const getBusinessDetails = cache(async (id: string) => {
 
 export const upsertPaymentDetails = async (
   business: string,
-  data: Omit<Payment, "id">
+  data: Omit<Payment, "id" | "createdAt" | "updatedAt">
 ) => {
   const user = await currentUser();
   if (!user) return;
@@ -118,5 +126,40 @@ export const getPaymentDetails = async (id: string) => {
   } catch (error) {
     console.log(error);
     throw new Error("Failed to get payment details", { cause: error });
+  }
+};
+
+export const createProduct = async (
+  product: Omit<
+    Products,
+    "id" | "createdAt" | "updatedAt" | "is_deleted" | "deletedAt"
+  >,
+  variations: Pick<ProductVariations, "price" | "quantity" | "attributes">[]
+) => {
+  try {
+    console.log("product:", product);
+    console.log("variations:", variations);
+    // create product
+    const productDetails = await db.products.create({
+      data: product,
+    });
+
+    console.log(productDetails);
+
+    const variationData = variations.map((variant) => {
+      return {
+        ...variant,
+        attributes: variant.attributes!,
+        product_id: productDetails.id,
+      };
+    });
+
+    // create variation using product id
+    const variationDetails = await db.productVariations.createMany({
+      data: variationData,
+    });
+  } catch (error) {
+    console.log(error);
+    throw new Error("Failed to create product", { cause: error });
   }
 };

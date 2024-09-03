@@ -23,7 +23,7 @@ export const TextEditor = ({ content, onChange }: TextEditorProps) => {
   const editor = useEditor({
     extensions: [
       Image.configure({ inline: true, allowBase64: true }),
-      ImageResize,
+      // ImageResize,
       TextAlign.configure({
         types: ["paragraph"],
       }),
@@ -35,6 +35,7 @@ export const TextEditor = ({ content, onChange }: TextEditorProps) => {
       // }),
     ],
     content: content,
+    immediatelyRender: false,
   });
 
   useEffect(() => {

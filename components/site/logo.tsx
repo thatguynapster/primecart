@@ -22,6 +22,7 @@ const ThemedImage = ({
       <Image
         src={imgSrc.light}
         alt={"PrimeCart"}
+        priority
         fill
         sizes="(max-width: 1200px) 100vw, (max-width: 768px) 50vw, 33vw"
         className="dark:hidden"
@@ -30,6 +31,7 @@ const ThemedImage = ({
       <Image
         src={imgSrc.dark}
         alt={"PrimeCart"}
+        priority
         fill
         sizes="(max-width: 1200px) 100vw, (max-width: 768px) 50vw, 33vw"
         className="hidden dark:block"

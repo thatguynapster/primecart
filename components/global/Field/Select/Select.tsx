@@ -18,7 +18,7 @@ type Props = {
   options: SelectOptions[];
   placeholder: string;
   value: string;
-  defaultValue: string;
+  // defaultValue: string;
 };
 
 export default function Select({
@@ -27,11 +27,11 @@ export default function Select({
   options,
   placeholder,
   value,
-  defaultValue,
-}: Props) {
+}: // defaultValue,
+Props) {
   const [selected, setSelected] = useState(
-    options.find((option) => option.value === value) ??
-      options.find((option) => option.value === defaultValue)
+    options.find((option) => option.value === value)
+    // ?? options.find((option) => option.value === defaultValue)
   );
 
   return (

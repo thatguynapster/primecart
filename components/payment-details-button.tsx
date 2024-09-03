@@ -42,7 +42,7 @@ const PaymentDetailsButton = ({ business }: Props) => {
     data,
     actions: { setSubmitting },
   }: {
-    data: Omit<Payment, "id">;
+    data: Omit<Payment, "id" | "createdAt" | "updatedAt">;
     actions: Pick<FormikHelpers<Payment>, "setSubmitting">;
   }) => {
     try {

@@ -49,7 +49,7 @@ const MoMo = ({ data, onSave }: Props) => {
         account_name: schema.requireFullName("Account Name"),
       })}
       initialValues={{
-        provider: data?.provider || "MTN",
+        provider: data?.provider || providers[0].value || "MTN",
         account_number: data?.account_number || "",
         account_name: data?.account_name || "",
       }}
@@ -75,7 +75,6 @@ const MoMo = ({ data, onSave }: Props) => {
             required
           >
             <Field.Select
-              defaultValue={providers[0].value}
               value={values.provider}
               options={providers}
               onChange={({ value }: SelectOptions) => {

@@ -2,6 +2,8 @@
 
 import { ReactNode, TableHTMLAttributes } from "react";
 import { classNames } from "@/lib/helpers";
+import { File, FileX } from "lucide-react";
+import { Button } from "../button";
 
 interface TableProps extends TableHTMLAttributes<HTMLTableElement> {
   children: ReactNode;
@@ -57,7 +59,52 @@ function TD({
   );
 }
 
+function Empty({
+  field,
+  title,
+  subtext,
+  className,
+  action,
+}: {
+  field: string;
+  title: string;
+  subtext?: string;
+  className?: string;
+  action?: { text: string | ReactNode; onClick: () => void };
+}) {
+  return (
+    <tr>
+      <td colSpan={20}>
+        <div
+          className={`flex flex-col gap-8 px-4 py-4 w-full max-w-[370px] mx-auto ${className}`}
+        >
+          <div className="text-center flex flex-col gap-2">
+            <FileX size={48} className=" text-gray mx-auto" />
+
+            {/* <div> */}
+            <p className="text-sm font-semibold">
+              {title ? title : "Nothing to see here"}
+            </p>
+            <p className="text-sm font-semibold text-gray whitespace-pre-wrap"></p>
+            {/* </div> */}
+          </div>
+          {action && (
+            <Button
+              type="button"
+              className="btn btn-primary py-2 px-3"
+              onClick={action.onClick}
+            >
+              {action.text}
+            </Button>
+          )}
+        </div>
+      </td>
+    </tr>
+  );
+}
+
 Table.TH = TH;
 Table.TD = TD;
+Table.Empty = Empty;
 
 export { Table };

@@ -14,17 +14,15 @@ import * as schema from "@/lib/schema";
 import VariationAttribute from "./variation-attribute";
 
 type Props = {
-  data: { values: Partial<ProductVariations>; index: number } | null;
-  addVariant: (
-    values: Partial<ProductVariations & { attributes: any }>,
-    {
-      setSubmitting,
-    }: Pick<
-      FormikHelpers<ProductVariations & { attributes: any }>,
-      "setSubmitting"
-    >
-  ) => void;
+  data: { values: FormData; index: number } | null;
+  addVariant: (values: FormData) => void;
 };
+
+interface FormData {
+  price: number;
+  quantity: number;
+  attributes: { [key: string]: string };
+}
 
 const VariantDetails = ({ data, addVariant }: Props) => {
   const [attributeKey, setAttributeKey] = useState<string>("");
@@ -39,21 +37,12 @@ const VariantDetails = ({ data, addVariant }: Props) => {
         quantity: schema.requireNumber("Quantity"),
       })}
       initialValues={{
-        sku: data?.values.sku ?? "",
-        price: data?.values.price ?? "",
+        price: data?.values.price ?? 0,
         quantity: data?.values.quantity ?? 1,
         attributes: data?.values.attributes ?? {},
       }}
-      onSubmit={(
-        values: Partial<ProductVariations & { attributes: any }>,
-        {
-          setSubmitting,
-        }: Pick<
-          FormikHelpers<ProductVariations & { attributes: any }>,
-          "setSubmitting"
-        >
-      ) => {
-        addVariant(values, { setSubmitting });
+      onSubmit={(values: FormData) => {
+        addVariant(values);
       }}
     >
       {({
@@ -103,10 +92,9 @@ const VariantDetails = ({ data, addVariant }: Props) => {
                   <VariationAttribute
                     key={i}
                     onRemove={(key: string) => {
-                      const attributes = { ...values.attributes };
-                      delete attributes[key];
-
-                      setFieldValue("attributes", attributes);
+                      const updatedAttributes = { ...values.attributes };
+                      delete updatedAttributes[key];
+                      setFieldValue("attributes", updatedAttributes);
                     }}
                     data={{ key, value: values.attributes[key] }}
                   />
@@ -179,15 +167,13 @@ const VariantDetails = ({ data, addVariant }: Props) => {
           <Button
             className="w-max"
             disabled={!isValid}
-            type="submit"
-            onClick={(ev) => {
-              ev.stopPropagation();
+            type="button"
+            onClick={() => {
               handleSubmit();
               setTimeout(() => {
                 resetForm();
               });
             }}
-            {...{ isSubmitting }}
           >
             Save Variant
           </Button>

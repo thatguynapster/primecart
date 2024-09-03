@@ -36,6 +36,7 @@ const ProductCard = ({ business, data }: Props) => {
         >
           <Image
             src={"/img/logo.png"}
+            priority
             alt={"PrimeCart"}
             width={84}
             height={84}

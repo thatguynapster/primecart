@@ -21,6 +21,9 @@ model Users {
   email      String @unique
 
   business Business?
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @updatedAt
 }
 
 type Location {
@@ -47,11 +50,14 @@ model Business {
   is_deleted Boolean?  @default(false)
   deletedAt  DateTime?
 
-  user_id  String     @unique @db.ObjectId
-  user     Users      @relation(fields: [user_id], references: [id])
-  products Products[]
-  payment  Payment[]
-  categories  ProductCategories[]
+  user_id    String              @unique @db.ObjectId
+  user       Users               @relation(fields: [user_id], references: [id])
+  products   Products[]
+  payment    Payment[]
+  categories ProductCategories[]
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @updatedAt
 }
 
 type Bank {
@@ -81,6 +87,9 @@ model Payment {
   momo         MoMo?
   business_id  String    @unique @db.ObjectId
   business     Business? @relation(fields: [business_id], references: [id])
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @updatedAt
 }
 
 model Products {
@@ -88,47 +97,56 @@ model Products {
   name        String
   description String
   images      String[]
-  is_deleted  Boolean
+  is_deleted  Boolean?
   deletedAt   DateTime?
-  cost_price String
+  cost_price  Float
 
   business_id String   @db.ObjectId
-  business   Business @relation(fields: [business_id], references: [id])
+  business    Business @relation(fields: [business_id], references: [id])
 
   category_id String            @db.ObjectId
-  category   ProductCategories @relation(fields: [category_id], references: [id])
+  category    ProductCategories @relation(fields: [category_id], references: [id])
 
   orders OrderProducts[]
 
   variations ProductVariations[] // One-to-many relationship with ProductVariation
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @updatedAt
 }
 
 model ProductCategories {
   id          String    @id @default(auto()) @map("_id") @db.ObjectId
   name        String
   description String
-  is_deleted  Boolean
+  is_deleted  Boolean?
   deletedAt   DateTime?
 
   business_id String   @db.ObjectId
-  business   Business @relation(fields: [business_id], references: [id])
+  business    Business @relation(fields: [business_id], references: [id])
 
   products Products[] // One-to-many relationship
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @updatedAt
 }
 
 model ProductVariations {
   id         String    @id @default(auto()) @map("_id") @db.ObjectId
-  sku        String
-  price      String
+  // sku        String?
+  price      Float
   quantity   Int
   attributes Json
-  is_deleted Boolean
+  is_deleted Boolean?
   deletedAt  DateTime?
 
   product_id String   @db.ObjectId
-  product   Products @relation(fields: [product_id], references: [id])
+  product    Products @relation(fields: [product_id], references: [id])
 
   orders OrderProducts[]
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @updatedAt
 }
 
 model ProductOrders {
@@ -139,6 +157,9 @@ model ProductOrders {
   payment    OrderPayment? @relation(fields: [payment_id], references: [id])
 
   products OrderProducts[] // One-to-many relationship with OrderProducts
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @updatedAt
 }
 
 model OrderProducts {
@@ -154,17 +175,20 @@ model OrderProducts {
 
   order_id String        @db.ObjectId
   order    ProductOrders @relation(fields: [order_id], references: [id])
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @updatedAt
 }
 
 model OrderPayment {
-  id          String @id @default(uuid()) @map("_id")
-  provider    String // Payment provider, e.g., Stripe, PayPal
+  id           String @id @default(uuid()) @map("_id")
+  provider     String // Payment provider, e.g., Stripe, PayPal
   checkout_url String // URL for the checkout process
-  status      String // Payment status, e.g., pending, completed, failed - obtained from payment provideer
+  status       String // Payment status, e.g., pending, completed, failed - obtained from payment provideer
 
   order_id String?        @unique // Ensures a one-to-one relationship
   order    ProductOrders? @relation
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @updatedAt
 }
