@@ -14,64 +14,8 @@ const InventoryPage = async ({ params: { business_id } }: Props) => {
   const business = await getBusinessDetails(business_id);
   if (!business) return;
 
-  // const products: Products[] = [
-  //   {
-  //     id: "some-random-id",
-  //     name: "",
-  //     description: "",
-  //     images: [""],
-  //     is_deleted: false,
-  //     deletedAt: null,
-  //     business_id: "",
-  //     category_id: "",
-  //     cost_price: 0,
-  //     createdAt: null,
-  //     updatedAt: null,
-  //   },
-  //   {
-  //     id: "some-random-id-2",
-  //     name: "",
-  //     description: "",
-  //     images: [""],
-  //     is_deleted: false,
-  //     deletedAt: null,
-  //     business_id: "",
-  //     category_id: "",
-  //     cost_price: 0,
-  //     createdAt: null,
-  //     updatedAt: null,
-  //   },
-  //   {
-  //     id: "some-random-id-3",
-  //     name: "",
-  //     description: "",
-  //     images: [""],
-  //     is_deleted: false,
-  //     deletedAt: null,
-  //     business_id: "",
-  //     category_id: "",
-  //     cost_price: 0,
-  //     createdAt: null,
-  //     updatedAt: null,
-  //   },
-  //   {
-  //     id: "some-random-id-4",
-  //     name: "",
-  //     description: "",
-  //     images: [""],
-  //     is_deleted: false,
-  //     deletedAt: null,
-  //     business_id: "",
-  //     category_id: "",
-  //     cost_price: 0,
-  //     createdAt: null,
-  //     updatedAt: null,
-  //   },
-  // ];
-
   const products = await getProducts(business_id);
 
-  // console.log("products:", products);
 
   return (
     <div className="flex flex-col gap-4">

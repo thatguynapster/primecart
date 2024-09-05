@@ -6,6 +6,7 @@ import {
   Payment,
   Products,
   ProductVariations,
+  ProductCategories,
 } from "@prisma/client";
 import { currentUser } from "@clerk/nextjs/server";
 import { cache } from "react";
@@ -249,5 +250,33 @@ export const deleteProduct = async (id: string) => {
   } catch (error) {
     console.log(error);
     throw new Error("Failed to delete product", { cause: error });
+  }
+};
+
+export const upsertCategory = async (
+  data: Omit<ProductCategories, "id" | "createdAt" | "updatedAt">
+) => {
+  const category = await db.productCategories.upsert({
+    where: { unique_id: data.unique_id },
+    update: data,
+    create: { ...data },
+  });
+
+  return category;
+};
+
+export const getCategories = async (business_id: string) => {
+  const user = currentUser();
+  if (!user) return;
+
+  try {
+    const categories = await db.productCategories.findMany({
+      where: { business_id },
+    });
+
+    return categories;
+  } catch (error) {
+    console.log(error);
+    throw new Error("Failed to get categories", { cause: error });
   }
 };

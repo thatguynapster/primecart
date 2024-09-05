@@ -174,9 +174,9 @@ const ProductCard = ({ business, data }: Props) => {
         </div>
       </div>
 
-      <p className="flex-1 text-sm text-dark-muted dark:text-gray line-clamp-3 parseContent ">
+      <div className="flex-1 text-sm text-dark-muted dark:text-gray line-clamp-3 parseContent ">
         {parse(data.description)}
-      </p>
+      </div>
 
       <div className="rounded-lg border px-4 py-2 flex flex-col divide-y divide-muted">
         <div className="flex justify-between py-2">

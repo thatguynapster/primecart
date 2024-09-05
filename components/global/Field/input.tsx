@@ -26,7 +26,9 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           "disabled:cursor-not-allowed",
           "bg-light dark:bg-dark",
           "placeholder:text-gray",
-          props.as !== "textarea" && "border-x-0 border-t-0"
+          props.as !== "textarea"
+            ? "border-x-0 border-t-0"
+            : "border-x border-t rounded-lg"
         )}
         {...props}
       />

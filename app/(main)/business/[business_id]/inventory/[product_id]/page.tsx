@@ -16,7 +16,6 @@ const ProductDetailsPage = async ({
   const product = (await getProduct(product_id, business_id)) as Products & {
     variations: ProductVariations[];
   };
-  console.log("product:", product);
 
   return (
     <div className="flex flex-col gap-4">

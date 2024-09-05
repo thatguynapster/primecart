@@ -1,10 +1,10 @@
 "use client";
 
-import { Products, ProductVariations } from "@prisma/client";
+import { ProductCategories, Products, ProductVariations } from "@prisma/client";
 import { Form, Formik, FormikHelpers } from "formik";
 import { Pencil, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { object } from "yup";
 import { v4 } from "uuid";
@@ -15,7 +15,7 @@ import ProductImages from "../inventory/product-images";
 import VariantDetails from "./products/variant-details";
 import { useModal } from "@/providers/modal-provider";
 import * as Field from "@/components/global/Field";
-import { deleteVariation, upsertProduct } from "@/lib/queries";
+import { deleteVariation, getCategories, upsertProduct } from "@/lib/queries";
 import { Button } from "../global/button";
 import { Table } from "../global/Table";
 import * as schema from "@/lib/schema";
@@ -43,7 +43,6 @@ interface FormData {
 }
 
 const ProductDetails = ({ business_id, data }: Props) => {
-  console.log(data);
   const { setOpen, setClose } = useModal();
   const router = useRouter();
 
@@ -51,14 +50,7 @@ const ProductDetails = ({ business_id, data }: Props) => {
     values: Variation;
     index: number;
   } | null>(null);
-
-  //  WIP: get product categories from db
-  const categories: SelectOptions[] = [
-    {
-      label: "Category 1",
-      value: "66ce5ab722337a2f84311559",
-    },
-  ];
+  const [categories, setCategories] = useState<SelectOptions[]>([]);
 
   //  WIP: create product in db
   const _createProduct = async (
@@ -66,7 +58,6 @@ const ProductDetails = ({ business_id, data }: Props) => {
     { setSubmitting }: Pick<FormikHelpers<FormData>, "setSubmitting">
   ) => {
     try {
-      console.log(product);
       const { variations: _, ...productData } = product;
 
       await upsertProduct({
@@ -95,6 +86,23 @@ const ProductDetails = ({ business_id, data }: Props) => {
       setSubmitting(false);
     }
   };
+  useEffect(() => {
+    const fetchCategories = async () => {
+      return await getCategories(business_id);
+    };
+
+    fetchCategories().then((resp) => {
+      console.log("categories client:", resp);
+      setCategories(() => {
+        return (
+          resp?.map((category) => ({
+            label: category.name,
+            value: category.id,
+          })) ?? []
+        );
+      });
+    });
+  }, []);
 
   return (
     <Formik
@@ -112,7 +120,7 @@ const ProductDetails = ({ business_id, data }: Props) => {
         description: data?.description ?? "",
         images: data?.images ?? [],
         business_id: business_id,
-        category_id: data?.category_id ?? categories[0].value ?? "",
+        category_id: data?.category_id ?? categories[0]?.value ?? "",
         cost_price: data?.cost_price ?? 0,
 
         variations: data?.variations ?? [],
@@ -153,7 +161,22 @@ const ProductDetails = ({ business_id, data }: Props) => {
                     addNew={{
                       text: "Add New Category",
                       action: () => {
-                        setOpen(<AddCategoryModal {...{ setClose }} />);
+                        setOpen(
+                          <AddCategoryModal
+                            {...{ business_id, setClose }}
+                            onAdd={(category: ProductCategories) => {
+                              setCategories((prev) => {
+                                return [
+                                  ...prev,
+                                  {
+                                    label: category.name,
+                                    value: category.id,
+                                  },
+                                ];
+                              });
+                            }}
+                          />
+                        );
                       },
                     }}
                     value={values.category_id!}
@@ -239,7 +262,6 @@ const ProductDetails = ({ business_id, data }: Props) => {
                                       ...values.variations!,
                                     ];
                                     updatedVariants.splice(i, 1);
-                                    console.log(updatedVariants);
 
                                     if (variant.unique_id)
                                       deleteVariation(variant.unique_id);
@@ -278,13 +300,11 @@ const ProductDetails = ({ business_id, data }: Props) => {
                     updatedVariants[editVariant.index] = variants;
 
                     setEditVariant(null);
-                    console.log(updatedVariants);
                     return setFieldValue("variations", updatedVariants);
                   }
 
                   const newVariants = [...values.variations!];
                   newVariants.push(variants);
-                  console.log(newVariants);
 
                   setFieldValue("variations", newVariants);
                 }}

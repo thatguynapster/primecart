@@ -118,6 +118,7 @@ model Products {
 
 model ProductCategories {
   id          String @id @default(auto()) @map("_id") @db.ObjectId
+  unique_id   String @unique() @default(uuid())
   name        String
   description String
 
