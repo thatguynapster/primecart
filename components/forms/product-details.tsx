@@ -3,8 +3,11 @@
 import { Products, ProductVariations } from "@prisma/client";
 import { Form, Formik, FormikHelpers } from "formik";
 import { Pencil, Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import React, { useState } from "react";
+import toast from "react-hot-toast";
 import { object } from "yup";
+import { v4 } from "uuid";
 
 import { SelectOptions } from "../global/Field/Select/Select";
 import AddCategoryModal from "./products/add-category-modal";
@@ -12,20 +15,21 @@ import ProductImages from "../inventory/product-images";
 import VariantDetails from "./products/variant-details";
 import { useModal } from "@/providers/modal-provider";
 import * as Field from "@/components/global/Field";
+import { deleteVariation, upsertProduct } from "@/lib/queries";
 import { Button } from "../global/button";
 import { Table } from "../global/Table";
 import * as schema from "@/lib/schema";
-import { redirect, useRouter } from "next/navigation";
-import { createProduct } from "@/lib/queries";
-import { routes } from "@/routes";
-import toast from "react-hot-toast";
 
-type Props = { business_id: string; data?: Products };
+type Props = {
+  business_id: string;
+  data?: Products & { variations: (ProductVariations & { attributes: any })[] }; // WIP figure out the right types for attributes
+};
 
 interface Variation {
   price: number;
   quantity: number;
   attributes: Record<string, string>;
+  unique_id?: string;
 }
 interface FormData {
   name: string;
@@ -39,6 +43,7 @@ interface FormData {
 }
 
 const ProductDetails = ({ business_id, data }: Props) => {
+  console.log(data);
   const { setOpen, setClose } = useModal();
   const router = useRouter();
 
@@ -64,10 +69,26 @@ const ProductDetails = ({ business_id, data }: Props) => {
       console.log(product);
       const { variations: _, ...productData } = product;
 
-      await createProduct(productData, [...product.variations]);
+      await upsertProduct({
+        product: {
+          name: productData.name,
+          description: productData.description,
+          images: productData.images,
+          business_id,
+          category_id: productData.category_id,
+          cost_price: productData.cost_price,
+          unique_id: data?.unique_id ?? v4(),
+        },
+        variations: product.variations.map((variant) => ({
+          unique_id: variant.unique_id ?? v4(),
+          price: variant.price,
+          quantity: variant.quantity,
+          attributes: variant.attributes,
+        })),
+      });
 
       toast.success(`Product ${product.name} added.`);
-      router.push(routes.inventory.index.replace(":business_id", business_id));
+      router.back();
     } catch (error) {
       throw new Error("Failed to create product", { cause: error });
     } finally {
@@ -84,16 +105,17 @@ const ProductDetails = ({ business_id, data }: Props) => {
         images: schema.requireArray("Product Images").min(1),
         category_id: schema.requireString("Category"),
         cost_price: schema.requireNumber("Cost Price"),
+        variations: schema.requireArray("Product Variations").min(1),
       })}
       initialValues={{
-        name: "",
-        description: "",
-        images: [],
+        name: data?.name ?? "",
+        description: data?.description ?? "",
+        images: data?.images ?? [],
         business_id: business_id,
-        category_id: categories[0].value ?? "",
-        cost_price: 0,
+        category_id: data?.category_id ?? categories[0].value ?? "",
+        cost_price: data?.cost_price ?? 0,
 
-        variations: [],
+        variations: data?.variations ?? [],
       }}
       onSubmit={(values: FormData, { setSubmitting }) => {
         setSubmitting(true);
@@ -164,7 +186,7 @@ const ProductDetails = ({ business_id, data }: Props) => {
                   name="cost_price"
                   type="number"
                   min={0}
-                  step={0.1}
+                  step={0.01}
                   value={values.cost_price}
                   placeholder="Eg: 10.99"
                 />
@@ -209,19 +231,28 @@ const ProductDetails = ({ business_id, data }: Props) => {
                               >
                                 <Pencil size={16} />
                               </div>
-                              <div
-                                className="p-2 cursor-pointer bg-error rounded-lg"
-                                onClick={() => {
-                                  const updatedVariants = [
-                                    ...values.variations!,
-                                  ];
-                                  updatedVariants.splice(i, 1);
+                              {values.variations.length > 1 && (
+                                <div
+                                  className="p-2 cursor-pointer bg-error rounded-lg"
+                                  onClick={() => {
+                                    const updatedVariants = [
+                                      ...values.variations!,
+                                    ];
+                                    updatedVariants.splice(i, 1);
+                                    console.log(updatedVariants);
 
-                                  setFieldValue("variants", updatedVariants);
-                                }}
-                              >
-                                <Trash2 size={16} />
-                              </div>
+                                    if (variant.unique_id)
+                                      deleteVariation(variant.unique_id);
+
+                                    setFieldValue(
+                                      "variations",
+                                      updatedVariants
+                                    );
+                                  }}
+                                >
+                                  <Trash2 size={16} />
+                                </div>
+                              )}
                             </div>
                           </div>
                         </Table.TD>
@@ -269,12 +300,13 @@ const ProductDetails = ({ business_id, data }: Props) => {
               }}
               {...{ isSubmitting }}
             >
-              Create Product
+              {data ? "Save Changes" : "Create Product"}
             </Button>
           </div>
 
           {/* product images */}
           <ProductImages
+            images={data?.images}
             onUpdate={(images: string[]) => {
               setFieldValue("images", images);
             }}

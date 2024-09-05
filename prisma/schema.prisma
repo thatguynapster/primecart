@@ -94,10 +94,11 @@ model Payment {
 
 model Products {
   id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  unique_id   String    @unique() @default(uuid())
   name        String
   description String
   images      String[]
-  is_deleted  Boolean?
+  is_deleted  Boolean?  @default(false)
   deletedAt   DateTime?
   cost_price  Float
 
@@ -116,11 +117,9 @@ model Products {
 }
 
 model ProductCategories {
-  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  id          String @id @default(auto()) @map("_id") @db.ObjectId
   name        String
   description String
-  is_deleted  Boolean?
-  deletedAt   DateTime?
 
   business_id String   @db.ObjectId
   business    Business @relation(fields: [business_id], references: [id])
@@ -132,13 +131,12 @@ model ProductCategories {
 }
 
 model ProductVariations {
-  id         String    @id @default(auto()) @map("_id") @db.ObjectId
+  id         String @id @default(auto()) @map("_id") @db.ObjectId
+  unique_id  String @unique() @default(uuid())
   // sku        String?
   price      Float
   quantity   Int
   attributes Json
-  is_deleted Boolean?
-  deletedAt  DateTime?
 
   product_id String   @db.ObjectId
   product    Products @relation(fields: [product_id], references: [id])

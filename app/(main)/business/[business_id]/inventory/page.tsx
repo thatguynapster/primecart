@@ -4,9 +4,9 @@ import { ArrowUp, Ellipsis, Pencil, Trash, Trash2 } from "lucide-react";
 import Image from "next/image";
 import React from "react";
 import ProductCard from "@/components/inventory/product-card";
-import { getBusinessDetails } from "@/lib/queries";
+import { getBusinessDetails, getProducts } from "@/lib/queries";
 import AddProductButton from "@/components/inventory/add-product-button";
-import { Products } from "@prisma/client";
+import { Products, ProductVariations } from "@prisma/client";
 
 type Props = { params: { business_id: string } };
 
@@ -14,60 +14,65 @@ const InventoryPage = async ({ params: { business_id } }: Props) => {
   const business = await getBusinessDetails(business_id);
   if (!business) return;
 
-  const products: Products[] = [
-    {
-      id: "some-random-id",
-      name: "",
-      description: "",
-      images: [""],
-      is_deleted: false,
-      deletedAt: null,
-      business_id: "",
-      category_id: "",
-      cost_price: 0,
-      createdAt: null,
-      updatedAt: null,
-    },
-    {
-      id: "some-random-id-2",
-      name: "",
-      description: "",
-      images: [""],
-      is_deleted: false,
-      deletedAt: null,
-      business_id: "",
-      category_id: "",
-      cost_price: 0,
-      createdAt: null,
-      updatedAt: null,
-    },
-    {
-      id: "some-random-id-3",
-      name: "",
-      description: "",
-      images: [""],
-      is_deleted: false,
-      deletedAt: null,
-      business_id: "",
-      category_id: "",
-      cost_price: 0,
-      createdAt: null,
-      updatedAt: null,
-    },
-    {
-      id: "some-random-id-4",
-      name: "",
-      description: "",
-      images: [""],
-      is_deleted: false,
-      deletedAt: null,
-      business_id: "",
-      category_id: "",
-      cost_price: 0,
-      createdAt: null,
-      updatedAt: null,
-    },
-  ];
+  // const products: Products[] = [
+  //   {
+  //     id: "some-random-id",
+  //     name: "",
+  //     description: "",
+  //     images: [""],
+  //     is_deleted: false,
+  //     deletedAt: null,
+  //     business_id: "",
+  //     category_id: "",
+  //     cost_price: 0,
+  //     createdAt: null,
+  //     updatedAt: null,
+  //   },
+  //   {
+  //     id: "some-random-id-2",
+  //     name: "",
+  //     description: "",
+  //     images: [""],
+  //     is_deleted: false,
+  //     deletedAt: null,
+  //     business_id: "",
+  //     category_id: "",
+  //     cost_price: 0,
+  //     createdAt: null,
+  //     updatedAt: null,
+  //   },
+  //   {
+  //     id: "some-random-id-3",
+  //     name: "",
+  //     description: "",
+  //     images: [""],
+  //     is_deleted: false,
+  //     deletedAt: null,
+  //     business_id: "",
+  //     category_id: "",
+  //     cost_price: 0,
+  //     createdAt: null,
+  //     updatedAt: null,
+  //   },
+  //   {
+  //     id: "some-random-id-4",
+  //     name: "",
+  //     description: "",
+  //     images: [""],
+  //     is_deleted: false,
+  //     deletedAt: null,
+  //     business_id: "",
+  //     category_id: "",
+  //     cost_price: 0,
+  //     createdAt: null,
+  //     updatedAt: null,
+  //   },
+  // ];
+
+  const products = await getProducts(business_id);
+
+  // console.log("products:", products);
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex justify-end w-full">
@@ -81,7 +86,7 @@ const InventoryPage = async ({ params: { business_id } }: Props) => {
           "overflow-auto"
         )}
       >
-        {products.map((product) => (
+        {products?.map((product) => (
           <ProductCard key={product.id} business={business.id} data={product} />
         ))}
       </div>

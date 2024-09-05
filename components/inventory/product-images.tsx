@@ -8,14 +8,21 @@ import MultipleFileUpload from "../global/multi-file-upload";
 import { deleteFile, handleImageUpload } from "@/lib/file-handler";
 import toast from "react-hot-toast";
 
-type Props = { onUpdate: (images: string[]) => void };
+type Props = { images?: string[]; onUpdate: (images: string[]) => void };
 
-const ProductImages = ({ onUpdate }: Props) => {
-  const [images, setImages] = useState<{ file_id: string; href: string }[]>([]);
+const ProductImages = ({ images, onUpdate }: Props) => {
+  const uploadedImages = images?.map((img) => ({
+    file_id: img.split("/files/")[1].split("/")[0],
+    href: img,
+  }));
+
+  const [_images, setImages] = useState<{ file_id: string; href: string }[]>(
+    uploadedImages ?? []
+  );
 
   useEffect(() => {
-    onUpdate(images.map((img) => img.href));
-  }, [images]);
+    onUpdate(_images.map((img) => img.href));
+  }, [_images]);
 
   return (
     <div
@@ -35,7 +42,7 @@ const ProductImages = ({ onUpdate }: Props) => {
         )}
       >
         <Image
-          src={images[0]?.href ?? "/img/logo.png"}
+          src={_images[0]?.href ?? "/img/logo.png"}
           alt={"Product Thumbnail"}
           priority
           fill
@@ -47,7 +54,7 @@ const ProductImages = ({ onUpdate }: Props) => {
       </div>
 
       <MultipleFileUpload
-        files={images}
+        files={_images}
         name="images"
         type={"image"}
         onValueChanged={async (file: File) => {
@@ -58,7 +65,7 @@ const ProductImages = ({ onUpdate }: Props) => {
           });
         }}
         makeThumbnail={async (id: string) => {
-          const img = images.find((img) => img.file_id === id);
+          const img = _images.find((img) => img.file_id === id);
 
           setImages((prev) => {
             return [
@@ -72,7 +79,7 @@ const ProductImages = ({ onUpdate }: Props) => {
           await deleteFile(id, "product");
 
           setImages(() => {
-            return images.filter((img) => img.file_id !== id).filter(Boolean);
+            return _images.filter((img) => img.file_id !== id).filter(Boolean);
           });
 
           toast("File deleted");

@@ -9,8 +9,10 @@ import {
 } from "@prisma/client";
 import { currentUser } from "@clerk/nextjs/server";
 import { cache } from "react";
+import { revalidatePath } from "next/cache";
 
 import { db } from "./db";
+import { routes } from "@/routes";
 
 export const initUser = async (userUpdate?: Users) => {
   const user = await currentUser();
@@ -129,37 +131,123 @@ export const getPaymentDetails = async (id: string) => {
   }
 };
 
-export const createProduct = async (
+export const upsertProduct = async ({
+  product,
+  variations,
+}: {
   product: Omit<
     Products,
     "id" | "createdAt" | "updatedAt" | "is_deleted" | "deletedAt"
-  >,
-  variations: Pick<ProductVariations, "price" | "quantity" | "attributes">[]
-) => {
+  >;
+  variations: (Pick<
+    ProductVariations,
+    "unique_id" | "price" | "quantity" | "attributes"
+  > & { attributes: any })[];
+}) => {
+  const user = await currentUser();
+  if (!user) return;
+
   try {
-    console.log("product:", product);
-    console.log("variations:", variations);
-    // create product
-    const productDetails = await db.products.create({
-      data: product,
+    // update/create product
+    const productDetails = await db.products.upsert({
+      where: { unique_id: product.unique_id },
+      update: product,
+      create: { ...product },
     });
 
-    console.log(productDetails);
+    // update/create product variation
+    await Promise.all(
+      variations.map(async (variant) => {
+        return await db.productVariations.upsert({
+          where: { unique_id: variant.unique_id },
+          update: variant,
+          create: { ...variant, product_id: productDetails.id },
+        });
+      })
+    );
 
-    const variationData = variations.map((variant) => {
-      return {
-        ...variant,
-        attributes: variant.attributes!,
-        product_id: productDetails.id,
-      };
-    });
+    revalidatePath(routes.inventory.index, "page");
 
-    // create variation using product id
-    const variationDetails = await db.productVariations.createMany({
-      data: variationData,
-    });
+    return productDetails;
   } catch (error) {
     console.log(error);
-    throw new Error("Failed to create product", { cause: error });
+    throw new Error("Failed to save product details", { cause: error });
+  }
+};
+
+export const deleteVariation = async (unique_id: string) => {
+  const user = await currentUser();
+  if (!user) return;
+
+  try {
+    const variationDetails = await db.productVariations.delete({
+      where: { unique_id },
+    });
+
+    return variationDetails;
+  } catch (error) {
+    console.log(error);
+    throw new Error("Failed to delete product variant", { cause: error });
+  }
+};
+
+export const getProducts = async (business_id: string) => {
+  const user = await currentUser();
+  if (!user) return;
+
+  try {
+    const products = await db.products.findMany({
+      where: { business_id },
+      include: {
+        variations: {
+          select: { price: true, quantity: true },
+        },
+        // category: true,
+        _count: { select: { orders: true } },
+      },
+    });
+
+    return products;
+  } catch (error) {
+    console.log(error);
+    throw new Error("Failed to get products", { cause: error });
+  }
+};
+
+export const getProduct = async (product_id: string, business_id: string) => {
+  const user = await currentUser();
+  if (!user) return;
+
+  try {
+    const product = await db.products.findUnique({
+      where: { id: product_id, business_id },
+      include: { variations: true },
+    });
+    if (product) return product;
+
+    return null;
+  } catch (error) {
+    console.log(error);
+    throw new Error("Failed to get product details", { cause: error });
+  }
+};
+
+export const deleteProduct = async (id: string) => {
+  const user = await currentUser();
+  if (!user) return;
+
+  try {
+    // delete product variations
+    const variations = await db.productVariations.deleteMany({
+      where: { product_id: id },
+    });
+
+    const productDetails = await db.products.delete({ where: { id } });
+    revalidatePath(routes.inventory.index, "page");
+
+    return productDetails;
+  } catch (error) {
+    console.log(error);
+    throw new Error("Failed to delete product", { cause: error });
   }
 };

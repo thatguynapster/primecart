@@ -55,3 +55,7 @@
 .ProseMirror {
   @apply min-h-24;
 }
+
+.parseContent img {
+  @apply mb-2 rounded-lg;
+}
