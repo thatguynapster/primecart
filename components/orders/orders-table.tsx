@@ -26,14 +26,13 @@ import { routes } from "@/routes";
 
 type Props = {
   business_id: string;
-  orders?: {
+  orders: {
     data: Order[];
     pagination: {
       total: number;
       total_pages: number;
     };
   };
-  // onUpdate: () => void;
 };
 
 const OrdersTable = ({ business_id, orders }: Props) => {

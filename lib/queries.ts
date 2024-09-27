@@ -384,9 +384,8 @@ export const getOrders = async ({
       },
     };
 
-    // @ts-expect-error returned data is possibly undefined
-    const [orders, count] = await prisma?.$transaction([
-      prisma.productOrders.findMany({
+    const [orders, count] = await db.$transaction([
+      db.productOrders.findMany({
         ...query,
         skip: (page - 1) * limit,
         take: limit,
@@ -413,7 +412,7 @@ export const getOrders = async ({
           },
         },
       }),
-      prisma.productOrders.count({ where: query.where }),
+      db.productOrders.count({ where: query.where }),
     ]);
     return {
       pagination: { total: count, total_pages: Math.ceil(count / limit) },

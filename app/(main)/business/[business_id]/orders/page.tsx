@@ -24,9 +24,6 @@ const OrdersPage = async ({ params: { business_id }, searchParams }: Props) => {
   const orders = await getOrders({
     business_id,
     ...date_filter,
-  }).catch((error) => {
-    console.log(error);
-    toast.error("Failed to load orders. Try reloading page");
   });
 
   const orderSummary = await getOrderSummary({
