@@ -92,7 +92,6 @@ const ProductDetails = ({ business_id, data }: Props) => {
     };
 
     fetchCategories().then((resp) => {
-      console.log("categories client:", resp);
       setCategories(() => {
         return (
           resp?.map((category) => ({

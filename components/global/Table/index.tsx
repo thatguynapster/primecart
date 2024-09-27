@@ -4,6 +4,7 @@ import { ReactNode, TableHTMLAttributes } from "react";
 import { classNames } from "@/lib/helpers";
 import { File, FileX } from "lucide-react";
 import { Button } from "../button";
+import { Pagination } from "./pagination";
 
 interface TableProps extends TableHTMLAttributes<HTMLTableElement> {
   children: ReactNode;
@@ -106,5 +107,6 @@ function Empty({
 Table.TH = TH;
 Table.TD = TD;
 Table.Empty = Empty;
+Table.Pagination = Pagination;
 
 export { Table };

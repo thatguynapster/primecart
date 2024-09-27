@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Dispatch,
   SetStateAction,
@@ -8,6 +10,8 @@ import {
 
 export interface StoreInterface {
   business: string;
+  from_date?: Date | number;
+  to_date?: Date | number;
 }
 
 export const StoreContext = createContext<{

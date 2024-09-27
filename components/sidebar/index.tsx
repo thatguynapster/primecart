@@ -27,7 +27,7 @@ const Sidebar = async ({ id }: Props) => {
     {
       name: "Orders",
       icon: "cart",
-      link: routes.inventory.index.replace(":business_id", user.business.id),
+      link: routes.orders.index.replace(":business_id", user.business.id),
     },
     {
       name: "Inventory",

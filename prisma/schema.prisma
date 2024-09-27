@@ -56,8 +56,9 @@ model Business {
   payment    Payment[]
   categories ProductCategories[]
 
-  createdAt DateTime? @default(now())
-  updatedAt DateTime? @updatedAt
+  createdAt DateTime?  @default(now())
+  updatedAt DateTime?  @updatedAt
+  Customer  Customer[]
 }
 
 type Bank {
@@ -108,7 +109,7 @@ model Products {
   category_id String            @db.ObjectId
   category    ProductCategories @relation(fields: [category_id], references: [id])
 
-  orders OrderProducts[]
+  orders OrderProduct[]
 
   variations ProductVariations[] // One-to-many relationship with ProductVariation
 
@@ -142,31 +143,69 @@ model ProductVariations {
   product_id String   @db.ObjectId
   product    Products @relation(fields: [product_id], references: [id])
 
-  orders OrderProducts[]
+  orders OrderProduct[]
 
   createdAt DateTime? @default(now())
   updatedAt DateTime? @updatedAt
 }
 
+enum OrderStatus {
+  PENDING
+  SHIPPING
+  DELIVERED
+  CANCELLED
+}
+
+// type User {
+//   name  String
+//   pone  String
+//   email String
+// }
+
 model ProductOrders {
-  id         String        @id @default(auto()) @map("_id") @db.ObjectId
-  user       Json
+  id        String @id @default(auto()) @map("_id") @db.ObjectId
+  unique_id String @unique() @default(uuid())
+
+  customer_id String   @db.ObjectId
+  customer    Customer @relation(fields: [customer_id], references: [id])
+
+  business_id String
+
   location   Location
   payment_id String?       @unique
   payment    OrderPayment? @relation(fields: [payment_id], references: [id])
 
-  products OrderProducts[] // One-to-many relationship with OrderProducts
+  orderStatus OrderStatus    @default(PENDING)
+  amount      Float
+  products    OrderProduct[] // One-to-many relationship with OrderProducts
 
   createdAt DateTime? @default(now())
   updatedAt DateTime? @updatedAt
 }
 
-model OrderProducts {
+model Customer {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  // unique_id String @unique() @default(uuid())
+
+  name     String
+  email    String
+  phone    String          @unique()
+  location Location
+  orders   ProductOrders[]
+
+  business_id String   @db.ObjectId
+  business    Business @relation(fields: [business_id], references: [id])
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @updatedAt
+}
+
+model OrderProduct {
   id String @id @default(auto()) @map("_id") @db.ObjectId
 
   quantity Int
 
-  product_id String   @unique @db.ObjectId
+  product_id String   @db.ObjectId
   product    Products @relation(fields: [product_id], references: [id])
 
   product_variation_id String            @db.ObjectId

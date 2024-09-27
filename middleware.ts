@@ -14,6 +14,11 @@ export default clerkMiddleware(async (auth, req) => {
     searchParams.length > 0 ? `?${searchParams}` : ""
   }`;
 
+  if (url.pathname.startsWith("/api")) {
+    console.log("is api route");
+    return NextResponse.next();
+  }
+
   if (url.pathname === "/sign-in" || url.pathname === "/sign-up") {
     return NextResponse.redirect(new URL(`/business/sign-in`, req.url));
   }

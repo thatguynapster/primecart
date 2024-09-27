@@ -7,6 +7,7 @@ import SingleFileUpload from "../global/single-file-upload";
 import MultipleFileUpload from "../global/multi-file-upload";
 import { deleteFile, handleImageUpload } from "@/lib/file-handler";
 import toast from "react-hot-toast";
+import ThemedImage from "../site/logo";
 
 type Props = { images?: string[]; onUpdate: (images: string[]) => void };
 
@@ -41,16 +42,20 @@ const ProductImages = ({ images, onUpdate }: Props) => {
           "relative"
         )}
       >
-        <Image
-          src={_images[0]?.href ?? "/img/logo.png"}
-          alt={"Product Thumbnail"}
-          priority
-          fill
-          // width={306}
-          // height={306}
-          sizes="(max-width: 1200px) 100vw, (max-width: 768px) 50vw, 33vw"
-          className="object-cover object-center aspect-square rounded-lg"
-        />
+        {images?.length ? (
+          <Image
+            src={_images[0]?.href ?? "/img/logo.png"}
+            alt={"Product Thumbnail"}
+            priority
+            fill
+            // width={306}
+            // height={306}
+            sizes="(max-width: 1200px) 100vw, (max-width: 768px) 50vw, 33vw"
+            className="object-cover object-center aspect-square rounded-lg"
+          />
+        ) : (
+          <ThemedImage size={306} />
+        )}
       </div>
 
       <MultipleFileUpload

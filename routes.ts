@@ -4,7 +4,7 @@ export const routes = {
   dashboard: "/business/:business_id/dashboard",
   orders: {
     index: "/business/:business_id/orders",
-    details: "/business/orders/:order_id",
+    details: "/business/:business_id/orders/:order_id",
   },
   inventory: {
     index: "/business/:business_id/inventory",

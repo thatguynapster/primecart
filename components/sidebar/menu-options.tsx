@@ -5,21 +5,17 @@ import {
   Sheet,
   SheetContent,
   SheetDescription,
-  SheetHeader,
   SheetTitle,
   SheetTrigger,
 } from "../ui/sheet";
 import { Menu } from "lucide-react";
 
 import clsx from "clsx";
-import { AspectRatio } from "../ui/aspect-ratio";
-import Image from "next/image";
 
 import Link from "next/link";
 import { icons } from "@/lib/constants";
 import { Button } from "../global/button";
 import { sidebarOption } from "@/lib/types";
-import { classNames } from "@/lib/helpers";
 import ThemedImage from "../site/logo";
 import { usePathname } from "next/navigation";
 import {
@@ -102,10 +98,10 @@ const MenuOptions = ({ id, sidebarOptions, defaultOpen }: Props) => {
                         "px-3 py-2 font-medium",
                         "hover:bg-transparent rounded-lg transition-all",
                         {
-                          "border-2 border-dark dark:border-light text-dark dark:text-light":
+                          "border-2 border-dark dark:border-light text-dark dark:text-light font-semibold":
                             active,
                         },
-                        { "text-gray": !active }
+                        { "text-dark-muted": !active }
                       )}
                     >
                       {icon}
@@ -124,7 +120,7 @@ const MenuOptions = ({ id, sidebarOptions, defaultOpen }: Props) => {
                               "border-2 border-dark dark:border-light text-dark dark:text-light":
                                 active,
                             },
-                            { "text-gray": !active }
+                            { "text-dark-muted": !active }
                           )}
                         >
                           {icon}
@@ -157,7 +153,7 @@ const MenuOptions = ({ id, sidebarOptions, defaultOpen }: Props) => {
                                       "border-2 border-dark dark:border-light text-dark dark:text-light":
                                         active,
                                     },
-                                    { "text-gray": !active }
+                                    { "text-dark-muted": !active }
                                   )}
                                 >
                                   {subIcon}

@@ -7,6 +7,11 @@ import {
   Products,
   ProductVariations,
   ProductCategories,
+  Customer,
+  ProductOrders,
+  OrderProduct,
+  OrderStatus,
+  Prisma,
 } from "@prisma/client";
 import { currentUser } from "@clerk/nextjs/server";
 import { cache } from "react";
@@ -14,6 +19,8 @@ import { revalidatePath } from "next/cache";
 
 import { db } from "./db";
 import { routes } from "@/routes";
+import { formatISO, startOfDay, subDays } from "date-fns";
+import { OrderSummary } from "./types";
 
 export const initUser = async (userUpdate?: Users) => {
   const user = await currentUser();
@@ -199,6 +206,7 @@ export const getProducts = async (business_id: string) => {
   try {
     const products = await db.products.findMany({
       where: { business_id },
+      orderBy: { createdAt: "desc" },
       include: {
         variations: {
           select: { price: true, quantity: true },
@@ -256,13 +264,21 @@ export const deleteProduct = async (id: string) => {
 export const upsertCategory = async (
   data: Omit<ProductCategories, "id" | "createdAt" | "updatedAt">
 ) => {
-  const category = await db.productCategories.upsert({
-    where: { unique_id: data.unique_id },
-    update: data,
-    create: { ...data },
-  });
+  const user = await currentUser();
+  if (!user) return;
 
-  return category;
+  try {
+    const category = await db.productCategories.upsert({
+      where: { unique_id: data.unique_id },
+      update: data,
+      create: data,
+    });
+
+    return category;
+  } catch (error) {
+    console.log(error);
+    throw new Error("Failed to create product category", { cause: error });
+  }
 };
 
 export const getCategories = async (business_id: string) => {
@@ -278,5 +294,192 @@ export const getCategories = async (business_id: string) => {
   } catch (error) {
     console.log(error);
     throw new Error("Failed to get categories", { cause: error });
+  }
+};
+
+export const upsertCustomer = async (data: Customer) => {
+  // const user = await currentUser();
+  // if (!user) return;
+
+  try {
+    const customer = await db.customer.upsert({
+      where: {
+        phone: data.phone,
+      },
+      update: data,
+      create: data,
+    });
+
+    return customer;
+  } catch (error) {
+    console.log(error);
+    throw new Error("Failed to upsert customer details", { cause: error });
+  }
+};
+
+export const createProductOrder = async (
+  data: Omit<ProductOrders, "id" | "createdAt" | "updatedAt">
+) => {
+  // const user = await currentUser();
+  // if (!user) return;
+
+  try {
+    const order = await db.productOrders.create({ data });
+
+    return order;
+  } catch (error) {
+    console.log(error);
+    throw new Error("Failed to create order", { cause: error });
+  }
+};
+
+export const createOrderProducts = async (
+  data: Omit<OrderProduct, "id" | "createdAt" | "updatedAt">[]
+) => {
+  // const user = await currentUser();
+  // if (!user) return;
+
+  try {
+    const orderProduct = await db.orderProduct.createMany({ data });
+
+    return orderProduct;
+  } catch (error) {
+    console.log(error);
+    throw new Error("Failed to create order products", { cause: error });
+  }
+};
+
+export const getOrders = async ({
+  business_id,
+  from_date = startOfDay(subDays(Date.now(), 7)).valueOf(),
+  to_date = new Date().valueOf(),
+  page = 1,
+  limit = 10,
+}: {
+  business_id: string;
+  from_date?: number;
+  to_date?: number;
+  page?: number;
+  limit?: number;
+}): Promise<any> => {
+  const user = await currentUser();
+  if (!user) return [];
+
+  if (isNaN(from_date))
+    from_date = startOfDay(subDays(Date.now(), 7)).valueOf();
+
+  if (isNaN(to_date)) to_date = new Date().valueOf();
+
+  try {
+    const query: Prisma.ProductOrdersFindManyArgs = {
+      where: {
+        business_id,
+        createdAt: {
+          gte: new Date(from_date).toISOString(),
+          lte: new Date(to_date).toISOString(),
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    };
+
+    // @ts-expect-error returned data is possibly undefined
+    const [orders, count] = await prisma?.$transaction([
+      prisma.productOrders.findMany({
+        ...query,
+        skip: (page - 1) * limit,
+        take: limit,
+        include: {
+          customer: {
+            select: {
+              email: true,
+              name: true,
+              phone: true,
+            },
+          },
+          payment: true,
+          products: {
+            select: {
+              product: {
+                select: {
+                  images: true,
+                  name: true,
+                },
+              },
+              product_variation: { select: { attributes: true } },
+              quantity: true,
+            },
+          },
+        },
+      }),
+      prisma.productOrders.count({ where: query.where }),
+    ]);
+    return {
+      pagination: { total: count, total_pages: Math.ceil(count / limit) },
+      data: orders,
+    };
+  } catch (error) {
+    // console.log(error);
+    throw new Error("Failed to get orders", { cause: error });
+  }
+};
+
+export const getOrderSummary = async ({
+  business_id,
+  from_date = startOfDay(subDays(Date.now(), 7)).valueOf(),
+  to_date = Date.now().valueOf(),
+}: {
+  business_id: string;
+  from_date?: number;
+  to_date?: number;
+}): Promise<OrderSummary | null> => {
+  const user = await currentUser();
+  if (!user) return null;
+
+  try {
+    const orders_in_period = await db.productOrders.findMany({
+      where: {
+        business_id,
+        createdAt: {
+          gte: new Date(from_date).toISOString(),
+          lte: new Date(to_date).toISOString(),
+        },
+      },
+      select: { amount: true, createdAt: true },
+    });
+
+    const orders = orders_in_period.length;
+    const revenue = orders_in_period.reduce((a, b) => a + (b?.amount ?? 0), 0);
+
+    return { orders, revenue };
+  } catch (error) {
+    console.log(error);
+    throw new Error("Failed to get orders summary", { cause: error });
+  }
+};
+
+export const updateOrderStatus = async (
+  business_id: string,
+  order_id: string,
+  orderStatus: OrderStatus
+) => {
+  const user = await currentUser();
+  if (!user) return;
+
+  try {
+    const updatedORder = await db.productOrders.update({
+      where: {
+        id: order_id,
+      },
+      data: { orderStatus },
+    });
+
+    revalidatePath(routes.orders.index, "page");
+
+    return updatedORder;
+  } catch (error) {
+    console.log(error);
+    throw new Error("Failed to update order status", { cause: error });
   }
 };

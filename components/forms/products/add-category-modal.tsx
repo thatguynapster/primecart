@@ -29,11 +29,11 @@ interface FormData {
 const AddCategoryModal = ({ business_id, onAdd, setClose }: Props) => {
   const handleAddCategory = async (data: FormData) => {
     try {
-      const category = await upsertCategory({
+      const category = (await upsertCategory({
         ...data,
         unique_id: v4(),
         business_id,
-      });
+      })) as ProductCategories;
       onAdd(category);
       toast.success(`Category ${data.name} added successfully`);
 
