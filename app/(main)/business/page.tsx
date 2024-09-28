@@ -32,8 +32,7 @@ const Page = async (props: Props) => {
       <div
         className={classNames(
           font.className,
-          "flex items-center justify-center min-h-screen",
-          "bg-light dark:bg-dark"
+          "flex items-center justify-center min-h-screen"
         )}
       >
         <BusinessDetails />

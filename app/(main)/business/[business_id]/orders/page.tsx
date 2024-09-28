@@ -3,8 +3,6 @@ import React from "react";
 
 import { getOrders, getOrderSummary } from "@/lib/queries";
 import PageClient from "./_components/page-client";
-import toast from "react-hot-toast";
-import { OrderSummary } from "@/lib/types";
 
 type Props = {
   params: { business_id: string };

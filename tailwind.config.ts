@@ -30,6 +30,34 @@ const config = {
         info: "#0055D6",
       },
       keyframes: {
+        scale: {
+          "0%": {
+            transform: "scale(0,0)",
+          },
+          "10%": {
+            transform: "scale(1,1)",
+          },
+          "43.333333%": {
+            transform: "scale(1,1)",
+          },
+          "50%": {
+            transform: "scale(0,0)",
+          },
+          "60%": {
+            transform: "scale(1,1)",
+          },
+          "93.333333%": {
+            transform: "scale(1,1)",
+          },
+          "100%": {
+            transform: "scale(0,0)",
+          },
+        },
+        "reverse-spin": {
+          from: {
+            transform: "rotate(360deg)",
+          },
+        },
         "accordion-down": {
           from: {
             height: "0",
@@ -48,6 +76,8 @@ const config = {
         },
       },
       animation: {
+        scale: "scale 3s linear infinite normal forwards",
+        "reverse-spin": "reverse-spin 1s linear infinite",
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
       },
@@ -58,7 +88,10 @@ const config = {
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [
+    require("tailwindcss-animate"),
+    require("tailwindcss-animation-delay"),
+  ],
 } satisfies Config;
 
 export default config;

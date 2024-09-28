@@ -24,13 +24,7 @@ const Layout = async ({ children, params: { business_id } }: Props) => {
   return (
     <StoreProvider>
       <TooltipProvider>
-        <div
-          className={classNames(
-            "h-screen overflow-hidden",
-            "bg-light text-dark",
-            "dark:bg-dark dark:text-light"
-          )}
-        >
+        <div className={classNames("h-screen overflow-hidden")}>
           <Sidebar id={business_id} />
 
           <InfoBar />
