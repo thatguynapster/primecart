@@ -156,12 +156,6 @@ enum OrderStatus {
   CANCELLED
 }
 
-// type User {
-//   name  String
-//   pone  String
-//   email String
-// }
-
 model ProductOrders {
   id        String @id @default(auto()) @map("_id") @db.ObjectId
   unique_id String @unique() @default(uuid())
@@ -179,7 +173,7 @@ model ProductOrders {
   amount      Float
   products    OrderProduct[] // One-to-many relationship with OrderProducts
 
-  createdAt DateTime? @default(now())
+  createdAt DateTime  @default(now())
   updatedAt DateTime? @updatedAt
 }
 
@@ -204,6 +198,7 @@ model OrderProduct {
   id String @id @default(auto()) @map("_id") @db.ObjectId
 
   quantity Int
+  amount   Float
 
   product_id String   @db.ObjectId
   product    Products @relation(fields: [product_id], references: [id])

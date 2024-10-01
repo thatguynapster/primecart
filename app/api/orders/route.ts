@@ -26,7 +26,6 @@ export const POST = async (req: NextRequest, res: NextResponse) => {
   console.log("req body:", reqBody);
 
   const customer = await upsertCustomer(reqBody.customer);
-  console.log("customer:", customer);
 
   //get order amount from product variation prices
   let amount = 0;
@@ -39,7 +38,6 @@ export const POST = async (req: NextRequest, res: NextResponse) => {
         .then((resp) => (amount += resp.price * product.quantity));
     })
   );
-  console.log("amount:", amount);
 
   const order = await createProductOrder({
     unique_id: v4(),
@@ -50,15 +48,22 @@ export const POST = async (req: NextRequest, res: NextResponse) => {
     location: reqBody.location,
     business_id: "66cf2d87647481db2eecdc5c",
   });
-  console.log("order", order);
 
-  const orderProducts = await createOrderProducts(
-    reqBody.products.map((product) => ({
-      ...product,
-      order_id: order?.id!,
-    }))
+  const productsWithAmount = await Promise.all(
+    reqBody.products.map(async (product) => {
+      const productCost = await db.productVariations.findUniqueOrThrow({
+        where: { id: product.product_variation_id },
+      });
+
+      return {
+        ...product,
+        amount: productCost.price * product.quantity,
+        order_id: order?.id!,
+      };
+    })
   );
-  console.log("order products:", orderProducts);
+
+  await createOrderProducts(productsWithAmount);
 
   // reduce product variant quantity
   await Promise.all(
@@ -74,7 +79,7 @@ export const POST = async (req: NextRequest, res: NextResponse) => {
     {
       success: true,
       message: "Order created successfully",
-      sale: { ...order, products: reqBody.products },
+      sale: { ...order, products: productsWithAmount },
     },
     { status: 200 }
   );

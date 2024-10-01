@@ -20,7 +20,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "./db";
 import { routes } from "@/routes";
 import { formatISO, startOfDay, subDays } from "date-fns";
-import { OrderSummary } from "./types";
+import { Order, OrderSummary } from "./types";
 
 export const initUser = async (userUpdate?: Users) => {
   const user = await currentUser();
@@ -414,12 +414,13 @@ export const getOrders = async ({
       }),
       db.productOrders.count({ where: query.where }),
     ]);
+
     return {
       pagination: { total: count, total_pages: Math.ceil(count / limit) },
       data: orders,
     };
   } catch (error) {
-    // console.log(error);
+    console.log(error);
     throw new Error("Failed to get orders", { cause: error });
   }
 };
@@ -432,7 +433,7 @@ export const getOrderSummary = async ({
   business_id: string;
   from_date?: number;
   to_date?: number;
-}): Promise<OrderSummary | null> => {
+}): Promise<any> => {
   const user = await currentUser();
   if (!user) return null;
 
@@ -477,6 +478,48 @@ export const updateOrderStatus = async (
     revalidatePath(routes.orders.index, "page");
 
     return updatedORder;
+  } catch (error) {
+    console.log(error);
+    throw new Error("Failed to update order status", { cause: error });
+  }
+};
+
+export const getSingleOrder = async (
+  business_id: string,
+  order_id: string
+): Promise<any> => {
+  const user = await currentUser();
+  if (!user) return;
+
+  try {
+    const order = await db.productOrders.findUnique({
+      where: { id: order_id, business_id },
+      include: {
+        customer: {
+          select: {
+            email: true,
+            name: true,
+            phone: true,
+          },
+        },
+        payment: true,
+        products: {
+          select: {
+            product: {
+              select: {
+                images: true,
+                name: true,
+              },
+            },
+            product_variation: { select: { attributes: true } },
+            quantity: true,
+            amount: true,
+          },
+        },
+      },
+    });
+
+    return order;
   } catch (error) {
     console.log(error);
     throw new Error("Failed to update order status", { cause: error });

@@ -8,12 +8,17 @@ import { useRouter } from "next/navigation";
 type withIcon = { withIcon: boolean };
 type showText = { showText: boolean };
 
-type Props = { showText?: boolean; withIcon?: boolean };
+type Props = { url: string; showText?: boolean; withIcon?: boolean };
 
-const BackButton = ({ showText = true, withIcon }: Props) => {
+const BackButton = ({ url, showText = true, withIcon }: Props) => {
   const router = useRouter();
   return (
-    <Button variant="outline" className="w-max" onClick={() => router.back()}>
+    <Button
+      aria-label="go back"
+      variant="outline"
+      className="w-max"
+      onClick={() => router.push(url)}
+    >
       {withIcon && <ChevronLeft size={16} />}
       {showText && <p className="">Back</p>}
     </Button>

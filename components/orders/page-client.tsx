@@ -27,6 +27,7 @@ type Props = {
 };
 
 const PageClient = ({ business_id, orders, orderSummary }: Props) => {
+  console.log(orders);
   const router = useRouter();
 
   const [isLoading, setIsLoading] = useState<{

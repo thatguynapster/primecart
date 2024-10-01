@@ -2,7 +2,7 @@ import { startOfDay, subDays } from "date-fns";
 import React from "react";
 
 import { getOrders, getOrderSummary } from "@/lib/queries";
-import PageClient from "./_components/page-client";
+import PageClient from "@/components/orders/page-client";
 
 type Props = {
   params: { business_id: string };
@@ -22,12 +22,12 @@ const OrdersPage = async ({ params: { business_id }, searchParams }: Props) => {
   const orders = await getOrders({
     business_id,
     ...date_filter,
-  });
+  }).catch((error) => console.log(error));
 
   const orderSummary = await getOrderSummary({
     business_id,
     ...date_filter,
-  });
+  }).catch((error) => console.log(error));
 
   return <PageClient {...{ business_id, orders, orderSummary }} />;
 };
