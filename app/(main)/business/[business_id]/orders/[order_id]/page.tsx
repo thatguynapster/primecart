@@ -66,9 +66,10 @@ const OrderDetailsPage = async ({
                 <ChevronDown size={16} />
               </ChangeStatusButton>
 
-              <Button aria-label="print order details" variant="outline">
+              {/* TODO: add this feature later */}
+              {/* <Button aria-label="print order details" variant="outline">
                 <Printer size={16} />
-              </Button>
+              </Button> */}
             </div>
           </div>
 
