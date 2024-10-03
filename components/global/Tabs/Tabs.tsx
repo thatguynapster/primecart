@@ -1,8 +1,8 @@
-import { ComponentType } from "react";
 import { Nav, Tabs, TabsProps } from "@restart/ui";
+import { ComponentType } from "react";
 
-import { Tab } from "./Components/Tab";
 import { classNames } from "@/lib/helpers";
+import { Tab } from "./Components/Tab";
 
 export interface LocalTabsProps extends TabsProps {
   tabs: { name: any; slug: string; component: ComponentType }[];

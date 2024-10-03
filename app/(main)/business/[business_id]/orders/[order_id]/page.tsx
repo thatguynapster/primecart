@@ -1,28 +1,18 @@
 import {
   CalendarDays,
   ChevronDown,
-  Printer,
   ShoppingBag,
   UserRound,
 } from "lucide-react";
 import React from "react";
 
-import BackButton from "@/components/global/back-button";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/global/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import OrderProductTable from "@/components/orders/order-product-table";
-import { getSingleOrder } from "@/lib/queries";
-import { format } from "date-fns";
-import { OrderStatus } from "@prisma/client";
-import { routes } from "@/routes";
-import { orderStatuses } from "@/lib/types";
 import ChangeStatusButton from "@/components/orders/change-status-button";
+import OrderProductTable from "@/components/orders/order-product-table";
+import BackButton from "@/components/global/back-button";
+import { getSingleOrder } from "@/lib/queries";
+import { Badge } from "@/components/ui/badge";
+import { format } from "date-fns";
+import { routes } from "@/routes";
 
 type Props = { params: { business_id: string; order_id: string } };
 
@@ -30,7 +20,6 @@ const OrderDetailsPage = async ({
   params: { business_id, order_id },
 }: Props) => {
   const order = await getSingleOrder(business_id, order_id);
-  console.log(order);
 
   if (!order) return null;
 

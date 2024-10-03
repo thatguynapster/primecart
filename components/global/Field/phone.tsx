@@ -1,13 +1,13 @@
 "use client";
 
+import { getCountries, getCountryCallingCode } from "react-phone-number-input";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { getCountries, getCountryCallingCode } from "react-phone-number-input"; // prettier-ignore
 import { parsePhoneNumber } from "react-phone-number-input";
-import { type CountryCode } from "libphonenumber-js";
-import { debounce } from "lodash";
-import countryList from "react-select-country-list";
 import PhoneInput from "react-phone-number-input/input";
+import { type CountryCode } from "libphonenumber-js";
+import countryList from "react-select-country-list";
 import Flag from "react-country-flag";
+import { debounce } from "lodash";
 
 import { classNames, phoneNumberFormat } from "@/lib/helpers";
 import Dropdown from "../Dropdown";

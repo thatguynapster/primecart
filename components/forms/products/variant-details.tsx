@@ -1,17 +1,16 @@
 "use client";
 
-import { ProductVariations } from "@prisma/client";
-import React, { Key, useState } from "react";
+import React, { useState } from "react";
 import toast from "react-hot-toast";
-import { Formik, FormikHelpers } from "formik";
+import { Formik } from "formik";
 import { object } from "yup";
 
-import * as Field from "@/components/global/Field";
+import VariationAttribute from "./variation-attribute";
 import { Button } from "@/components/global/button";
-import { Plus } from "lucide-react";
+import * as Field from "@/components/global/Field";
 import { classNames } from "@/lib/helpers";
 import * as schema from "@/lib/schema";
-import VariationAttribute from "./variation-attribute";
+import { Plus } from "lucide-react";
 
 type Props = {
   data: { values: FormData; index: number } | null;

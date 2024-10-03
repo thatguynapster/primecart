@@ -3,8 +3,8 @@
 import { InputHTMLAttributes } from "react";
 import { camelCase } from "lodash";
 
-import { Input } from ".";
 import { ILocation, Places } from "../Map";
+import { Input } from ".";
 
 export interface PlaceProps
   extends Partial<Omit<InputHTMLAttributes<HTMLInputElement>, "value">> {

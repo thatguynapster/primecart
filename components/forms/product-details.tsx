@@ -2,20 +2,20 @@
 
 import { ProductCategories, Products, ProductVariations } from "@prisma/client";
 import { Form, Formik, FormikHelpers } from "formik";
+import React, { useEffect, useState } from "react";
 import { Pencil, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import React, { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { object } from "yup";
 import { v4 } from "uuid";
 
+import { deleteVariation, getCategories, upsertProduct } from "@/lib/queries";
 import { SelectOptions } from "../global/Field/Select/Select";
 import AddCategoryModal from "./products/add-category-modal";
 import ProductImages from "../inventory/product-images";
 import VariantDetails from "./products/variant-details";
 import { useModal } from "@/providers/modal-provider";
 import * as Field from "@/components/global/Field";
-import { deleteVariation, getCategories, upsertProduct } from "@/lib/queries";
 import { Button } from "../global/button";
 import { Table } from "../global/Table";
 import * as schema from "@/lib/schema";

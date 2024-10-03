@@ -1,6 +1,5 @@
 "use client";
 
-import { OrderStatus } from "@prisma/client";
 import { useRouter } from "next/navigation";
 import { Ellipsis } from "lucide-react";
 import { format } from "date-fns";
@@ -9,41 +8,22 @@ import React from "react";
 import clsx from "clsx";
 
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "../ui/dropdown-menu";
-import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { updateOrderStatus } from "@/lib/queries";
-import { Table } from "../global/Table";
-import { Order, orderStatuses } from "@/lib/types";
-import { routes } from "@/routes";
 import ChangeStatusButton from "./change-status-button";
+import { Table } from "../global/Table";
+import { Orders } from "@/lib/types";
+import { routes } from "@/routes";
 
 type Props = {
   business_id: string;
-  orders: {
-    data: Order[];
-    pagination: {
-      total: number;
-      total_pages: number;
-    };
-  };
+  orders: Orders | void;
 };
 
 const OrdersTable = ({ business_id, orders }: Props) => {
   const router = useRouter();
-
-  const _updateOrderStatus = async (id: string, status: OrderStatus) => {
-    const updatedOrder = await updateOrderStatus(business_id, id, status);
-
-    router.refresh();
-  };
 
   return (
     <div className="flex flex-col gap-4">

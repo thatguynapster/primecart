@@ -1,5 +1,6 @@
 import { Editor } from "@tiptap/react";
 import React from "react";
+
 import {
   AlignCenterIcon,
   AlignJustifyIcon,

@@ -2,7 +2,9 @@ import { BankData } from "@/components/forms/payment-details/bank";
 import { MomoData } from "@/components/forms/payment-details/momo";
 import {
   Customer,
+  OrderProduct,
   OrderStatus,
+  Payment,
   ProductOrders,
   Products,
   ProductVariations,
@@ -38,17 +40,20 @@ export type PaymentData = {
 
 export type Bucket = "business" | "product" | "media";
 
-export type Order = Omit<ProductOrders, "updatedAt"> & {
-  products: {
+export type Order = Pick<
+  ProductOrders,
+  "amount" | "createdAt" | "id" | "location" | "orderStatus"
+> & {
+  products: ({
     product: Pick<Products, "images" | "name">;
-    product_variation: Omit<
-      ProductVariations,
-      "deletedAt" | "createdAt" | "updatedAt"
-    > & { attributes: any };
-    quantity: number;
-    amount: number;
-  }[];
-  customer: Omit<Customer, "createdAt" | "updatedAt">;
+    product_variation: Pick<ProductVariations, "attributes">;
+  } & Pick<OrderProduct, "amount" | "quantity">)[];
+  customer: Pick<Customer, "email" | "name" | "phone">;
+};
+
+export type Orders = {
+  pagination: { total: number; total_pages: number };
+  data: Order[];
 };
 
 export type OrderSummary = {

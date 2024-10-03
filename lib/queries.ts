@@ -19,8 +19,8 @@ import { revalidatePath } from "next/cache";
 
 import { db } from "./db";
 import { routes } from "@/routes";
-import { formatISO, startOfDay, subDays } from "date-fns";
-import { Order, OrderSummary } from "./types";
+import { startOfDay, subDays } from "date-fns";
+import { Order } from "./types";
 
 export const initUser = async (userUpdate?: Users) => {
   const user = await currentUser();
@@ -361,9 +361,9 @@ export const getOrders = async ({
   to_date?: number;
   page?: number;
   limit?: number;
-}): Promise<any> => {
+}) => {
   const user = await currentUser();
-  if (!user) return [];
+  if (!user) return;
 
   if (isNaN(from_date))
     from_date = startOfDay(subDays(Date.now(), 7)).valueOf();
@@ -408,6 +408,7 @@ export const getOrders = async ({
               },
               product_variation: { select: { attributes: true } },
               quantity: true,
+              amount: true,
             },
           },
         },
@@ -484,10 +485,7 @@ export const updateOrderStatus = async (
   }
 };
 
-export const getSingleOrder = async (
-  business_id: string,
-  order_id: string
-): Promise<any> => {
+export const getSingleOrder = async (business_id: string, order_id: string) => {
   const user = await currentUser();
   if (!user) return;
 

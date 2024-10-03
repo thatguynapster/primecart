@@ -1,12 +1,9 @@
-import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
-import { classNames } from "@/lib/helpers";
-import { ArrowUp, Ellipsis, Pencil, Trash, Trash2 } from "lucide-react";
-import Image from "next/image";
 import React from "react";
-import ProductCard from "@/components/inventory/product-card";
-import { getBusinessDetails, getProducts } from "@/lib/queries";
+
 import AddProductButton from "@/components/inventory/add-product-button";
-import { Products, ProductVariations } from "@prisma/client";
+import { getBusinessDetails, getProducts } from "@/lib/queries";
+import ProductCard from "@/components/inventory/product-card";
+import { classNames } from "@/lib/helpers";
 
 type Props = { params: { business_id: string } };
 
@@ -15,7 +12,6 @@ const InventoryPage = async ({ params: { business_id } }: Props) => {
   if (!business) return;
 
   const products = await getProducts(business_id);
-
 
   return (
     <div className="flex flex-col gap-4">

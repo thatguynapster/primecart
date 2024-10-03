@@ -1,12 +1,10 @@
 "use client";
-
-import React from "react";
-import { Button } from "./button";
-import { ChevronLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { ChevronLeft } from "lucide-react";
+import React from "react";
 
-type withIcon = { withIcon: boolean };
-type showText = { showText: boolean };
+import { Button } from "./button";
+
 
 type Props = { url: string; showText?: boolean; withIcon?: boolean };
 

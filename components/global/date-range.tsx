@@ -4,6 +4,7 @@ import {
   constructNow,
   format,
   formatISO,
+  getTime,
   isToday,
   startOfDay,
   subDays,
@@ -13,13 +14,23 @@ import React, { useState } from "react";
 
 import Dropdown from "./Dropdown";
 import Calendar from "./calendar";
-import { useSearchParams } from "next/navigation";
+import {
+  useParams,
+  usePathname,
+  useRouter,
+  useSearchParams,
+} from "next/navigation";
+import { routes } from "@/routes";
+import queryString from "query-string";
 
-type Props = { onUpdate: (dates: Date[]) => void };
+type Props = {};
 
-const DateRange = ({ onUpdate }: Props) => {
+const DateRange = ({}: Props) => {
+  const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
 
+  const { business_id } = useParams();
   const paramStartDate = searchParams.get("from_date");
   const paramEndDate = searchParams.get("to_date");
 
@@ -54,7 +65,15 @@ const DateRange = ({ onUpdate }: Props) => {
           onDateChange={(dates: Date[]) => {
             setSelectedDays(dates);
 
-            onUpdate(dates);
+            router.replace(
+              `${pathname}?${queryString.stringify({
+                from_date: getTime(dates[0]),
+                to_date: !isNaN(getTime(dates[1])) ? getTime(dates[1]) : "",
+              })}`
+            );
+            setTimeout(() => {
+              router.refresh();
+            });
           }}
         />
       </Dropdown.Menu>

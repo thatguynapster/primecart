@@ -1,10 +1,9 @@
 "use client";
 
 import { UseDropdownMenuOptions, useDropdownMenu } from "@restart/ui";
-import { motion } from "framer-motion";
 import useIsomorphicEffect from "@restart/hooks/useIsomorphicEffect";
-import styled from "styled-components";
 import { classNames } from "@/lib/helpers";
+import { motion } from "framer-motion";
 
 export interface MenuProps extends UseDropdownMenuOptions {
   className?: string;

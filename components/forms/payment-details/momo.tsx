@@ -1,14 +1,13 @@
 "use client";
 
 import { Form, Formik, FormikHelpers } from "formik";
-import React from "react";
 import { object } from "yup";
+import React from "react";
 
+import { SelectOptions } from "@/components/global/Field/Select/Select";
+import { Button } from "@/components/global/button";
 import * as Field from "@/components/global/Field";
 import * as schema from "@/lib/schema";
-import { Button } from "@/components/global/button";
-import { PaymentData } from "@/lib/types";
-import { SelectOptions } from "@/components/global/Field/Select/Select";
 
 type Props = {
   data?: MomoData | null;

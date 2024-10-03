@@ -1,7 +1,6 @@
 "use client";
 
 import { EditorContent, useEditor } from "@tiptap/react";
-import ImageResize from "tiptap-extension-resize-image";
 import TextStyle from "@tiptap/extension-text-style";
 import TextAlign from "@tiptap/extension-text-align";
 import Highlight from "@tiptap/extension-highlight";

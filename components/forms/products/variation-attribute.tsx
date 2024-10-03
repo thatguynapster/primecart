@@ -1,8 +1,9 @@
 "use client";
 
-import { classNames } from "@/lib/helpers";
-import { Pencil, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import React from "react";
+
+import { classNames } from "@/lib/helpers";
 
 type Props = {
   data: { key: string; value: string };

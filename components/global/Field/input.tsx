@@ -1,7 +1,8 @@
 "use client";
 
-import { forwardRef } from "react";
 import { Field, FieldAttributes } from "formik";
+import { forwardRef } from "react";
+
 import { classNames } from "@/lib/helpers";
 
 export interface InputProps extends FieldAttributes<any> {

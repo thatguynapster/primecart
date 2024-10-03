@@ -11,8 +11,7 @@ import { orderStatuses } from "@/lib/types";
 import { ChevronDown } from "lucide-react";
 import { OrderStatus } from "@prisma/client";
 import { updateOrderStatus } from "@/lib/queries";
-import { useParams } from "next/navigation";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 
 type Props = {
   children: ReactNode;

@@ -1,9 +1,9 @@
 "use client";
 
 import { ClerkProvider } from "@clerk/nextjs";
+import React, { ReactNode } from "react";
 import { useTheme } from "next-themes";
 import { dark } from "@clerk/themes";
-import React, { ReactNode } from "react";
 
 type Props = { children: ReactNode };
 

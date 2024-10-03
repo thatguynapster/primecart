@@ -1,10 +1,10 @@
 "use client";
-
 import { ReactNode, TableHTMLAttributes } from "react";
+import { FileX } from "lucide-react";
+
 import { classNames } from "@/lib/helpers";
-import { File, FileX } from "lucide-react";
-import { Button } from "../button";
 import { Pagination } from "./pagination";
+import { Button } from "../button";
 
 interface TableProps extends TableHTMLAttributes<HTMLTableElement> {
   children: ReactNode;

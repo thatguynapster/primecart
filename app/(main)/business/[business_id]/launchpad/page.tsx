@@ -1,13 +1,13 @@
-import { Button } from "@/components/global/button";
-import PaymentDetailsButton from "@/components/payment-details-button";
-import ThemedImage from "@/components/site/logo";
-import { classNames } from "@/lib/helpers";
-import { getBusinessDetails, getPaymentDetails } from "@/lib/queries";
-import { routes } from "@/routes";
-import { CheckCircleIcon } from "lucide-react";
-import Image from "next/image";
-import { redirect } from "next/navigation";
 import React from "react";
+
+import PaymentDetailsButton from "@/components/payment-details-button";
+import { getBusinessDetails, getPaymentDetails } from "@/lib/queries";
+import { Button } from "@/components/global/button";
+import ThemedImage from "@/components/site/logo";
+import { CheckCircleIcon } from "lucide-react";
+import { classNames } from "@/lib/helpers";
+import { redirect } from "next/navigation";
+import { routes } from "@/routes";
 
 type Props = { params: { business_id: string } };
 

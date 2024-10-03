@@ -1,8 +1,8 @@
 "use client";
-
 import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/24/outline";
 import React, { Dispatch, ReactNode, SetStateAction, useState } from "react";
 import clsx from "clsx";
+
 import { useWidth } from "@/hooks/useWidth";
 
 interface PaginationButtonProps {
@@ -147,7 +147,6 @@ export const Pagination: React.FC<PaginationProps> = ({ page, pages }) => {
             page={page}
             {...{ currentPage }}
             setCurrentPage={(page) => {
-              console.log(page);
               updateFilters(page as number);
             }}
           />

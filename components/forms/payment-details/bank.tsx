@@ -4,9 +4,9 @@ import { Form, Formik, FormikHelpers } from "formik";
 import { object } from "yup";
 import React from "react";
 
+import { Button } from "@/components/global/button";
 import * as Field from "@/components/global/Field";
 import * as schema from "@/lib/schema";
-import { Button } from "@/components/global/button";
 
 type Props = {
   data?: BankData | null;

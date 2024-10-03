@@ -9,8 +9,6 @@ import { Order } from "@/lib/types";
 type Props = { order: Order };
 
 const OrderProductTable = ({ order }: Props) => {
-  console.log(order);
-
   return (
     <div className="flex flex-col gap-4">
       <Table>

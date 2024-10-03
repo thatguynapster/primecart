@@ -7,12 +7,7 @@ import React, { useState } from "react";
 import toast from "react-hot-toast";
 import { object } from "yup";
 
-import {
-  deleteFile,
-  handleImageUpload,
-  removeFile,
-  uploadFile,
-} from "@/lib/file-handler";
+import { deleteFile, handleImageUpload } from "@/lib/file-handler";
 import SingleFileUpload from "../global/single-file-upload";
 import { createBusiness, initUser } from "@/lib/queries";
 import * as Field from "@/components/global/Field";

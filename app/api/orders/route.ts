@@ -23,7 +23,6 @@ type OrderDetails = {
 
 export const POST = async (req: NextRequest, res: NextResponse) => {
   const reqBody: OrderDetails = await req.json();
-  console.log("req body:", reqBody);
 
   const customer = await upsertCustomer(reqBody.customer);
 

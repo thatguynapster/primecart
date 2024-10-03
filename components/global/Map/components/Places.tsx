@@ -1,7 +1,7 @@
 "use client";
 
 import { Autocomplete } from "@react-google-maps/api";
-import { useRef, useState } from "react";
+import { useRef } from "react";
 
 export interface PlacesProps {
   id: string;
