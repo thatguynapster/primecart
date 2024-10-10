@@ -281,10 +281,7 @@ const ProductDetails = ({ business_id, data }: Props) => {
                     ))}
 
                     {!values.variations?.length && (
-                      <Table.Empty
-                        field="variants"
-                        title="Save a variant to see them here"
-                      />
+                      <Table.Empty title="Save a variant to see them here" />
                     )}
                   </tbody>
                 </Table>

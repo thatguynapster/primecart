@@ -9,6 +9,7 @@ import {
   Products,
   ProductVariations,
 } from "@prisma/client";
+import { JsonValue } from "@prisma/client/runtime/library";
 
 export type Location = {
   address: string;
@@ -67,3 +68,12 @@ export const orderStatuses: OrderStatus[] = [
   "DELIVERED",
   "CANCELLED",
 ];
+
+export type BestSeller = {
+  id: Products["id"];
+  name: string;
+  description: string;
+  images: string[];
+  totalUnitsSold: number;
+  lastOrderDate: Date;
+};

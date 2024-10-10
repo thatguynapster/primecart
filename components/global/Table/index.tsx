@@ -61,15 +61,11 @@ function TD({
 }
 
 function Empty({
-  field,
   title,
-  subtext,
   className,
   action,
 }: {
-  field: string;
   title: string;
-  subtext?: string;
   className?: string;
   action?: { text: string | ReactNode; onClick: () => void };
 }) {
@@ -82,12 +78,9 @@ function Empty({
           <div className="text-center flex flex-col gap-2">
             <FileX size={48} className=" text-gray mx-auto" />
 
-            {/* <div> */}
             <p className="text-sm font-semibold">
               {title ? title : "Nothing to see here"}
             </p>
-            <p className="text-sm font-semibold text-gray whitespace-pre-wrap"></p>
-            {/* </div> */}
           </div>
           {action && (
             <Button

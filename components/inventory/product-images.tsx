@@ -42,7 +42,7 @@ const ProductImages = ({ images, onUpdate }: Props) => {
           "relative"
         )}
       >
-        {images?.length ? (
+        {_images?.length ? (
           <Image
             src={_images[0]?.href ?? "/img/logo.png"}
             alt={"Product Thumbnail"}

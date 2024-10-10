@@ -20,7 +20,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "./db";
 import { routes } from "@/routes";
 import { startOfDay, subDays } from "date-fns";
-import { Order } from "./types";
+import { BestSeller, Order } from "./types";
 
 export const initUser = async (userUpdate?: Users) => {
   const user = await currentUser();
@@ -416,6 +416,8 @@ export const getOrders = async ({
       db.productOrders.count({ where: query.where }),
     ]);
 
+    console.log("orders:", orders);
+
     return {
       pagination: { total: count, total_pages: Math.ceil(count / limit) },
       data: orders,
@@ -437,6 +439,11 @@ export const getOrderSummary = async ({
 }): Promise<any> => {
   const user = await currentUser();
   if (!user) return null;
+
+  if (isNaN(from_date))
+    from_date = startOfDay(subDays(Date.now(), 7)).valueOf();
+
+  if (isNaN(to_date)) to_date = new Date().valueOf();
 
   try {
     const orders_in_period = await db.productOrders.findMany({
@@ -521,5 +528,151 @@ export const getSingleOrder = async (business_id: string, order_id: string) => {
   } catch (error) {
     console.log(error);
     throw new Error("Failed to update order status", { cause: error });
+  }
+};
+
+export const getBestSellers = async ({
+  business_id,
+}: {
+  business_id: string;
+}): Promise<BestSeller[] | void> => {
+  const user = await currentUser();
+  if (!user) return;
+
+  try {
+    const query: Prisma.ProductOrdersFindManyArgs = {
+      where: {
+        business_id,
+        createdAt: {
+          gte: startOfDay(subDays(Date.now(), 7)).toISOString(),
+          lte: new Date().toISOString(),
+        },
+      },
+    };
+
+    const bestSellingProducts = await db.products.findMany({
+      where: {
+        orders: {
+          some: {}, // Ensures only products with at least one order are included
+        },
+      },
+      include: {
+        _count: {
+          select: {
+            orders: true, // Counting the number of orders for each product
+          },
+        },
+        orders: {
+          select: {
+            product_id: true, // Fetching the product ID for order filtering
+            quantity: true,
+            createdAt: true, // Fetching the createdAt date for orders
+          },
+          orderBy: {
+            createdAt: "desc", // Ordering by the latest order date
+          },
+        },
+      },
+      orderBy: {
+        orders: {
+          _count: "desc", // Sorting by the total number of orders in descending order
+        },
+      },
+      take: 10, // Optionally limit the results to the top 10 best-selling products
+    });
+
+    // Calculate the total units sold for each product and filter out duplicates
+    const formattedProducts = bestSellingProducts
+      .map((product) => {
+        // Sum the total quantity sold for the product
+        const totalUnitsSold = product.orders.reduce((total, order) => {
+          return total + order.quantity;
+        }, 0);
+
+        // Filter orders by removing duplicates (based on product_id)
+        const uniqueOrders = product.orders.reduce((acc: any, currentOrder) => {
+          if (
+            !acc.find(
+              (order: any) => order.product_id === currentOrder.product_id
+            )
+          ) {
+            acc.push(currentOrder);
+          }
+          return acc;
+        }, []);
+
+        return {
+          id: product.id,
+          name: product.name,
+          description: product.description,
+          images: product.images,
+          totalUnitsSold,
+          lastOrderDate:
+            uniqueOrders.length > 0 ? uniqueOrders[0].createdAt : null, // Most recent order date
+        };
+      })
+      .filter((product) => product.totalUnitsSold > 0) // Exclude products with no units sold
+      .sort((a, b) => b.totalUnitsSold - a.totalUnitsSold); // Sort by total units sold
+
+    return formattedProducts;
+  } catch (error) {
+    console.log(error);
+    throw new Error("Failed to get best sellers", { cause: error });
+  }
+};
+
+export const getLatestOrders = async (business_id: string) => {
+  const user = await currentUser();
+  if (!user) return;
+
+  try {
+    const recentOrders = await db.productOrders.findMany({
+      where: {
+        business_id,
+        NOT: {
+          orderStatus: {
+            in: ["CANCELLED", "DELIVERED"], // Exclude CANCELLED and DELIVERED orders
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc", // Sort by the most recent order date
+      },
+      take: 10, // Limit to 10 most recent orders
+      include: {
+        customer: {
+          select: {
+            name: true,
+            email: true,
+            phone: true,
+          },
+        },
+        products: {
+          select: {
+            product: {
+              select: {
+                name: true,
+                description: true,
+                images: true,
+              },
+            },
+            product_variation: { select: { attributes: true } },
+            quantity: true,
+            amount: true,
+          },
+        },
+        payment: {
+          select: {
+            provider: true,
+            status: true,
+          },
+        },
+      },
+    });
+
+    return recentOrders;
+  } catch (error) {
+    console.log(error);
+    throw new Error("Failed to get latest orders", { cause: error });
   }
 };

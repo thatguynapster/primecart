@@ -7,11 +7,23 @@ import LineChart from "@/components/global/line-chart";
 import OrdersTable from "@/components/orders/orders-table";
 import { ChartConfig } from "@/components/ui/chart";
 import { Orders } from "@/lib/types";
+import { chartData } from "@/lib/pages";
 
 type Props = {
   params: { business_id: string };
   searchParams: any;
 };
+
+export const chartConfig = {
+  revenue: {
+    label: "Revenue",
+    color: "#027A48",
+  },
+  orders: {
+    label: "Orders",
+    color: "#0055D6",
+  },
+} satisfies ChartConfig;
 
 const OrdersPage = async ({ params: { business_id }, searchParams }: Props) => {
   const date_filter = {
@@ -26,59 +38,14 @@ const OrdersPage = async ({ params: { business_id }, searchParams }: Props) => {
   const orders = await getOrders({
     business_id,
     ...date_filter,
-  }).catch((error) => console.log(error));
+  });
 
   const orderSummary = await getOrderSummary({
     business_id,
     ...date_filter,
-  }).catch((error) => console.log(error));
+  });
 
-  const chartConfig = {
-    revenue: {
-      label: "Revenue",
-      color: "#027A48",
-    },
-    orders: {
-      label: "Orders",
-      color: "#0055D6",
-    },
-  } satisfies ChartConfig;
-
-  const chartData: { name: string; revenue: number; orders: number }[] =
-    (() => {
-      if (!orders?.data) return [];
-      console.log(orders);
-
-      // Aggregate data by date using reduce
-      const dailyData: Record<string, number>[] = orders.data.reduce(
-        (acc: any, order: any) => {
-          const dateKey = format(order.createdAt!, "MMM dd");
-          const orderRevenue = order.amount || 0;
-
-          if (!acc[dateKey]) {
-            acc[dateKey] = { revenue: 0, orders: 0 };
-          }
-
-          acc[dateKey].revenue += orderRevenue;
-          acc[dateKey].orders += 1;
-
-          return acc;
-        },
-        []
-      );
-      console.log(dailyData);
-
-      // Convert the data into the expected return type
-      const data = Object.entries(dailyData).map(
-        ([dateKey, { revenue, orders }]) => ({
-          name: dateKey,
-          orders,
-          revenue: revenue,
-        })
-      );
-
-      return data;
-    })();
+  const chart_data = chartData(orders?.data);
 
   return (
     <div className="flex flex-col gap-4">
@@ -109,7 +76,7 @@ const OrdersPage = async ({ params: { business_id }, searchParams }: Props) => {
       </div>
 
       <div className="flex border-2 rounded-2xl p-8 h-full min-h-[456px]">
-        <LineChart {...{ chartData, chartConfig }} />
+        <LineChart chartData={chart_data} {...{ chartConfig }} />
       </div>
 
       <div className="flex flex-col divide-y border-2 rounded-2xl px-6 md:px-8 pt-2 pb-8">

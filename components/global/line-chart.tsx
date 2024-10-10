@@ -11,15 +11,22 @@ import {
 } from "recharts";
 import { classNames } from "@/lib/helpers";
 import { ChartContainer, type ChartConfig } from "@/components/ui/chart";
+import clsx from "clsx";
 
 type Props = {
   chartData: { name: string; revenue: number; orders: number }[];
   chartConfig: ChartConfig;
+  height?: number;
 };
 
-const LineChart = ({ chartData: data, chartConfig }: Props) => {
+const LineChart = ({ chartData: data, chartConfig, height }: Props) => {
   return (
-    <div className="flex flex-col w-full gap-24 transition-all">
+    <div
+      className={clsx(
+        "flex flex-col w-full transition-all",
+        height ? "gap-4" : "gap-24"
+      )}
+    >
       {!data.length ? (
         <div className="flex flex-1 items-center justify-center">
           No Data to display
@@ -41,6 +48,7 @@ const LineChart = ({ chartData: data, chartConfig }: Props) => {
           <ChartContainer
             config={chartConfig}
             className="min-h-[200px] max-h-[340px] w-full"
+            style={{ height: height ?? "inherit" }}
           >
             <Line_Chart accessibilityLayer {...{ data }}>
               <XAxis

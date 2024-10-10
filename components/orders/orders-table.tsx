@@ -16,13 +16,15 @@ import ChangeStatusButton from "./change-status-button";
 import { Table } from "../global/Table";
 import { Orders } from "@/lib/types";
 import { routes } from "@/routes";
+import OrderTableProduct from "./order-table-product";
 
 type Props = {
   business_id: string;
   orders: Orders | void;
+  withPagination?: boolean;
 };
 
-const OrdersTable = ({ business_id, orders }: Props) => {
+const OrdersTable = ({ business_id, orders, withPagination = true }: Props) => {
   const router = useRouter();
 
   return (
@@ -73,39 +75,19 @@ const OrdersTable = ({ business_id, orders }: Props) => {
                         quantity,
                       }))
                       .map(
-                        ({ name, image, product_variation, quantity }, key) =>
-                          key < 3 ? (
-                            <Tooltip key={key}>
-                              <TooltipTrigger>
-                                <Image
-                                  src={image}
-                                  alt={`${name} - (${quantity})`}
-                                  width={30}
-                                  height={30}
-                                  className="rounded-full"
-                                />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                {/* {`${name} - (${quantity})`} */}
-                                <div className="flex flex-col">
-                                  <p>{name}</p>
-                                  <p>
-                                    Variant:{" "}
-                                    {Object.values(
-                                      product_variation.attributes!
-                                    )
-                                      .map((attr, i) => attr)
-                                      .join(" / ")}
-                                  </p>
-                                  <p>Qty: {quantity}</p>
-                                </div>
-                              </TooltipContent>
-                            </Tooltip>
-                          ) : (
-                            <div className="w-[30px] h-[30px] rounded-full flex items-center justify-center bg-muted">
-                              +{order.products.length - 3}
-                            </div>
-                          )
+                        ({ name, image, product_variation, quantity }, key) => (
+                          <OrderTableProduct
+                            key={key}
+                            index={key}
+                            {...{
+                              image,
+                              name,
+                              product_variation,
+                              quantity,
+                            }}
+                            dataLength={order.products.length}
+                          />
+                        )
                       )}
                   </div>
                 </div>
@@ -114,7 +96,7 @@ const OrdersTable = ({ business_id, orders }: Props) => {
                 {order.products.reduce((a, b) => a + (b?.quantity ?? 0), 0)}
               </Table.TD>
               <Table.TD className="justify-evenly whitespace-nowrap">
-                {format(order.createdAt!, "dd MMM, yyyy")}
+                {format(order.createdAt, "dd MMM, yyyy")}
               </Table.TD>
               <Table.TD className="justify-evenly"></Table.TD>
               <Table.TD className="whitespace-nowrap">
@@ -176,16 +158,17 @@ const OrdersTable = ({ business_id, orders }: Props) => {
           ))}
 
           {!orders?.data?.length && (
-            <Table.Empty
-              className="my-8"
-              field="variants"
-              title="No orders yet"
-            />
+            <Table.Empty className="my-8" title="No orders yet" />
           )}
         </tbody>
       </Table>
 
-      <Table.Pagination page={1} pages={orders?.pagination?.total_pages ?? 1} />
+      {withPagination && (
+        <Table.Pagination
+          page={1}
+          pages={orders?.pagination?.total_pages ?? 1}
+        />
+      )}
     </div>
   );
 };

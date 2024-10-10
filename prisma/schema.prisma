@@ -22,8 +22,8 @@ model Users {
 
   business Business?
 
-  createdAt DateTime? @default(now())
-  updatedAt DateTime? @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 type Location {
@@ -56,8 +56,8 @@ model Business {
   payment    Payment[]
   categories ProductCategories[]
 
-  createdAt DateTime?  @default(now())
-  updatedAt DateTime?  @updatedAt
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
   Customer  Customer[]
 }
 
@@ -89,8 +89,8 @@ model Payment {
   business_id  String    @unique @db.ObjectId
   business     Business? @relation(fields: [business_id], references: [id])
 
-  createdAt DateTime? @default(now())
-  updatedAt DateTime? @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Products {
@@ -99,7 +99,7 @@ model Products {
   name        String
   description String
   images      String[]
-  is_deleted  Boolean?  @default(false)
+  is_deleted  Boolean   @default(false)
   deletedAt   DateTime?
   cost_price  Float
 
@@ -113,8 +113,8 @@ model Products {
 
   variations ProductVariations[] // One-to-many relationship with ProductVariation
 
-  createdAt DateTime? @default(now())
-  updatedAt DateTime? @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model ProductCategories {
@@ -128,8 +128,8 @@ model ProductCategories {
 
   products Products[] // One-to-many relationship
 
-  createdAt DateTime? @default(now())
-  updatedAt DateTime? @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model ProductVariations {
@@ -145,8 +145,8 @@ model ProductVariations {
 
   orders OrderProduct[]
 
-  createdAt DateTime? @default(now())
-  updatedAt DateTime? @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 enum OrderStatus {
@@ -173,25 +173,8 @@ model ProductOrders {
   amount      Float
   products    OrderProduct[] // One-to-many relationship with OrderProducts
 
-  createdAt DateTime  @default(now())
-  updatedAt DateTime? @updatedAt
-}
-
-model Customer {
-  id String @id @default(auto()) @map("_id") @db.ObjectId
-  // unique_id String @unique() @default(uuid())
-
-  name     String
-  email    String
-  phone    String          @unique()
-  location Location
-  orders   ProductOrders[]
-
-  business_id String   @db.ObjectId
-  business    Business @relation(fields: [business_id], references: [id])
-
-  createdAt DateTime? @default(now())
-  updatedAt DateTime? @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model OrderProduct {
@@ -209,8 +192,8 @@ model OrderProduct {
   order_id String        @db.ObjectId
   order    ProductOrders @relation(fields: [order_id], references: [id])
 
-  createdAt DateTime? @default(now())
-  updatedAt DateTime? @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model OrderPayment {
@@ -222,6 +205,23 @@ model OrderPayment {
   order_id String?        @unique // Ensures a one-to-one relationship
   order    ProductOrders? @relation
 
-  createdAt DateTime? @default(now())
-  updatedAt DateTime? @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Customer {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  // unique_id String @unique() @default(uuid())
+
+  name     String
+  email    String
+  phone    String          @unique()
+  location Location
+  orders   ProductOrders[]
+
+  business_id String   @db.ObjectId
+  business    Business @relation(fields: [business_id], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
