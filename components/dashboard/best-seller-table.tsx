@@ -46,7 +46,7 @@ const BestSellerTable = ({ data }: Props) => {
                       className="rounded-full"
                     />
 
-                    <p className="text-sm font-medium text-dark-muted truncate w-full max-w-52">
+                    <p className="text-sm font-medium text-dark-muted dark:text-gray truncate w-full max-w-52">
                       {product.name}
                     </p>
                   </div>

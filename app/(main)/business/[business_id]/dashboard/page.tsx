@@ -72,7 +72,9 @@ const DashboardPage = async ({
           <div className="flex gap-4">
             <Card className="w-full">
               <CardContent>
-                <h1 className="text-sm font-medium text-dark-muted">Revenue</h1>
+                <h1 className="text-sm font-medium text-dark-muted dark:text-gray">
+                  Revenue
+                </h1>
                 <div className="flex justify-between gap-2 items-center">
                   <h1 className="text-2xl font-semibold">
                     ${orderSummary?.revenue.toFixed(2)}
@@ -84,7 +86,9 @@ const DashboardPage = async ({
             </Card>
             <Card className="w-full">
               <CardContent>
-                <h1 className="text-sm font-medium text-dark-muted">Orders</h1>
+                <h1 className="text-sm font-medium text-dark-muted dark:text-gray">
+                  Orders
+                </h1>
                 <div className="flex justify-between gap-2 items-center">
                   <h1 className="text-2xl font-semibold">
                     {orderSummary?.orders}
