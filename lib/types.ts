@@ -77,3 +77,19 @@ export type BestSeller = {
   totalUnitsSold: number;
   lastOrderDate: Date;
 };
+
+export type BusinessCustomer = {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  orders: {
+    createdAt: Date;
+    location: Location;
+  }[];
+};
+
+export type Customers = {
+  pagination: { total: number; total_pages: number };
+  data: BusinessCustomer[];
+};

@@ -416,8 +416,6 @@ export const getOrders = async ({
       db.productOrders.count({ where: query.where }),
     ]);
 
-    console.log("orders:", orders);
-
     return {
       pagination: { total: count, total_pages: Math.ceil(count / limit) },
       data: orders,
@@ -674,5 +672,78 @@ export const getLatestOrders = async (business_id: string) => {
   } catch (error) {
     console.log(error);
     throw new Error("Failed to get latest orders", { cause: error });
+  }
+};
+
+export const getCustomers = async ({
+  business_id,
+  limit = 10,
+  page = 1,
+}: {
+  business_id: string;
+  limit?: number;
+  page?: number;
+}) => {
+  const user = await currentUser();
+  if (!user) return;
+
+  console.log(business_id);
+
+  try {
+    // const customers = await db.customer.findMany({
+    //   where: { business_id },
+    //   select: {
+    //     id: true,
+    //     name: true,
+    //     email: true,
+    //     phone: true,
+    //     orders: {
+    //       orderBy: {
+    //         createdAt: "desc", // Sort orders by the most recent
+    //       },
+    //       take: 1, // Only fetch the most recent order
+    //       select: {
+    //         createdAt: true,
+    //         location: true,
+    //       },
+    //     },
+    //   },
+    // });
+
+    const query = { where: { business_id } };
+
+    const [customers, count] = await db.$transaction([
+      db.customer.findMany({
+        ...query,
+        skip: (page - 1) * limit,
+        take: limit,
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+          orders: {
+            orderBy: {
+              createdAt: "desc", // Sort orders by the most recent
+            },
+            take: 1, // Only fetch the most recent order
+            select: {
+              createdAt: true,
+              location: true,
+            },
+          },
+        },
+      }),
+      db.customer.count({ where: query.where }),
+    ]);
+    console.log(customers[0].orders);
+
+    return {
+      pagination: { total: count, total_pages: Math.ceil(count / limit) },
+      data: customers,
+    };
+  } catch (error) {
+    console.log(error);
+    throw new Error("Failed to get customers", { cause: error });
   }
 };

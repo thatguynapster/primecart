@@ -28,9 +28,9 @@ model Users {
 
 type Location {
   address      String
-  country      String?
-  country_code String?
-  city         String?
+  country      String
+  country_code String
+  city         String
   longitude    Float
   latitude     Float
   region       String
