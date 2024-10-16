@@ -402,8 +402,9 @@ export const getOrders = async ({
             select: {
               product: {
                 select: {
-                  images: true,
                   name: true,
+                  description: true,
+                  images: true,
                 },
               },
               product_variation: { select: { attributes: true } },
@@ -525,7 +526,7 @@ export const getSingleOrder = async (business_id: string, order_id: string) => {
     return order;
   } catch (error) {
     console.log(error);
-    throw new Error("Failed to update order status", { cause: error });
+    throw new Error("Failed to get order", { cause: error });
   }
 };
 
@@ -538,18 +539,9 @@ export const getBestSellers = async ({
   if (!user) return;
 
   try {
-    const query: Prisma.ProductOrdersFindManyArgs = {
-      where: {
-        business_id,
-        createdAt: {
-          gte: startOfDay(subDays(Date.now(), 7)).toISOString(),
-          lte: new Date().toISOString(),
-        },
-      },
-    };
-
     const bestSellingProducts = await db.products.findMany({
       where: {
+        business_id,
         orders: {
           some: {}, // Ensures only products with at least one order are included
         },
@@ -659,12 +651,13 @@ export const getLatestOrders = async (business_id: string) => {
             amount: true,
           },
         },
-        payment: {
-          select: {
-            provider: true,
-            status: true,
-          },
-        },
+        // payment: {
+        //   select: {
+        //     provider: true,
+        //     status: true,
+        //   },
+        // },
+        payment: true,
       },
     });
 
@@ -687,29 +680,7 @@ export const getCustomers = async ({
   const user = await currentUser();
   if (!user) return;
 
-  console.log(business_id);
-
   try {
-    // const customers = await db.customer.findMany({
-    //   where: { business_id },
-    //   select: {
-    //     id: true,
-    //     name: true,
-    //     email: true,
-    //     phone: true,
-    //     orders: {
-    //       orderBy: {
-    //         createdAt: "desc", // Sort orders by the most recent
-    //       },
-    //       take: 1, // Only fetch the most recent order
-    //       select: {
-    //         createdAt: true,
-    //         location: true,
-    //       },
-    //     },
-    //   },
-    // });
-
     const query = { where: { business_id } };
 
     const [customers, count] = await db.$transaction([
@@ -736,7 +707,6 @@ export const getCustomers = async ({
       }),
       db.customer.count({ where: query.where }),
     ]);
-    console.log(customers[0].orders);
 
     return {
       pagination: { total: count, total_pages: Math.ceil(count / limit) },
@@ -745,5 +715,149 @@ export const getCustomers = async ({
   } catch (error) {
     console.log(error);
     throw new Error("Failed to get customers", { cause: error });
+  }
+};
+
+export const getSingleCustomer = async (
+  business_id: string,
+  customer_id: string
+) => {
+  const user = await currentUser();
+  if (!user) return;
+
+  try {
+    let customer: {
+      id: string;
+      name: string;
+      email: string;
+      phone: string;
+      location: {
+        address: string;
+        city: string;
+      };
+      orders?: {
+        id: string;
+        createdAt: Date;
+      }[];
+      firstOrder?: { id: string; createdAt: Date } | null;
+      lastOrder?: { id: string; createdAt: Date } | null;
+    } | null = await db.customer.findUnique({
+      where: { id: customer_id, business_id },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        location: {
+          select: {
+            address: true,
+            city: true,
+          },
+        },
+        orders: {
+          orderBy: {
+            createdAt: "asc", // Sort orders by the oldest
+          },
+          select: {
+            id: true,
+            createdAt: true,
+          },
+        },
+      },
+    });
+
+    if (!customer) {
+      throw new Error("Customer not found");
+    }
+
+    if (customer.orders) {
+      const firstOrder =
+        customer.orders?.length > 0 ? customer?.orders?.[0] : null;
+      const lastOrder =
+        customer?.orders.length > 1
+          ? customer?.orders[customer?.orders.length - 1]
+          : firstOrder;
+
+      delete customer.orders;
+
+      customer = {
+        ...customer,
+        firstOrder,
+        lastOrder,
+      };
+    }
+
+    return customer;
+  } catch (error) {
+    console.log(error);
+    throw new Error("Failed to get customer", { cause: error });
+  }
+};
+
+export const getCustomerOrders = async ({
+  business_id,
+  customer_id,
+  page = 1,
+  limit = 10,
+}: {
+  business_id: string;
+  customer_id: string;
+  page?: number;
+  limit?: number;
+}) => {
+  const user = await currentUser();
+  if (!user) return;
+
+  try {
+    const query: Prisma.ProductOrdersFindManyArgs = {
+      where: {
+        business_id,
+        customer_id,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    };
+
+    const [orders, count] = await db.$transaction([
+      db.productOrders.findMany({
+        ...query,
+        skip: (page - 1) * limit,
+        take: limit,
+        include: {
+          customer: {
+            select: {
+              email: true,
+              name: true,
+              phone: true,
+            },
+          },
+          payment: true,
+          products: {
+            select: {
+              product: {
+                select: {
+                  name: true,
+                  description: true,
+                  images: true,
+                },
+              },
+              product_variation: { select: { attributes: true } },
+              quantity: true,
+              amount: true,
+            },
+          },
+        },
+      }),
+      db.productOrders.count({ where: query.where }),
+    ]);
+
+    return {
+      pagination: { total: count, total_pages: Math.ceil(count / limit) },
+      data: orders,
+    };
+  } catch (error) {
+    console.log(error);
+    throw new Error("Failed to get orders", { cause: error });
   }
 };

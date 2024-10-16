@@ -2,6 +2,7 @@ import { BankData } from "@/components/forms/payment-details/bank";
 import { MomoData } from "@/components/forms/payment-details/momo";
 import {
   Customer,
+  OrderPayment,
   OrderProduct,
   OrderStatus,
   Payment,
@@ -45,15 +46,16 @@ export type Order = Pick<
   ProductOrders,
   "amount" | "createdAt" | "id" | "location" | "orderStatus"
 > & {
+  payment: OrderPayment | null;
   products: ({
-    product: Pick<Products, "images" | "name">;
+    product: Pick<Products, "name" | "description" | "images">;
     product_variation: Pick<ProductVariations, "attributes">;
   } & Pick<OrderProduct, "amount" | "quantity">)[];
   customer: Pick<Customer, "email" | "name" | "phone">;
 };
 
 export type Orders = {
-  pagination: { total: number; total_pages: number };
+  pagination?: { total: number; total_pages: number };
   data: Order[];
 };
 

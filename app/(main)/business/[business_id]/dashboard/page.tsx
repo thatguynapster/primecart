@@ -17,6 +17,7 @@ import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { routes } from "@/routes";
 import OrdersTable from "@/components/orders/orders-table";
+import { Orders } from "@/lib/types";
 
 type Props = { params: { business_id: string }; searchParams: any };
 
@@ -130,7 +131,11 @@ const DashboardPage = async ({
           </div>
         </CardHeader>
         <CardContent>
-          <OrdersTable {...{ business_id, orders }} withPagination={false} />
+          <OrdersTable
+            {...{ business_id }}
+            orders={{ data: latest_orders ?? [] }}
+            withPagination={false}
+          />
         </CardContent>
       </Card>
     </div>
