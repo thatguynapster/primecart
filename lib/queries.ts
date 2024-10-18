@@ -66,20 +66,54 @@ export const getAuthUserDetails = async () => {
   }
 };
 
+export const getUser = async (business_id: string) => {
+  const user = await currentUser();
+  if (!user) return;
+
+  try {
+    const userData = await db.users.findUnique({
+      where: {
+        email: user.emailAddresses[0].emailAddress,
+      },
+    });
+
+    return userData;
+  } catch (error) {
+    console.log(error);
+    throw new Error("Failed to create user", { cause: error });
+  }
+};
+
 export const createBusiness = async (
   business: Omit<Business, "id" | "createdAt" | "updatedAt">
 ) => {
   try {
-    const businessDetails = await db.business.create({
-      data: {
-        ...business,
-      },
+    const businessDetails = await db.business.upsert({
+      where: { unique_id: business.unique_id },
+      update: business,
+      create: business,
     });
 
     return businessDetails;
   } catch (error) {
     console.log(error);
     throw new Error("Failed to create business", { cause: error });
+  }
+};
+
+export const deleteBusiness = async (id: string) => {
+  const user = await currentUser();
+  if (!user) return;
+
+  try {
+    const business = await db.business.delete({
+      where: { id },
+    });
+
+    return business;
+  } catch (error) {
+    console.log(error);
+    throw new Error("Failed to delete product variant", { cause: error });
   }
 };
 

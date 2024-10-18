@@ -92,6 +92,7 @@ const SingleFileUpload = ({
           {value ? (
             <Image
               src={value}
+              className="rounded-xl"
               alt="Business Logo"
               fill
               sizes="(max-width: 1200px) 100vw, (max-width: 768px) 50vw, 33vw"

@@ -101,7 +101,7 @@ const MenuOptions = ({ id, sidebarOptions, defaultOpen }: Props) => {
                           "border-2 border-dark dark:border-light text-dark dark:text-light font-semibold":
                             active,
                         },
-                        { "text-dark-muted": !active }
+                        { "text-gray": !active }
                       )}
                     >
                       {icon}
@@ -120,7 +120,7 @@ const MenuOptions = ({ id, sidebarOptions, defaultOpen }: Props) => {
                               "border-2 border-dark dark:border-light text-dark dark:text-light":
                                 active,
                             },
-                            { "text-dark-muted": !active }
+                            { "text-gray": !active }
                           )}
                         >
                           {icon}
@@ -153,7 +153,7 @@ const MenuOptions = ({ id, sidebarOptions, defaultOpen }: Props) => {
                                       "border-2 border-dark dark:border-light text-dark dark:text-light":
                                         active,
                                     },
-                                    { "text-dark-muted": !active }
+                                    { "text-gray": !active }
                                   )}
                                 >
                                   {subIcon}

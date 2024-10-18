@@ -38,6 +38,7 @@ type Location {
 
 model Business {
   id         String    @id @default(auto()) @map("_id") @db.ObjectId
+  unique_id  String    @unique() @default(uuid())
   name       String
   email      String
   logo       String

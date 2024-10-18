@@ -1,15 +1,19 @@
 "use client";
 
+import { useParams, useRouter } from "next/navigation";
 import { Form, Formik, FormikHelpers } from "formik";
-import { useRouter } from "next/navigation";
+import React, { useEffect, useState } from "react";
 import { Business } from "@prisma/client";
-import React, { useState } from "react";
 import toast from "react-hot-toast";
 import { object } from "yup";
+import { v4 } from "uuid";
 
+import ConfirmBusinessDelete from "./settings/confirm-business-delete";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { deleteFile, handleImageUpload } from "@/lib/file-handler";
 import SingleFileUpload from "../global/single-file-upload";
 import { createBusiness, initUser } from "@/lib/queries";
+import { useModal } from "@/providers/modal-provider";
 import * as Field from "@/components/global/Field";
 import { classNames } from "@/lib/helpers";
 import { Button } from "../global/button";
@@ -17,7 +21,7 @@ import { Location } from "@/lib/types";
 import * as schema from "@/lib/schema";
 import { routes } from "@/routes";
 
-type Props = { data?: Partial<Business> };
+type Props = { data?: Partial<Business> | null };
 
 interface FormData {
   name: string;
@@ -32,9 +36,12 @@ interface FormData {
 }
 
 const BusinessDetails = ({ data }: Props) => {
+  const params = useParams<{ business_id: string }>();
   const router = useRouter();
 
   const [logoID, setLogoId] = useState<string>();
+  const { setOpen } = useModal();
+  ``;
 
   const handleSubmit = async (
     values: FormData,
@@ -45,6 +52,7 @@ const BusinessDetails = ({ data }: Props) => {
       const authUser = await initUser();
 
       const business = await createBusiness({
+        unique_id: data?.unique_id ?? v4(),
         name: values.name,
         email: values.email,
         logo: values.logo,
@@ -67,9 +75,10 @@ const BusinessDetails = ({ data }: Props) => {
         },
       });
 
-      toast.success("account created");
+      toast.success(`account ${data ? "updated" : "created"}`);
 
-      router.push(routes.launchpad.replace(":business_id", business.id));
+      if (!data)
+        router.push(routes.launchpad.replace(":business_id", business.id));
     } catch (error) {
       console.log(error);
       toast.error("Failed to create business");
@@ -77,6 +86,10 @@ const BusinessDetails = ({ data }: Props) => {
       actions.setSubmitting(false);
     }
   };
+
+  useEffect(() => {
+    setLogoId(data?.logo?.split("files/")[1].split("/")[0]);
+  }, [data]);
 
   return (
     <div
@@ -89,10 +102,12 @@ const BusinessDetails = ({ data }: Props) => {
     >
       <h1 className="text-xl text-center font-bold">Business Information</h1>
 
-      <p className="text-sm font-medium text-center">
-        Let's create and agency for your business. You can edit agency settings
-        later from the agency settings tab.
-      </p>
+      {!params.business_id && (
+        <p className="text-sm font-medium text-center">
+          Let's create an agency for your business. You can edit agency settings
+          later from the agency settings tab.
+        </p>
+      )}
 
       <Formik
         validateOnMount
@@ -111,23 +126,23 @@ const BusinessDetails = ({ data }: Props) => {
           zip_code: schema.requireString("Zip Code"),
         })}
         initialValues={{
-          logo: "",
-          name: "",
-          email: "",
+          logo: data?.logo ?? "",
+          name: data?.name ?? "",
+          email: data?.email ?? "",
           location: {
-            address: "",
-            latitude: 0,
-            longitude: 0,
-            country: "",
-            city: "",
-            country_code: "",
-            region: "",
+            address: data?.location?.address ?? "",
+            latitude: data?.location?.latitude ?? 0,
+            longitude: data?.location?.longitude ?? 0,
+            country: data?.location?.country ?? "",
+            city: data?.location?.city ?? "",
+            country_code: data?.location?.country_code ?? "",
+            region: data?.location?.region ?? "",
           },
-          phone: "",
-          country: "",
-          city: "",
-          state: "",
-          zip_code: "",
+          phone: data?.phone ?? "",
+          country: data?.country ?? "",
+          city: data?.city ?? "",
+          state: data?.state ?? "",
+          zip_code: data?.zip_code ?? "",
         }}
         onSubmit={(values, { setSubmitting }) => {
           setSubmitting(true);
@@ -163,6 +178,7 @@ const BusinessDetails = ({ data }: Props) => {
                   setLogoId(uploaded_file.file_id);
                 }}
                 deleteFile={async () => {
+                  console.log(logoID);
                   await deleteFile(logoID!, "business");
 
                   setFieldValue("logo", "");
@@ -171,7 +187,7 @@ const BusinessDetails = ({ data }: Props) => {
               />
             </Field.Group>
 
-            <div className="flex gap-4 w-full">
+            <div className="flex flex-col lg:flex-row gap-4 w-full">
               <Field.Group
                 className="w-full"
                 name="name"
@@ -217,7 +233,7 @@ const BusinessDetails = ({ data }: Props) => {
               />
             </Field.Group>
 
-            <div className="flex gap-4">
+            <div className="flex flex-col lg:flex-row gap-4">
               <Field.Group
                 className="w-full"
                 name="phone"
@@ -248,7 +264,7 @@ const BusinessDetails = ({ data }: Props) => {
               </Field.Group>
             </div>
 
-            <div className="flex gap-4">
+            <div className="flex flex-col lg:flex-row gap-4">
               <Field.Group className="w-full" name="city" label="City" required>
                 <Field.Input
                   as="input"
@@ -289,6 +305,31 @@ const BusinessDetails = ({ data }: Props) => {
                 />
               </Field.Group>
             </div>
+
+            {params.business_id && (
+              <Card className="!p-4 !border-error">
+                <CardHeader>
+                  <CardTitle className="text-sm font-medium mb-4">
+                    Danger Zone
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="flex flex-col lg:flex-row gap-4 lg:items-center">
+                  <p className="text-sm font-medium">
+                    Deleting your agency cannot be undone. This will also delete
+                    all data related to your account.
+                  </p>
+                  <Button
+                    className="w-max !bg-error !text-white !border-error"
+                    type="button"
+                    onClick={() => {
+                      setOpen(<ConfirmBusinessDelete />);
+                    }}
+                  >
+                    Delete Business
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
 
             <Button
               className="w-max"
