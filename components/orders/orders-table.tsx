@@ -17,6 +17,8 @@ import { Table } from "../global/Table";
 import { Orders } from "@/lib/types";
 import { routes } from "@/routes";
 import OrderTableProduct from "./order-table-product";
+import { parseCurrency } from "@/lib/utils";
+import { Badge } from "../ui/badge";
 
 type Props = {
   business_id: string;
@@ -25,6 +27,7 @@ type Props = {
 };
 
 const OrdersTable = ({ business_id, orders, withPagination = true }: Props) => {
+  console.log(orders);
   const router = useRouter();
 
   return (
@@ -36,7 +39,7 @@ const OrdersTable = ({ business_id, orders, withPagination = true }: Props) => {
             <Table.TH>Product</Table.TH>
             <Table.TH className="justify-evenly">Quantity</Table.TH>
             <Table.TH className="justify-evenly">Date</Table.TH>
-            <Table.TH className="justify-evenly">Payment Method</Table.TH>
+            {/* <Table.TH className="justify-evenly">Payment Method</Table.TH> */}
             <Table.TH>Customer</Table.TH>
             <Table.TH>Status</Table.TH>
             <Table.TH className="justify-end">Amount</Table.TH>
@@ -98,25 +101,24 @@ const OrdersTable = ({ business_id, orders, withPagination = true }: Props) => {
               <Table.TD className="justify-evenly whitespace-nowrap">
                 {format(order.createdAt, "dd MMM, yyyy")}
               </Table.TD>
-              <Table.TD className="justify-evenly"></Table.TD>
+              {/* <Table.TD className="justify-evenly"></Table.TD> */}
               <Table.TD className="whitespace-nowrap">
                 {order.customer.name}
               </Table.TD>
-              <Table.TD className="capitalize">
-                <div className="flex gap-2 items-center">
-                  <span
-                    className={clsx("w-2 h-2 rounded-full", {
-                      "bg-gray": order.orderStatus === "PENDING",
-                      "bg-dark dark:bg-light": order.orderStatus === "SHIPPING",
-                      "bg-success": order.orderStatus === "DELIVERED",
-                      "bg-warning": order.orderStatus === "CANCELLED",
-                    })}
-                  />
-                  <p>{order.orderStatus.toLowerCase()}</p>
-                </div>
+              <Table.TD className="capitalize flex gap-4">
+                <Badge variant={order.orderStatus} className="capitalize">
+                  {order.orderStatus.toLowerCase()}
+                </Badge>
+
+                <Badge
+                  variant={order.payment?.status ?? "FAILED"}
+                  className="capitalize"
+                >
+                  {order.payment?.status.toLowerCase() ?? "Failed"}
+                </Badge>
               </Table.TD>
               <Table.TD className="justify-end capitalize">
-                ${order.amount.toFixed(2)}
+                {parseCurrency(order.amount)}
               </Table.TD>
               <Table.TD className="justify-evenly">
                 <ChangeStatusButton

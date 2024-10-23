@@ -151,7 +151,7 @@ model ProductVariations {
 }
 
 enum OrderStatus {
-  PENDING
+  CONFIRMED
   SHIPPING
   DELIVERED
   CANCELLED
@@ -164,13 +164,13 @@ model ProductOrders {
   customer_id String   @db.ObjectId
   customer    Customer @relation(fields: [customer_id], references: [id])
 
-  business_id String
+  business_id String @db.ObjectId
 
   location   Location
-  payment_id String?       @unique
+  payment_id String?       @unique @db.ObjectId
   payment    OrderPayment? @relation(fields: [payment_id], references: [id])
 
-  orderStatus OrderStatus    @default(PENDING)
+  orderStatus OrderStatus    @default(CONFIRMED)
   amount      Float
   products    OrderProduct[] // One-to-many relationship with OrderProducts
 
@@ -197,13 +197,25 @@ model OrderProduct {
   updatedAt DateTime @updatedAt
 }
 
-model OrderPayment {
-  id           String @id @default(uuid()) @map("_id")
-  provider     String // Payment provider, e.g., Stripe, PayPal
-  checkout_url String // URL for the checkout process
-  status       String // Payment status, e.g., pending, completed, failed - obtained from payment provideer
+enum PaymentStatus {
+  FAILED
+  PAID
+  PROCESSING
+}
 
-  order_id String?        @unique // Ensures a one-to-one relationship
+enum PaymentProvider {
+  PAYSTACK
+}
+
+model OrderPayment {
+  id           String          @id @default(auto()) @map("_id") @db.ObjectId
+  provider     PaymentProvider // Payment provider, e.g., Stripe, PayPal
+  checkout_url String // URL for the checkout process
+  access_code  String
+  reference    String
+  status       PaymentStatus   @default(PROCESSING) // Payment status, e.g., pending, completed, failed - obtained from payment provideer
+
+  order_id String?        @unique @db.ObjectId // Ensures a one-to-one relationship
   order    ProductOrders? @relation
 
   createdAt DateTime @default(now())

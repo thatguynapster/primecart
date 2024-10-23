@@ -1,5 +1,7 @@
 import { db } from "@/lib/db";
+import { initializePayment } from "@/lib/paystack";
 import {
+  createOrderPayment,
   createOrderProducts,
   createProductOrder,
   upsertCustomer,
@@ -14,10 +16,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { v4 } from "uuid";
 
 type OrderDetails = {
-  unique_id: string;
+  business_id: string;
   customer: Customer;
   location: Location;
-  amount: number;
   products: OrderProduct[];
 };
 
@@ -38,14 +39,27 @@ export const POST = async (req: NextRequest, res: NextResponse) => {
     })
   );
 
+  const initPayment = await initializePayment({
+    amount: amount.toFixed(2),
+    email: customer.email,
+  });
+  console.log("payment:", initPayment);
+
   const order = await createProductOrder({
     unique_id: v4(),
     amount,
     customer_id: customer?.id!,
-    payment_id: v4(), // TODO: generate payment from paystack
-    orderStatus: "PENDING",
+    payment_id: null,
     location: reqBody.location,
-    business_id: "66cf2d87647481db2eecdc5c",
+    business_id: reqBody.business_id,
+  });
+
+  const payment = await createOrderPayment({
+    provider: "PAYSTACK",
+    checkout_url: initPayment.data.authorization_url,
+    access_code: initPayment.data.access_code,
+    reference: initPayment.data.reference,
+    order_id: order.id,
   });
 
   const productsWithAmount = await Promise.all(
@@ -78,7 +92,12 @@ export const POST = async (req: NextRequest, res: NextResponse) => {
     {
       success: true,
       message: "Order created successfully",
-      sale: { ...order, products: productsWithAmount },
+      sale: {
+        ...order,
+        products: productsWithAmount,
+        payment_id: payment.id,
+        payment: { checkout_url: payment.checkout_url },
+      },
     },
     { status: 200 }
   );

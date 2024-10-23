@@ -14,8 +14,8 @@ export const routes = {
     index: "/business/:business_id/customers",
     details: "/business/:business_id/customers/:customer_id",
   },
-  finances: {
-    overview: "/business/:business_id/finance",
+  finance: {
+    overview: "/business/:business_id/finance/overview",
     payout: "/business/:business_id/finance/payouts",
   },
   settings: "/business/:business_id/settings",

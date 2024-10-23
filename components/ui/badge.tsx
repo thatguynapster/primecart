@@ -8,14 +8,17 @@ const badgeVariants = cva(
   {
     variants: {
       variant: {
-        PENDING: "bg-gray text-dark",
+        CONFIRMED: "bg-gray text-dark",
+        PROCESSING: "bg-gray text-dark",
         CANCELLED: "bg-warning text-dark",
         DELIVERED: "bg-success text-light",
+        PAID: "bg-success text-light",
         SHIPPING: "bg-dark dark:bg-light text-light dark:text-dark",
+        FAILED: "bg-error text-light",
       },
     },
     defaultVariants: {
-      variant: "PENDING",
+      variant: "CONFIRMED",
     },
   }
 );

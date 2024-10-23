@@ -108,14 +108,23 @@ const MenuOptions = ({ id, sidebarOptions, defaultOpen }: Props) => {
                       <span>{option.name}</span>
                     </Link>
                   ) : (
-                    <Accordion type="single" collapsible className="w-full">
+                    <Accordion
+                      type="single"
+                      collapsible
+                      className="w-full"
+                      defaultValue={
+                        pathname.includes(option.name.toLowerCase())
+                          ? option.name
+                          : ""
+                      }
+                    >
                       <AccordionItem
-                        value="item-1"
+                        value={option.name}
                         className="border-none flex flex-col gap-3"
                       >
                         <AccordionTrigger
                           className={clsx(
-                            "!px-3 !py-2",
+                            "!px-3 !py-2 rounded-lg",
                             {
                               "border-2 border-dark dark:border-light text-dark dark:text-light":
                                 active,
@@ -148,12 +157,13 @@ const MenuOptions = ({ id, sidebarOptions, defaultOpen }: Props) => {
                                   className={clsx(
                                     "flex items-center gap-2",
                                     "px-3 font-medium",
+                                    "border",
                                     "hover:bg-transparent rounded-lg transition-all",
                                     {
-                                      "border-2 border-dark dark:border-light text-dark dark:text-light":
+                                      "border-dark dark:border-light text-dark dark:text-light":
                                         active,
                                     },
-                                    { "text-gray": !active }
+                                    { "text-gray border-transparent": !active }
                                   )}
                                 >
                                   {subIcon}

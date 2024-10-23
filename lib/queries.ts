@@ -12,6 +12,7 @@ import {
   OrderProduct,
   OrderStatus,
   Prisma,
+  OrderPayment,
 } from "@prisma/client";
 import { currentUser } from "@clerk/nextjs/server";
 import { cache } from "react";
@@ -352,7 +353,7 @@ export const upsertCustomer = async (data: Customer) => {
 };
 
 export const createProductOrder = async (
-  data: Omit<ProductOrders, "id" | "createdAt" | "updatedAt">
+  data: Omit<ProductOrders, "id" | "orderStatus" | "createdAt" | "updatedAt">
 ) => {
   // const user = await currentUser();
   // if (!user) return;
@@ -370,9 +371,6 @@ export const createProductOrder = async (
 export const createOrderProducts = async (
   data: Omit<OrderProduct, "id" | "createdAt" | "updatedAt">[]
 ) => {
-  // const user = await currentUser();
-  // if (!user) return;
-
   try {
     const orderProduct = await db.orderProduct.createMany({ data });
 
@@ -685,12 +683,6 @@ export const getLatestOrders = async (business_id: string) => {
             amount: true,
           },
         },
-        // payment: {
-        //   select: {
-        //     provider: true,
-        //     status: true,
-        //   },
-        // },
         payment: true,
       },
     });
@@ -893,5 +885,29 @@ export const getCustomerOrders = async ({
   } catch (error) {
     console.log(error);
     throw new Error("Failed to get orders", { cause: error });
+  }
+};
+
+export const createOrderPayment = async (
+  data: Omit<OrderPayment, "id" | "status" | "createdAt" | "updatedAt">
+) => {
+  try {
+    console.log(data);
+    const orderPayment = await db.orderPayment.create({ data });
+
+    // update order with payment id
+    await db.productOrders.update({
+      where: {
+        id: data.order_id!,
+      },
+      data: {
+        payment_id: orderPayment.id,
+      },
+    });
+
+    return orderPayment;
+  } catch (error) {
+    console.log(error);
+    throw new Error("Failed to create order products", { cause: error });
   }
 };

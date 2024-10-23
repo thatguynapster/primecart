@@ -65,7 +65,7 @@ export type OrderSummary = {
 };
 
 export const orderStatuses: OrderStatus[] = [
-  "PENDING",
+  "CONFIRMED",
   "SHIPPING",
   "DELIVERED",
   "CANCELLED",

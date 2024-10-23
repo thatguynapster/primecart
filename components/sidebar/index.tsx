@@ -40,13 +40,13 @@ const Sidebar = async ({ id }: Props) => {
       link: routes.customers.index.replace(":business_id", user.business.id),
     },
     {
-      name: "Finances",
+      name: "Finance",
       icon: "finance",
       subOptions: [
         {
           name: "Overview",
           icon: "subNavStart",
-          link: routes.finances.overview.replace(
+          link: routes.finance.overview.replace(
             ":business_id",
             user.business.id
           ),
@@ -54,10 +54,7 @@ const Sidebar = async ({ id }: Props) => {
         {
           name: "Payouts",
           icon: "subNavEnd",
-          link: routes.finances.payout.replace(
-            ":business_id",
-            user.business.id
-          ),
+          link: routes.finance.payout.replace(":business_id", user.business.id),
         },
       ],
     },
