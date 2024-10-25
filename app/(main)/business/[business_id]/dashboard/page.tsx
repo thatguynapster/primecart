@@ -132,7 +132,6 @@ const DashboardPage = async ({
         </CardHeader>
         <CardContent>
           <OrdersTable
-            {...{ business_id }}
             orders={{ data: latest_orders ?? [] }}
             withPagination={false}
           />

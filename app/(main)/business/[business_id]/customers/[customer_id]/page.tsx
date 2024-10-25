@@ -90,7 +90,7 @@ const CustomerDetailsPage = async ({
       </div>
 
       <Card>
-        <OrdersTable {...{ business_id }} orders={customer_orders} />
+        <OrdersTable orders={customer_orders} />
       </Card>
     </div>
   );

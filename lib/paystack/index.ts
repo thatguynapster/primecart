@@ -1,5 +1,7 @@
 "use server";
 
+import { PaymentStatus } from "@prisma/client";
+
 export type PaystackResponse = {
   status: boolean;
   message: string;
@@ -24,8 +26,6 @@ export const initializePayment = async ({
     `Bearer ${process.env["PAYSTACK_SECRET_KEY"]}`
   );
 
-  console.log("order amount:", amount);
-
   const requestOptions = {
     method: "POST",
     headers: myHeaders,
@@ -39,6 +39,51 @@ export const initializePayment = async ({
     "https://api.paystack.co/transaction/initialize",
     requestOptions
   ).then((response) => response.json());
+
+  return payment;
+};
+
+export const verifyPayment = async (
+  reference: string
+): Promise<{ status: PaymentStatus }> => {
+  const myHeaders = new Headers();
+  myHeaders.append("Content-Type", "application/json");
+  myHeaders.append(
+    "Authorization",
+    `Bearer ${process.env["PAYSTACK_SECRET_KEY"]}`
+  );
+
+  const requestOptions = {
+    method: "GET",
+    headers: myHeaders,
+  };
+
+  const payment = await fetch(
+    `https://api.paystack.co/transaction/verify/${reference}`,
+    requestOptions
+  )
+    .then((response) => response.json())
+    .then((resp) => {
+      let status: PaymentStatus = "FAILED";
+
+      switch (resp.data.status) {
+        case "abandoned":
+        case "failed":
+        case "reversed":
+          status = "FAILED";
+          break;
+        case "ongoing":
+        case "pending":
+        case "processing":
+        case "queued":
+          status = "PROCESSING";
+          break;
+        case "success":
+          status = "PAID";
+          break;
+      }
+      return { status };
+    });
 
   return payment;
 };

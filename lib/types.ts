@@ -44,7 +44,7 @@ export type Bucket = "business" | "product" | "media";
 
 export type Order = Pick<
   ProductOrders,
-  "amount" | "createdAt" | "id" | "location" | "orderStatus"
+  "amount" | "createdAt" | "id" | "location" | "orderStatus" | "payment_id"
 > & {
   payment: OrderPayment | null;
   products: ({

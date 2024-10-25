@@ -84,7 +84,7 @@ const OrdersPage = async ({ params: { business_id }, searchParams }: Props) => {
           <h2 className="text-xl font-semibold">Recent Orders</h2>
         </div>
 
-        <OrdersTable {...{ business_id, orders }} />
+        <OrdersTable {...{ orders }} />
       </div>
     </div>
   );

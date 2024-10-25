@@ -40,7 +40,7 @@ export const POST = async (req: NextRequest, res: NextResponse) => {
   );
 
   const initPayment = await initializePayment({
-    amount: amount.toFixed(2),
+    amount: (amount * 100).toFixed(2), // amount should be sent in country's lowest currency (hence *100)
     email: customer.email,
   });
   console.log("payment:", initPayment);

@@ -13,6 +13,7 @@ import {
   OrderStatus,
   Prisma,
   OrderPayment,
+  PaymentStatus,
 } from "@prisma/client";
 import { currentUser } from "@clerk/nextjs/server";
 import { cache } from "react";
@@ -909,5 +910,29 @@ export const createOrderPayment = async (
   } catch (error) {
     console.log(error);
     throw new Error("Failed to create order products", { cause: error });
+  }
+};
+
+export const updateOrderPaymentStatus = async (
+  payment_id: string,
+  paymentStatus: PaymentStatus
+) => {
+  const user = await currentUser();
+  if (!user) return;
+
+  try {
+    const updatedORder = await db.orderPayment.update({
+      where: {
+        id: payment_id,
+      },
+      data: { status: paymentStatus },
+    });
+
+    revalidatePath(routes.orders.index, "page");
+
+    return updatedORder;
+  } catch (error) {
+    console.log(error);
+    throw new Error("Failed to update order status", { cause: error });
   }
 };
