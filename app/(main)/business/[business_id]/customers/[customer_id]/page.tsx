@@ -59,7 +59,7 @@ const CustomerDetailsPage = async ({
                     <p className="pl-8 text-sm text-dark-muted dark:text-gray">
                       {format(
                         customer?.firstOrder?.createdAt,
-                        "MMM Do, yyyy h:mm a"
+                        "MMM do, yyyy h:mm a"
                       )}
                     </p>
                   </div>
@@ -74,7 +74,7 @@ const CustomerDetailsPage = async ({
                     <p className="pl-8 text-sm text-dark-muted dark:text-gray">
                       {format(
                         customer?.lastOrder?.createdAt,
-                        "MMM Do, yyyy h:mm a"
+                        "MMM do, yyyy h:mm a"
                       )}
                     </p>
                   </div>
