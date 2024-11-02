@@ -3,7 +3,7 @@ import crypto from "crypto";
 
 export const POST = async (req: NextRequest, res: NextResponse) => {
   const reqBody = await req.json();
-  const secret = process.env.SECRET_KEY!;
+  const secret = process.env.PAYSTACK_SECRET_KEY!;
 
   //validate event
   const hash = crypto
