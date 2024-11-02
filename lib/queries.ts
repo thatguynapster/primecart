@@ -545,6 +545,7 @@ export const getSingleOrder = async (business_id: string, order_id: string) => {
             product: {
               select: {
                 images: true,
+                description: true,
                 name: true,
               },
             },

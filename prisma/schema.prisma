@@ -201,6 +201,7 @@ enum PaymentStatus {
   FAILED
   PAID
   PROCESSING
+  ABANDONED
 }
 
 enum PaymentProvider {

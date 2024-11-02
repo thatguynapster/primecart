@@ -68,6 +68,8 @@ export const verifyPayment = async (
 
       switch (resp.data.status) {
         case "abandoned":
+          status = "ABANDONED";
+          break;
         case "failed":
         case "reversed":
           status = "FAILED";

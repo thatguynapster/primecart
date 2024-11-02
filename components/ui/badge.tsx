@@ -14,6 +14,7 @@ const badgeVariants = cva(
         DELIVERED: "bg-success text-light",
         PAID: "bg-success text-light",
         SHIPPING: "bg-dark dark:bg-light text-light dark:text-dark",
+        ABANDONED: "bg-error text-light",
         FAILED: "bg-error text-light",
       },
     },
@@ -25,7 +26,7 @@ const badgeVariants = cva(
 
 export interface BadgeProps
   extends React.HTMLAttributes<HTMLDivElement>,
-    VariantProps<typeof badgeVariants> {}
+  VariantProps<typeof badgeVariants> { }
 
 function Badge({ className, variant, ...props }: BadgeProps) {
   return (
