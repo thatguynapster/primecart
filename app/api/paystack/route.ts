@@ -17,6 +17,9 @@ export const POST = async (req: NextRequest, res: NextResponse) => {
     .digest("hex");
 
   if (hash == req.headers.get("x-paystack-signature")) {
+    // Retrieve the request's body
+    console.log(reqBody);
+
     const {
       metadata: { order_id },
       status,
