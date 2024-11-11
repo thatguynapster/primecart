@@ -2,7 +2,7 @@ import { isValidPhoneNumber, isPossiblePhoneNumber } from "react-phone-number-in
 import { string, number, mixed, array, StringSchema, NumberSchema, MixedSchema } from 'yup'; // prettier-ignore
 // import { MixedSchema } from 'yup/lib/mixed';
 
-import { phoneNumberFormat } from "./helpers";
+import { phoneNumberFormat } from "./utils";
 
 /**
  * validation object for string
