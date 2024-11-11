@@ -30,9 +30,9 @@ export const POST = async (req: NextRequest, res: NextResponse) => {
     // find payment with reference and update it's status
     await db.orderPayment.update({
       where: {
-        id: order_id,
+        order_id,
       },
-      data: { status: translatePaystackStatus(status) },
+      data: { status: await translatePaystackStatus(status) },
     });
 
     // add transactions if payment was successful
@@ -65,9 +65,9 @@ export const POST = async (req: NextRequest, res: NextResponse) => {
 
     // revalidate orders path
     revalidatePath(routes.orders.index, "page");
+
+    return new NextResponse("", { status: 200 });
   } else {
     throw new Error("Failed to validate origin");
   }
-
-  return new NextResponse("", { status: 200 });
 };
