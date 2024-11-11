@@ -77,7 +77,7 @@ const BusinessDetails = ({ data }: Props) => {
 
       toast.success(`account ${data ? "updated" : "created"}`);
 
-      if (!data)
+      if (business && !data)
         router.push(routes.launchpad.replace(":business_id", business.id));
     } catch (error) {
       console.log(error);
