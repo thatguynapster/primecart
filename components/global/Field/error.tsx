@@ -1,7 +1,7 @@
 "use client";
 import { ErrorMessage, ErrorMessageProps } from "formik";
 
-import { classNames } from "@/lib/helpers";
+import { classNames } from "@/lib/utils";
 
 export interface ErrorMessageInterface extends ErrorMessageProps {
   error?: string;

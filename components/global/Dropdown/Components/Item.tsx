@@ -2,7 +2,7 @@
 
 import { forwardRef } from "react";
 import DropdownItem, { DropdownItemProps } from "@restart/ui/DropdownItem";
-import { classNames } from "@/lib/helpers";
+import { classNames } from "@/lib/utils";
 
 export const Item = forwardRef<HTMLElement, DropdownItemProps>(
   ({ active, children, className, ...props }, ref) => {

@@ -2,7 +2,7 @@ import GlobeIcon from "@/components/global/icons/globe";
 import MoneyIconCircle from "@/components/global/icons/money";
 import ToolsIcon from "@/components/global/icons/tools";
 import TrendingUpIcon from "@/components/global/icons/trend-up";
-import { classNames } from "@/lib/helpers";
+import { classNames } from "@/lib/utils";
 import { routes } from "@/routes";
 import { ShieldCheckIcon } from "@heroicons/react/24/outline";
 import { Montserrat } from "next/font/google";

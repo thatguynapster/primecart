@@ -9,7 +9,7 @@ import countryList from "react-select-country-list";
 import Flag from "react-country-flag";
 import { debounce } from "lodash";
 
-import { classNames, phoneNumberFormat } from "@/lib/helpers";
+import { classNames, phoneNumberFormat } from "@/lib/utils";
 import Dropdown from "../Dropdown";
 
 export interface PhoneInputProps {

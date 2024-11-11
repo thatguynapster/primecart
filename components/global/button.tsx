@@ -2,7 +2,7 @@
 
 import { ButtonHTMLAttributes, forwardRef } from "react";
 
-import { classNames } from "@/lib/helpers";
+import { classNames } from "@/lib/utils";
 import Spinner from "./icons/spinner";
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {

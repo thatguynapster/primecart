@@ -3,7 +3,7 @@ import React from "react";
 import AddProductButton from "@/components/inventory/add-product-button";
 import { getBusinessDetails, getProducts } from "@/lib/queries";
 import ProductCard from "@/components/inventory/product-card";
-import { classNames } from "@/lib/helpers";
+import { classNames } from "@/lib/utils";
 import NoProduct_2 from "@/components/global/icons/no_product_2";
 1;
 

@@ -3,7 +3,7 @@
 import { Dropdown, DropdownProps } from "@restart/ui";
 import { HtmlHTMLAttributes } from "react";
 
-import { classNames } from "@/lib/helpers";
+import { classNames } from "@/lib/utils";
 import Toggle from "./Components/Toggle";
 import Menu from "./Components/Menu";
 import Item from "./Components/Item";

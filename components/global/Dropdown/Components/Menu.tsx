@@ -2,7 +2,7 @@
 
 import { UseDropdownMenuOptions, useDropdownMenu } from "@restart/ui";
 import useIsomorphicEffect from "@restart/hooks/useIsomorphicEffect";
-import { classNames } from "@/lib/helpers";
+import { classNames } from "@/lib/utils";
 import { motion } from "framer-motion";
 
 export interface MenuProps extends UseDropdownMenuOptions {

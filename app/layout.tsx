@@ -5,11 +5,11 @@ import type { Metadata } from "next";
 import { ThemeProvider } from "@/providers/theme-provider";
 import ModalProvider from "@/providers/modal-provider";
 import { MapProvider } from "@/providers/map";
-import { classNames } from "@/lib/helpers";
 
 import "tippy.js/animations/scale.css";
 import "tippy.js/dist/tippy.css";
 import "./globals.css";
+import { classNames } from "@/lib/utils";
 
 const font = Montserrat({ subsets: ["latin"] });
 

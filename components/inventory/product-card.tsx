@@ -10,7 +10,7 @@ import parse from "html-react-parser";
 
 import { useModal } from "@/providers/modal-provider";
 import CustomModal from "../global/custom-modal";
-import { classNames } from "@/lib/helpers";
+import { classNames } from "@/lib/utils";
 import { routes } from "@/routes";
 import { Button } from "../global/button";
 import toast from "react-hot-toast";

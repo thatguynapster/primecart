@@ -14,10 +14,10 @@ const CustomerDetailsPage = async ({
   params: { business_id, customer_id },
 }: Props) => {
   const customer = await getSingleCustomer(business_id, customer_id);
-  console.log("customer:", customer);
+  // console.log("customer:", customer);
 
   const customer_orders = await getCustomerOrders({ business_id, customer_id });
-  console.log("customer order:", customer_orders);
+  // console.log("customer orders:", customer_orders);
 
   const chart_data = chartData(customer_orders?.data);
 

@@ -11,7 +11,7 @@ import { UserButton } from "@clerk/nextjs";
 import Link from "next/link";
 
 import { ModeToggle } from "../global/mode-toggle";
-import { classNames } from "@/lib/helpers";
+import { classNames } from "@/lib/utils";
 import ThemedImage from "./logo";
 import { routes } from "@/routes";
 

@@ -15,7 +15,7 @@ import {
   UndoIcon,
 } from "./icons";
 import { Button } from "../../button";
-import { classNames } from "@/lib/helpers";
+import { classNames } from "@/lib/utils";
 
 export const MenuBar = ({ editor }: { editor: Editor | null }) => {
   if (!editor) {

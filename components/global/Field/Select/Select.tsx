@@ -9,7 +9,7 @@ import {
 } from "@headlessui/react";
 import { CheckIcon } from "@heroicons/react/20/solid";
 import { ChevronsUpDownIcon } from "lucide-react";
-import { classNames } from "@/lib/helpers";
+import { classNames } from "@/lib/utils";
 
 export type SelectOptions = { label: string; value: string };
 type Props = {

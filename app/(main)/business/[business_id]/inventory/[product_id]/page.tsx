@@ -2,8 +2,6 @@ export const dynamic = "force-dynamic";
 
 import BackButton from "@/components/global/back-button";
 import ProductDetails from "@/components/forms/product-details";
-import ProductImages from "@/components/inventory/product-images";
-import { classNames } from "@/lib/helpers";
 import React from "react";
 import { getProduct } from "@/lib/queries";
 import { Products, ProductVariations } from "@prisma/client";

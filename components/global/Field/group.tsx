@@ -1,7 +1,7 @@
 "use client";
 import React, { HtmlHTMLAttributes } from "react";
 
-import { classNames } from "@/lib/helpers";
+import { classNames } from "@/lib/utils";
 import { Error } from "./";
 
 export interface GroupProps

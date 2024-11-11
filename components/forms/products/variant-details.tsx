@@ -8,7 +8,7 @@ import { object } from "yup";
 import VariationAttribute from "./variation-attribute";
 import { Button } from "@/components/global/button";
 import * as Field from "@/components/global/Field";
-import { classNames } from "@/lib/helpers";
+import { classNames } from "@/lib/utils";
 import * as schema from "@/lib/schema";
 import { Plus } from "lucide-react";
 

@@ -9,7 +9,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { classNames } from "@/lib/helpers";
+import { classNames } from "@/lib/utils";
 import { ChartContainer, type ChartConfig } from "@/components/ui/chart";
 import clsx from "clsx";
 

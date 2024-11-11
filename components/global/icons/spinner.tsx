@@ -1,4 +1,4 @@
-import { classNames } from "@/lib/helpers";
+import { classNames } from "@/lib/utils";
 import { IconProps, Template } from "./template";
 
 const Spinner = ({ className, ...props }: IconProps) => {

@@ -8,7 +8,7 @@ import {
   DialogHeader,
 } from "../ui/dialog";
 import { DialogTitle } from "@radix-ui/react-dialog";
-import { classNames } from "@/lib/helpers";
+import { classNames } from "@/lib/utils";
 
 type Props = {
   title: string;
@@ -34,8 +34,8 @@ const CustomModal = ({
             {title}
           </DialogTitle>
           {subheading && <DialogDescription>{subheading}</DialogDescription>}
-          {children}
         </DialogHeader>
+        {children}
       </DialogContent>
     </Dialog>
   );

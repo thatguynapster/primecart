@@ -1,6 +1,6 @@
 import { useNavItem, NavItemProps } from "@restart/ui/NavItem";
 
-import { classNames } from "@/lib/helpers";
+import { classNames } from "@/lib/utils";
 
 // eslint-disable-next-line
 export interface TabProps extends NavItemProps {}

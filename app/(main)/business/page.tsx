@@ -5,8 +5,7 @@ import React from "react";
 
 import BusinessDetails from "@/components/forms/business-details";
 import { getAuthUserDetails } from "@/lib/queries";
-import { classNames } from "@/lib/helpers";
-// import { User } from "@/lib/types";
+import { classNames } from "@/lib/utils";
 import { routes } from "@/routes";
 import { Users } from "@prisma/client";
 

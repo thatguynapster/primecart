@@ -1,4 +1,4 @@
-import { classNames } from "@/lib/helpers";
+import { classNames } from "@/lib/utils";
 import Image from "next/image";
 import React from "react";
 

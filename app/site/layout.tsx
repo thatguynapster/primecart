@@ -1,7 +1,7 @@
 import ClerkAuth from "@/components/global/clerk-auth";
 import Footer from "@/components/site/footer";
 import Navigation from "@/components/site/navigation";
-import { classNames } from "@/lib/helpers";
+import { classNames } from "@/lib/utils";
 import React, { ReactNode } from "react";
 
 type Props = { children: ReactNode };

@@ -2,7 +2,7 @@
 
 import { UserButton } from "@clerk/nextjs";
 import React from "react";
-import { classNames } from "@/lib/helpers";
+import { classNames } from "@/lib/utils";
 import { ModeToggle } from "./global/mode-toggle";
 
 type Props = {

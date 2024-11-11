@@ -1,6 +1,6 @@
 "use client";
 
-import { classNames } from "@/lib/helpers";
+import { classNames } from "@/lib/utils";
 import Image from "next/image";
 import React, { useEffect, useState } from "react";
 import SingleFileUpload from "../global/single-file-upload";

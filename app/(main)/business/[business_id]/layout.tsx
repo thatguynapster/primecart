@@ -7,7 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import StoreProvider from "@/contexts/store";
 import InfoBar from "@/components/info-bar";
 import Sidebar from "@/components/sidebar";
-import { classNames } from "@/lib/helpers";
+import { classNames } from "@/lib/utils";
 import { routes } from "@/routes";
 
 type Props = { children: ReactNode; params: { business_id: string } };

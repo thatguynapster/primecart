@@ -15,7 +15,7 @@ import SingleFileUpload from "../global/single-file-upload";
 import { createBusiness, initUser } from "@/lib/queries";
 import { useModal } from "@/providers/modal-provider";
 import * as Field from "@/components/global/Field";
-import { classNames } from "@/lib/helpers";
+import { classNames } from "@/lib/utils";
 import { Button } from "../global/button";
 import { Location } from "@/lib/types";
 import * as schema from "@/lib/schema";

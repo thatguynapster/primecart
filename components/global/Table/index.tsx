@@ -2,7 +2,7 @@
 import { ReactNode, TableHTMLAttributes } from "react";
 import { FileX } from "lucide-react";
 
-import { classNames } from "@/lib/helpers";
+import { classNames } from "@/lib/utils";
 import { Pagination } from "./pagination";
 import { Button } from "../button";
 
