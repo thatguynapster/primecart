@@ -25,10 +25,10 @@ import { startOfDay, subDays } from "date-fns";
 import { BestSeller, Order } from "./types";
 
 export const initUser = async (userUpdate?: Users) => {
-  const user = await currentUser();
-  if (!user) return;
-
   try {
+    const user = await currentUser();
+    if (!user) return;
+
     const userData = await db.users.upsert({
       where: { email: user.emailAddresses[0].emailAddress },
       update: { ...userUpdate },
@@ -48,10 +48,10 @@ export const initUser = async (userUpdate?: Users) => {
 };
 
 export const getAuthUserDetails = async () => {
-  const user = await currentUser();
-  if (!user) return;
-
   try {
+    const user = await currentUser();
+    if (!user) return;
+
     const userData = await db.users.findUnique({
       where: {
         email: user.emailAddresses[0].emailAddress,
@@ -69,10 +69,10 @@ export const getAuthUserDetails = async () => {
 };
 
 export const getUser = async (business_id: string) => {
-  const user = await currentUser();
-  if (!user) return;
-
   try {
+    const user = await currentUser();
+    if (!user) return;
+
     const userData = await db.users.findUnique({
       where: {
         email: user.emailAddresses[0].emailAddress,
@@ -90,6 +90,9 @@ export const createBusiness = async (
   business: Omit<Business, "id" | "createdAt" | "updatedAt">
 ) => {
   try {
+    const user = await currentUser();
+    if (!user) return;
+
     const businessDetails = await db.business.upsert({
       where: { unique_id: business.unique_id },
       update: business,
@@ -104,10 +107,10 @@ export const createBusiness = async (
 };
 
 export const deleteBusiness = async (id: string) => {
-  const user = await currentUser();
-  if (!user) return;
-
   try {
+    const user = await currentUser();
+    if (!user) return;
+
     const business = await db.business.delete({
       where: { id },
     });
@@ -120,10 +123,10 @@ export const deleteBusiness = async (id: string) => {
 };
 
 export const getBusinessDetails = cache(async (id: string) => {
-  const user = await currentUser();
-  if (!user) return;
-
   try {
+    const user = await currentUser();
+    if (!user) return;
+
     const business = await db.business.findUnique({
       where: {
         id,
@@ -141,10 +144,10 @@ export const upsertPaymentDetails = async (
   business: string,
   data: Omit<Payment, "id" | "createdAt" | "updatedAt">
 ) => {
-  const user = await currentUser();
-  if (!user) return;
-
   try {
+    const user = await currentUser();
+    if (!user) return;
+
     const paymentDetails = await db.payment.upsert({
       where: {
         business_id: business,
@@ -188,10 +191,10 @@ export const upsertProduct = async ({
     "unique_id" | "price" | "quantity" | "attributes"
   > & { attributes: any })[];
 }) => {
-  const user = await currentUser();
-  if (!user) return;
-
   try {
+    const user = await currentUser();
+    if (!user) return;
+
     // update/create product
     const productDetails = await db.products.upsert({
       where: { unique_id: product.unique_id },
@@ -220,10 +223,10 @@ export const upsertProduct = async ({
 };
 
 export const deleteVariation = async (unique_id: string) => {
-  const user = await currentUser();
-  if (!user) return;
-
   try {
+    const user = await currentUser();
+    if (!user) return;
+
     const variationDetails = await db.productVariations.delete({
       where: { unique_id },
     });
@@ -236,10 +239,10 @@ export const deleteVariation = async (unique_id: string) => {
 };
 
 export const getProducts = async (business_id: string) => {
-  const user = await currentUser();
-  if (!user) return;
-
   try {
+    const user = await currentUser();
+    if (!user) return;
+
     const products = await db.products.findMany({
       where: { business_id },
       orderBy: { createdAt: "desc" },
@@ -260,10 +263,10 @@ export const getProducts = async (business_id: string) => {
 };
 
 export const getProduct = async (product_id: string, business_id: string) => {
-  const user = await currentUser();
-  if (!user) return;
-
   try {
+    const user = await currentUser();
+    if (!user) return;
+
     const product = await db.products.findUnique({
       where: { id: product_id, business_id },
       include: { variations: true },
@@ -278,10 +281,10 @@ export const getProduct = async (product_id: string, business_id: string) => {
 };
 
 export const deleteProduct = async (id: string) => {
-  const user = await currentUser();
-  if (!user) return;
-
   try {
+    const user = await currentUser();
+    if (!user) return;
+
     // delete product variations
     const variations = await db.productVariations.deleteMany({
       where: { product_id: id },
@@ -300,10 +303,10 @@ export const deleteProduct = async (id: string) => {
 export const upsertCategory = async (
   data: Omit<ProductCategories, "id" | "createdAt" | "updatedAt">
 ) => {
-  const user = await currentUser();
-  if (!user) return;
-
   try {
+    const user = await currentUser();
+    if (!user) return;
+
     const category = await db.productCategories.upsert({
       where: { unique_id: data.unique_id },
       update: data,
@@ -318,10 +321,10 @@ export const upsertCategory = async (
 };
 
 export const getCategories = async (business_id: string) => {
-  const user = currentUser();
-  if (!user) return;
-
   try {
+    const user = currentUser();
+    if (!user) return;
+
     const categories = await db.productCategories.findMany({
       where: { business_id },
     });
@@ -334,9 +337,6 @@ export const getCategories = async (business_id: string) => {
 };
 
 export const upsertCustomer = async (data: Customer) => {
-  // const user = await currentUser();
-  // if (!user) return;
-
   try {
     const customer = await db.customer.upsert({
       where: {
@@ -354,11 +354,11 @@ export const upsertCustomer = async (data: Customer) => {
 };
 
 export const createProductOrder = async (
-  data: Omit<ProductOrders, "id" | "orderStatus" | "createdAt" | "updatedAt">
+  data: Omit<
+    ProductOrders,
+    "id" | "payment_id" | "orderStatus" | "createdAt" | "updatedAt"
+  >
 ) => {
-  // const user = await currentUser();
-  // if (!user) return;
-
   try {
     const order = await db.productOrders.create({ data });
 
@@ -395,15 +395,15 @@ export const getOrders = async ({
   page?: number;
   limit?: number;
 }) => {
-  const user = await currentUser();
-  if (!user) return;
-
   if (isNaN(from_date))
     from_date = startOfDay(subDays(Date.now(), 7)).valueOf();
 
   if (isNaN(to_date)) to_date = new Date().valueOf();
 
   try {
+    const user = await currentUser();
+    if (!user) return;
+
     const query: Prisma.ProductOrdersFindManyArgs = {
       where: {
         business_id,
@@ -469,15 +469,15 @@ export const getOrderSummary = async ({
   from_date?: number;
   to_date?: number;
 }): Promise<any> => {
-  const user = await currentUser();
-  if (!user) return null;
-
   if (isNaN(from_date))
     from_date = startOfDay(subDays(Date.now(), 7)).valueOf();
 
   if (isNaN(to_date)) to_date = new Date().valueOf();
 
   try {
+    const user = await currentUser();
+    if (!user) return null;
+
     const orders_in_period = await db.productOrders.findMany({
       where: {
         business_id,
@@ -504,10 +504,10 @@ export const updateOrderStatus = async (
   order_id: string,
   orderStatus: OrderStatus
 ) => {
-  const user = await currentUser();
-  if (!user) return;
-
   try {
+    const user = await currentUser();
+    if (!user) return;
+
     const updatedORder = await db.productOrders.update({
       where: {
         id: order_id,
@@ -525,10 +525,10 @@ export const updateOrderStatus = async (
 };
 
 export const getSingleOrder = async (business_id: string, order_id: string) => {
-  const user = await currentUser();
-  if (!user) return;
-
   try {
+    const user = await currentUser();
+    if (!user) return;
+
     const order = await db.productOrders.findUnique({
       where: { id: order_id, business_id },
       include: {
@@ -569,10 +569,10 @@ export const getBestSellers = async ({
 }: {
   business_id: string;
 }): Promise<BestSeller[] | void> => {
-  const user = await currentUser();
-  if (!user) return;
-
   try {
+    const user = await currentUser();
+    if (!user) return;
+
     const bestSellingProducts = await db.products.findMany({
       where: {
         business_id,
@@ -646,10 +646,10 @@ export const getBestSellers = async ({
 };
 
 export const getLatestOrders = async (business_id: string) => {
-  const user = await currentUser();
-  if (!user) return;
-
   try {
+    const user = await currentUser();
+    if (!user) return;
+
     const recentOrders = await db.productOrders.findMany({
       where: {
         business_id,
@@ -705,10 +705,10 @@ export const getCustomers = async ({
   limit?: number;
   page?: number;
 }) => {
-  const user = await currentUser();
-  if (!user) return;
-
   try {
+    const user = await currentUser();
+    if (!user) return;
+
     const query = { where: { business_id } };
 
     const [customers, count] = await db.$transaction([
@@ -750,10 +750,10 @@ export const getSingleCustomer = async (
   business_id: string,
   customer_id: string
 ) => {
-  const user = await currentUser();
-  if (!user) return;
-
   try {
+    const user = await currentUser();
+    if (!user) return;
+
     let customer: {
       id: string;
       name: string;
@@ -833,10 +833,10 @@ export const getCustomerOrders = async ({
   page?: number;
   limit?: number;
 }) => {
-  const user = await currentUser();
-  if (!user) return;
-
   try {
+    const user = await currentUser();
+    if (!user) return;
+
     const query: Prisma.ProductOrdersFindManyArgs = {
       where: {
         business_id,
@@ -918,10 +918,10 @@ export const updateOrderPaymentStatus = async (
   payment_id: string,
   paymentStatus: PaymentStatus
 ) => {
-  const user = await currentUser();
-  if (!user) return;
-
   try {
+    const user = await currentUser();
+    if (!user) return;
+
     const updatedORder = await db.orderPayment.update({
       where: {
         id: payment_id,

@@ -1,11 +1,13 @@
-export const classNames = (...classes: any) => {
-  return classes.filter(Boolean).join(" ");
-};
+import { updateOrderPaymentStatus } from "@/lib/queries";
+import { verifyPayment } from "@/lib/paystack";
 
-export const phoneNumberFormat = (phone: string, reverse?: boolean) => {
-  if (reverse) {
-    return phone?.startsWith("+") ? phone : `+${phone}`;
-  } else {
-    return phone?.startsWith("+") ? phone.replace("+", "") : phone;
-  }
+export const _verifyPayment = async ({
+  payment_id,
+  reference,
+}: {
+  payment_id: string;
+  reference: string;
+}) => {
+  const paymentStatus = await verifyPayment(reference);
+  await updateOrderPaymentStatus(payment_id, paymentStatus.status);
 };

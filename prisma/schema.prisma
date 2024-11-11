@@ -239,3 +239,18 @@ model Customer {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+enum TransactionType {
+  CREDIT
+  DEBIT
+}
+
+model PaymentTransaction {
+  id                String          @id @default(auto()) @map("_id") @db.ObjectId
+  payment_reference String
+  reference_id      String
+  description       String
+  amount            Float
+  status            PaymentStatus
+  type              TransactionType
+}

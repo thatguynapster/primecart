@@ -39,20 +39,21 @@ export const POST = async (req: NextRequest, res: NextResponse) => {
     })
   );
 
-  const initPayment = await initializePayment({
-    amount: (amount * 100).toFixed(2), // amount should be sent in country's lowest currency (hence *100)
-    email: customer.email,
-  });
-  console.log("payment:", initPayment);
-
   const order = await createProductOrder({
     unique_id: v4(),
     amount,
     customer_id: customer?.id!,
-    payment_id: null,
+    // payment_id: null,
     location: reqBody.location,
     business_id: reqBody.business_id,
   });
+
+  const initPayment = await initializePayment({
+    amount: (amount * 100).toFixed(2), // amount should be sent in country's lowest currency (hence *100)
+    email: customer.email,
+    order_id: order.id,
+  });
+  console.log("payment:", initPayment);
 
   const payment = await createOrderPayment({
     provider: "PAYSTACK",
@@ -95,7 +96,7 @@ export const POST = async (req: NextRequest, res: NextResponse) => {
       sale: {
         ...order,
         products: productsWithAmount,
-        payment_id: payment.id,
+        // payment_id: payment.id,
         payment: { checkout_url: payment.checkout_url },
       },
     },

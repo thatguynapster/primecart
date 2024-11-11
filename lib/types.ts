@@ -6,6 +6,7 @@ import {
   OrderProduct,
   OrderStatus,
   Payment,
+  PaymentStatus,
   ProductOrders,
   Products,
   ProductVariations,
@@ -69,6 +70,13 @@ export const orderStatuses: OrderStatus[] = [
   "SHIPPING",
   "DELIVERED",
   "CANCELLED",
+];
+
+export const paymentStatuses: PaymentStatus[] = [
+  "ABANDONED",
+  "FAILED",
+  "PAID",
+  "PROCESSING",
 ];
 
 export type BestSeller = {
