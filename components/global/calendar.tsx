@@ -1,13 +1,15 @@
 "use client";
+
 import {
   add,
-  constructNow,
   eachDayOfInterval,
+  endOfDay,
   endOfMonth,
   endOfWeek,
   endOfYesterday,
   format,
   getDay,
+  isAfter,
   isEqual,
   isSameMonth,
   isToday,
@@ -21,19 +23,19 @@ import {
   subMonths,
 } from "date-fns";
 import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/20/solid";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
-import { classNames } from "@/lib/helpers";
+import { classNames } from "@/lib/utils";
 import { Button } from "./button";
 
 type Props = {
   dates?: Date[];
-  onDateChange: (dates: Date[]) => void;
+  onDateChange: (dates: Date[] | null) => void;
 };
 
 const Calendar = ({ dates, onDateChange }: Props) => {
-  const now = constructNow(Date.now());
-  const today = startOfDay(now);
+
+  const today = startOfDay(new Date());
   const [selectedDays, setSelectedDays] = useState<Date[]>(dates ?? []);
   const [currentMonth, setCurrentMonth] = useState(format(today, "MMM-yyyy"));
   let firstDayOfCurrentMonth = parse(currentMonth, "MMM-yyyy", today);
@@ -55,17 +57,14 @@ const Calendar = ({ dates, onDateChange }: Props) => {
     setCurrentMonth(format(firstDayOfNextMonth, "MMM-yyyy"));
   };
 
-  useEffect(() => {
-    onDateChange(selectedDays);
-  }, [selectedDays]);
-
   return (
     <div className="w-full flex divide-x">
       <div className="px-4 flex flex-col gap-2">
         <Button
           variant="outline"
           onClick={() => {
-            setSelectedDays([today, now]);
+            setSelectedDays([today, endOfDay(today)]);
+            onDateChange([today, endOfDay(today)]);
           }}
         >
           Today
@@ -74,6 +73,7 @@ const Calendar = ({ dates, onDateChange }: Props) => {
           variant="outline"
           onClick={() => {
             setSelectedDays([startOfYesterday(), endOfYesterday()]);
+            onDateChange([startOfYesterday(), endOfYesterday()]);
           }}
         >
           Yesterday
@@ -81,7 +81,8 @@ const Calendar = ({ dates, onDateChange }: Props) => {
         <Button
           variant="outline"
           onClick={() => {
-            setSelectedDays([subDays(today, 6), now]);
+            setSelectedDays([subDays(today, 6), endOfDay(today)]);
+            onDateChange([subDays(today, 6), endOfDay(today)])
           }}
         >
           Last 7 days
@@ -89,7 +90,8 @@ const Calendar = ({ dates, onDateChange }: Props) => {
         <Button
           variant="outline"
           onClick={() => {
-            setSelectedDays([startOfMonth(today), now]);
+            setSelectedDays([startOfMonth(today), endOfDay(today)]);
+            onDateChange([startOfMonth(today), endOfDay(today)])
           }}
         >
           This Month
@@ -101,6 +103,10 @@ const Calendar = ({ dates, onDateChange }: Props) => {
               startOfMonth(subMonths(today, 1)),
               endOfMonth(subMonths(today, 1)),
             ]);
+            onDateChange([
+              startOfMonth(subMonths(today, 1)),
+              endOfMonth(subMonths(today, 1)),
+            ])
           }}
         >
           Last Month
@@ -130,7 +136,7 @@ const Calendar = ({ dates, onDateChange }: Props) => {
           </button>
         </div>
 
-        <div className="mt-10 grid grid-cols-7 text-center text-xs leading-6 text-gray-500">
+        <div className="mt-4 grid grid-cols-7 text-center text-xs leading-6 text-gray-500">
           <div>S</div>
           <div>M</div>
           <div>T</div>
@@ -154,36 +160,40 @@ const Calendar = ({ dates, onDateChange }: Props) => {
                   type="button"
                   className={classNames(
                     !isEqual(day, selectedDays[0] || selectedDays[1]) &&
-                      isToday(day) &&
-                      "!text-red-500",
+                    isToday(day) &&
+                    "!text-red-500",
 
                     !isEqual(day, selectedDays[0] || selectedDays[1]) &&
-                      !isToday(day) &&
-                      !isSameMonth(day, firstDayOfCurrentMonth) &&
-                      "text-gray",
+                    !isToday(day) &&
+                    !isSameMonth(day, firstDayOfCurrentMonth) &&
+                    "text-gray",
                     (isEqual(day, selectedDays[0]) ||
                       isEqual(day, selectedDays[1])) &&
-                      "bg-dark text-light dark:bg-light dark:text-dark",
+                    "bg-dark text-light dark:bg-light dark:text-dark",
                     !(
                       isEqual(day, selectedDays[0]) ||
                       isEqual(day, selectedDays[1])
                     ) && "hover:bg-gray",
                     (isEqual(day, selectedDays[0] || selectedDays[1]) ||
                       isToday(day)) &&
-                      "font-semibold",
+                    "font-semibold",
                     isWithinInterval(day, {
                       start: selectedDays[0],
                       end: selectedDays[1],
                     }) && "bg-dark dark:bg-light text-light dark:text-dark",
-                    "mx-auto flex h-8 w-8 items-center justify-center rounded-full"
+                    "mx-auto flex h-8 w-8 items-center justify-center rounded-full disabled:hover:bg-inherit",
+                    isAfter(day, today) && 'text-gray dark:text-dark-muted'
                   )}
+                  disabled={isAfter(day, today)}
                   onClick={() => {
                     if (selectedDays.length == 1) {
                       return setSelectedDays((prev) => {
-                        return [...prev, day].sort(
+                        let days = [...prev, day].sort(
                           (a, b) =>
                             new Date(a).getTime() - new Date(b).getTime()
                         );
+                        days[1] = endOfDay(days[1]);
+                        return days;
                       });
                     }
 
@@ -197,6 +207,26 @@ const Calendar = ({ dates, onDateChange }: Props) => {
               </div>
             );
           })}
+        </div>
+
+        <div className="flex flex-col md:flex-row gap-4">
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() => {
+              onDateChange(null)
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            className="w-full"
+            onClick={() => {
+              onDateChange(selectedDays)
+            }}
+          >
+            Apply
+          </Button>
         </div>
       </div>
     </div>

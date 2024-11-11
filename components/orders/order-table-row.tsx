@@ -7,13 +7,14 @@ import { Table } from "../global/Table";
 import { Orders } from "@/lib/types";
 import clsx from "clsx";
 import OrderTableProduct from "./order-table-product";
-import { format } from "date-fns";
+import { differenceInMinutes, format } from "date-fns";
 import { Badge } from "../ui/badge";
 import { parseCurrency } from "@/lib/utils";
 import ChangeStatusButton from "./change-status-button";
 import { Ellipsis } from "lucide-react";
 import { verifyPayment } from "@/lib/paystack";
 import { updateOrderPaymentStatus } from "@/lib/queries";
+import toast from "react-hot-toast";
 
 type Props = { order: Orders["data"][0] };
 
@@ -23,11 +24,16 @@ const OrderTableRow = ({ order }: Props) => {
 
   const _verifyPayment = async () => {
     const paymentStatus = await verifyPayment(order.payment?.reference!);
-    await updateOrderPaymentStatus(order.payment_id!, paymentStatus.status);
+    console.log(paymentStatus)
+
+    await updateOrderPaymentStatus(order.payment_id!, paymentStatus.status).catch(error => {
+      console.log(error)
+      toast('Failed to update order status')
+    });
   };
 
   useEffect(() => {
-    if (order.payment?.status === "PROCESSING") {
+    if (order.payment?.status === "PROCESSING" && differenceInMinutes(new Date(), order.createdAt) > 30) { // add time since order creation
       console.log(order);
       _verifyPayment();
     }
@@ -80,8 +86,10 @@ const OrderTableRow = ({ order }: Props) => {
       <Table.TD className="justify-evenly">
         {order.products.reduce((a, b) => a + (b?.quantity ?? 0), 0)}
       </Table.TD>
-      <Table.TD className="justify-evenly whitespace-nowrap">
+      <Table.TD className="justify-evenly text-center whitespace-nowrap">
         {format(order.createdAt, "dd MMM, yyyy")}
+        {', '}
+        {format(order.createdAt, "h:mm a")}
       </Table.TD>
       {/* <Table.TD className="justify-evenly"></Table.TD> */}
       <Table.TD className="whitespace-nowrap">{order.customer.name}</Table.TD>
@@ -105,7 +113,7 @@ const OrderTableRow = ({ order }: Props) => {
           <Ellipsis className="h-5 w-5 rotate-0 scale-100 transition-all" />
         </ChangeStatusButton>
       </Table.TD>
-    </tr>
+    </tr >
   );
 };
 
