@@ -7,7 +7,7 @@ import Spinner from "./icons/spinner";
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   isSubmitting?: boolean;
-  variant?: "outline";
+  variant?: "outline" | null;
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(

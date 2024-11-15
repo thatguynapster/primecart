@@ -16,10 +16,12 @@ export const initializePayment = async ({
   email,
   amount,
   order_id,
+  business_id,
 }: {
   email: string;
   amount: number | string;
   order_id: string;
+  business_id: string;
 }): Promise<PaystackResponse> => {
   const myHeaders = new Headers();
   myHeaders.append("Content-Type", "application/json");
@@ -36,6 +38,7 @@ export const initializePayment = async ({
       email,
       metadata: {
         order_id,
+        business_id,
       },
     }),
   };

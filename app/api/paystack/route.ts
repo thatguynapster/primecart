@@ -21,7 +21,7 @@ export const POST = async (req: NextRequest, res: NextResponse) => {
     console.log(reqBody);
 
     const {
-      metadata: { order_id },
+      metadata: { order_id, business_id },
       status,
       amount,
       reference,
@@ -43,14 +43,15 @@ export const POST = async (req: NextRequest, res: NextResponse) => {
         "id" | "createdAt" | "updatedAt"
       >[] = [
         {
-          amount: order_amount * 0.95, // user gets 95 % of order amount
-          description: `Payment received for order ${order_id.substring(
+          amount: order_amount,
+          description: `Payment received for order #${order_id.substring(
             order_id.length - 7
           )}`,
           payment_reference: reference,
           reference_id: `ODR_${order_id}`,
           status: "PAID",
           type: "CREDIT",
+          business_id,
         },
         {
           amount: order_amount * 0.05, // user is charged 5% of order amount
@@ -61,6 +62,7 @@ export const POST = async (req: NextRequest, res: NextResponse) => {
           reference_id: `ODR_${order_id}`,
           status: "PAID",
           type: "DEBIT",
+          business_id,
         },
       ];
       await db.paymentTransaction.createMany({ data: transactionData });

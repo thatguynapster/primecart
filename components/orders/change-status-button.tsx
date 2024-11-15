@@ -62,7 +62,7 @@ const ChangeStatusButton = ({ children, order: { id: order_id, status: order_sta
             </DropdownMenuItem>
           ))}
 
-        {['FAILED', 'ABANDONED'].includes(payment?.status) &&
+        {['PROCESSING', 'FAILED', 'ABANDONED'].includes(payment?.status) &&
           <DropdownMenuItem
             className="capitalize cursor-pointer"
             onClick={async (ev) => {

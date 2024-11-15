@@ -52,6 +52,7 @@ export const POST = async (req: NextRequest, res: NextResponse) => {
     amount: (amount * 100).toFixed(2), // amount should be sent in country's lowest currency (hence *100)
     email: customer.email,
     order_id: order.id,
+    business_id: reqBody.business_id,
   });
   console.log("payment:", initPayment);
 

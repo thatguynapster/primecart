@@ -243,6 +243,7 @@ model Customer {
 enum TransactionType {
   CREDIT
   DEBIT
+  WITHDRAWAL
 }
 
 model PaymentTransaction {
@@ -251,6 +252,7 @@ model PaymentTransaction {
   reference_id      String
   description       String
   amount            Float
+  business_id       String          @db.ObjectId
   status            PaymentStatus
   type              TransactionType
   createdAt         DateTime        @default(now())

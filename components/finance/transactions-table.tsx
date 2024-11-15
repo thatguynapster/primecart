@@ -2,10 +2,14 @@
 
 import React from "react";
 import { Table } from "../global/Table";
+import { PaymentTransaction } from "@prisma/client";
+import { format } from "date-fns";
+import { parseCurrency } from "@/lib/utils";
+import clsx from "clsx";
 
-type Props = {};
+type Props = { transactions: void | { pagination: { total: number; total_pages: number; }, data: PaymentTransaction[] } };
 
-const TransactionsTable = (props: Props) => {
+const TransactionsTable = ({ transactions }: Props) => {
   return (
     <div className="flex flex-col gap-4">
       <Table>
@@ -19,99 +23,43 @@ const TransactionsTable = (props: Props) => {
         </thead>
 
         <tbody className="divide-y">
-          {/* {orders?.data?.map((order, i) => (
-            <tr
-              key={i}
-              className="cursor-pointer"
-              onClick={() => {
-                router.push(
-                  routes.orders.details
-                    .replace(":business_id", business_id)
-                    .replace(":order_id", order.id)
-                );
-              }}
-            >
-              <Table.TD className="uppercase">
-                #{order.id.substring(order.id.length - 7)}
+          {transactions?.data?.map((transaction, i) => (
+            <tr key={i}>
+              <Table.TD className="justify-evenly whitespace-nowrap">
+                {format(transaction.createdAt, "dd MMM, yyyy")}
               </Table.TD>
               <Table.TD>
-                <div className="flex items-center gap-2.5">
-                  <div
-                    className={clsx("grid gap-1", {
-                      "grid-cols-2": order.products.length > 1,
-                    })}
-                  >
-                    {order.products
-                      .map(({ product, product_variation, quantity }) => ({
-                        name: product.name,
-                        image: product.images[0],
-                        product_variation,
-                        quantity,
-                      }))
-                      .map(
-                        ({ name, image, product_variation, quantity }, key) => (
-                          <OrderTableProduct
-                            key={key}
-                            index={key}
-                            {...{
-                              image,
-                              name,
-                              product_variation,
-                              quantity,
-                            }}
-                            dataLength={order.products.length}
-                          />
-                        )
-                      )}
-                  </div>
-                </div>
+                {transaction.description}
               </Table.TD>
-              <Table.TD className="justify-evenly">
-                {order.products.reduce((a, b) => a + (b?.quantity ?? 0), 0)}
-              </Table.TD>
-              <Table.TD className="justify-evenly whitespace-nowrap">
-                {format(order.createdAt, "dd MMM, yyyy")}
-              </Table.TD>
-              <Table.TD className="justify-evenly"></Table.TD>
-              <Table.TD className="whitespace-nowrap">
-                {order.customer.name}
+              <Table.TD className="capitalize font-semibold">
+                <span className={clsx({
+                  'text-success': transaction.type === 'CREDIT',
+                  'text-error': transaction.type === 'DEBIT'
+                })}>
+                  {parseCurrency(transaction.amount)}</span>
               </Table.TD>
               <Table.TD className="capitalize">
-                <div className="flex gap-2 items-center">
-                  <span
-                    className={clsx("w-2 h-2 rounded-full", {
-                      "bg-gray": order.orderStatus === "PENDING",
-                      "bg-dark dark:bg-light": order.orderStatus === "SHIPPING",
-                      "bg-success": order.orderStatus === "DELIVERED",
-                      "bg-warning": order.orderStatus === "CANCELLED",
-                    })}
-                  />
-                  <p>{order.orderStatus.toLowerCase()}</p>
-                </div>
-              </Table.TD>
-              <Table.TD className="justify-end capitalize">
-                ${order.amount.toFixed(2)}
-              </Table.TD>
-              <Table.TD className="justify-evenly">
-                <ChangeStatusButton
-                  order_id={order.id}
-                  orderStatus={order.orderStatus}
-                >
-                  <Ellipsis className="h-5 w-5 rotate-0 scale-100 transition-all" />
-                </ChangeStatusButton>
-               
+
+                <p className={clsx("flex gap-2 items-center", {
+                  "text-success": transaction.status === 'PAID',
+                  "text-error": transaction.status === "FAILED",
+                })}> <span className={clsx("w-2 h-2 rounded-full capitalize", {
+                  "bg-success": transaction.status === 'PAID',
+                  "bg-error": transaction.status === "FAILED",
+                })}></span>{transaction.status.toLowerCase()}</p>
+
               </Table.TD>
             </tr>
-          ))} */}
+          ))}
 
-          {/* {!orders?.data?.length && (
+          {!transactions?.data?.length && (
             <Table.Empty className="my-8" title="No orders yet" />
-          )} */}
+          )}
         </tbody>
       </Table>
 
-      {/* <Table.Pagination page={1} pages={orders?.pagination?.total_pages ?? 1} /> */}
-    </div>
+      <Table.Pagination page={1} pages={transactions?.pagination?.total_pages ?? 1} />
+    </div >
   );
 };
 

@@ -24,7 +24,7 @@ const OrderTableRow = ({ order }: Props) => {
   const { business_id } = useParams<{ business_id: string }>();
 
   useEffect(() => {
-    if (order.payment?.status === "PROCESSING" && differenceInMinutes(new Date(), order.createdAt) > 10) { // add time since order creation
+    if (order.payment?.status === "PROCESSING" && differenceInMinutes(new Date(), order.createdAt) > 30) { // add time since order creation
       console.log(order);
       _verifyPayment({ payment_id: order.payment_id!, reference: order.payment?.reference! });
     }

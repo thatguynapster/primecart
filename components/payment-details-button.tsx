@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { ReactNode, useEffect, useState } from "react";
 import { FormikHelpers } from "formik";
 import toast from "react-hot-toast";
 
@@ -13,13 +13,13 @@ import Bank, { BankData } from "./forms/payment-details/bank";
 import { PaymentData } from "@/lib/types";
 import { Button } from "./global/button";
 import { Payment } from "@prisma/client";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 
-type Props = { business: string };
+type Props = { children?: ReactNode };
 
-const PaymentDetailsButton = ({ business }: Props) => {
+const PaymentDetailsButton = ({ children }: Props) => {
+  const params = useParams<{ business_id: string }>()
   const { setOpen, setClose } = useModal();
-  const router = useRouter();
   const [payment, setPayment] = useState<{
     bank: BankData | null;
     momo: MomoData | null;
@@ -27,7 +27,7 @@ const PaymentDetailsButton = ({ business }: Props) => {
 
   const fetchPaymentDetails = async () => {
     try {
-      let payment = await getPaymentDetails(business);
+      let payment = await getPaymentDetails(params.business_id);
 
       setPayment({
         bank: payment.bank,
@@ -46,7 +46,7 @@ const PaymentDetailsButton = ({ business }: Props) => {
     actions: Pick<FormikHelpers<Payment>, "setSubmitting">;
   }) => {
     try {
-      await upsertPaymentDetails(business, data);
+      await upsertPaymentDetails(params.business_id, data);
       await fetchPaymentDetails();
       toast.success("Updated payment details");
       setClose();
@@ -65,6 +65,7 @@ const PaymentDetailsButton = ({ business }: Props) => {
   return (
     <Button
       className="px-4 py-2"
+      variant={children ? 'outline' : null}
       onClick={() => {
         setOpen(
           <CustomModal title="Payment Method Details" className="max-w-96">
@@ -82,7 +83,7 @@ const PaymentDetailsButton = ({ business }: Props) => {
                     onSave={(values, { setSubmitting }) => {
                       savePayment({
                         data: {
-                          business_id: business,
+                          business_id: params.business_id,
                           payment_type: "momo",
                           momo: { ...values },
                           bank: payment?.bank ?? null,
@@ -99,7 +100,7 @@ const PaymentDetailsButton = ({ business }: Props) => {
                     onSave={(values, { setSubmitting }) => {
                       savePayment({
                         data: {
-                          business_id: business,
+                          business_id: params.business_id,
                           payment_type: "bank",
                           bank: { ...values },
                           momo: payment?.momo ?? null,
@@ -115,7 +116,7 @@ const PaymentDetailsButton = ({ business }: Props) => {
         );
       }}
     >
-      <p className="leading-none">Start</p>
+      {children ? children : <p className="leading-none">Start</p>}
     </Button>
   );
 };

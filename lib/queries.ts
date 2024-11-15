@@ -937,3 +937,108 @@ export const updateOrderPaymentStatus = async (
     throw new Error("Failed to update order status", { cause: error });
   }
 };
+
+export const getPayments = async ({ business_id }: { business_id: string }) => {
+  try {
+    const user = await currentUser();
+    if (!user) return;
+
+    const payments = await db.payment.findUnique({
+      where: { business_id },
+    });
+
+    return payments;
+  } catch (error) {
+    console.log(error);
+    throw new Error("Failed to get payments", { cause: error });
+  }
+};
+
+export const getTransactions = async ({
+  business_id,
+  page = 1,
+  limit = 10,
+}: {
+  business_id: string;
+  page?: number;
+  limit?: number;
+}) => {
+  try {
+    const user = await currentUser();
+    if (!user) return;
+
+    const query = { where: { business_id } };
+
+    const [transactions, count] = await db.$transaction([
+      db.paymentTransaction.findMany({
+        ...query,
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      db.paymentTransaction.count({ where: query.where }),
+    ]);
+
+    return {
+      pagination: { total: count, total_pages: Math.ceil(count / limit) },
+      data: transactions,
+    };
+  } catch (error) {
+    console.log(error);
+    throw new Error("Failed to get transactions", { cause: error });
+  }
+};
+
+export const getWalletBalance = async ({
+  business_id,
+}: {
+  business_id: string;
+}) => {
+  try {
+    const user = await currentUser();
+    if (!user) return;
+
+    const transactions = await db.paymentTransaction.findMany({
+      where: { business_id },
+    });
+
+    let total = 0;
+    let lifetime = 0;
+    transactions.map((transaction) => {
+      switch (transaction.type) {
+        case "CREDIT":
+          total += transaction.amount;
+          lifetime += transaction.amount;
+          break;
+        case "DEBIT":
+          total -= transaction.amount;
+          lifetime -= transaction.amount;
+          break;
+        case "WITHDRAWAL":
+          total -= transaction.amount;
+          break;
+      }
+
+      return total;
+    });
+
+    return { total, lifetime };
+  } catch (error) {
+    console.log(error);
+    throw new Error("Failed to get wallet balance", { cause: error });
+  }
+};
+
+export const getWalletSummaryTimeline = async ({
+  business_id,
+}: {
+  business_id: string;
+}) => {
+  try {
+    const user = await currentUser();
+    if (!user) return;
+    // continue code here...
+  } catch (error) {
+    console.log(error);
+    throw new Error("Failed to get wallet balance", { cause: error });
+  }
+};
