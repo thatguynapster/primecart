@@ -24,12 +24,10 @@ function Table({ children, containerClassName, ...props }: TableProps) {
 }
 
 function TH({
-  tooltip,
   className,
   children,
   ...props
 }: {
-  tooltip?: string;
   className?: string;
   children?: ReactNode;
 }) {

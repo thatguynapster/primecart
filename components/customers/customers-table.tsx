@@ -53,7 +53,6 @@ const CustomersTable = ({ business_id, customers }: Props) => {
                 {name}
               </Table.TD>
               <Table.TD className="justify-evenly whitespace-nowrap">
-                {/* {format(customer.lastOrderDate, "dd MMM, yyyy")} */}
                 <div className="flex flex-col gap-2.5 text-center">
                   <p className="text-sm font-semibold text-dark-muted dark:text-gray">
                     {email}
@@ -62,13 +61,12 @@ const CustomersTable = ({ business_id, customers }: Props) => {
                 </div>
               </Table.TD>
               <Table.TD className="justify-evenly whitespace-nowrap">
-                {/* {format(customer.lastOrderDate, "dd MMM, yyyy")} */}
                 <div className="flex flex-col gap-2.5 text-center">
                   <p className="text-sm font-semibold text-dark-muted dark:text-gray">
-                    {`${orders[0].location.address}, ${orders[0].location.city}`}
+                    {`${orders[0]?.location.address}, ${orders[0]?.location.city}`}
                   </p>
                   <p className="text-sm font-semibold">
-                    {format(orders[0].createdAt, "MMM do, yyyy")}
+                    {format(orders[0]?.createdAt, "MMM do, yyyy")}
                   </p>
                 </div>
               </Table.TD>
