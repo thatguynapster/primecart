@@ -253,4 +253,6 @@ model PaymentTransaction {
   amount            Float
   status            PaymentStatus
   type              TransactionType
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
 }

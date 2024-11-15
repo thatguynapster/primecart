@@ -38,7 +38,10 @@ export const POST = async (req: NextRequest, res: NextResponse) => {
     // add transactions if payment was successful
     if (status === "success") {
       const order_amount = amount / 100;
-      const transactionData: Omit<PaymentTransaction, "id">[] = [
+      const transactionData: Omit<
+        PaymentTransaction,
+        "id" | "createdAt" | "updatedAt"
+      >[] = [
         {
           amount: order_amount * 0.95, // user gets 95 % of order amount
           description: `Payment received for order ${order_id.substring(
