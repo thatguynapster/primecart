@@ -15,6 +15,7 @@ import { Ellipsis } from "lucide-react";
 import { verifyPayment } from "@/lib/paystack";
 import { updateOrderPaymentStatus } from "@/lib/queries";
 import toast from "react-hot-toast";
+import { _verifyPayment } from "@/lib/helpers";
 
 type Props = { order: Orders["data"][0] };
 
@@ -22,20 +23,10 @@ const OrderTableRow = ({ order }: Props) => {
   const router = useRouter();
   const { business_id } = useParams<{ business_id: string }>();
 
-  const _verifyPayment = async () => {
-    const paymentStatus = await verifyPayment(order.payment?.reference!);
-    console.log(paymentStatus)
-
-    await updateOrderPaymentStatus(order.payment_id!, paymentStatus.status).catch(error => {
-      console.log(error)
-      toast('Failed to update order status')
-    });
-  };
-
   useEffect(() => {
-    if (order.payment?.status === "PROCESSING" && differenceInMinutes(new Date(), order.createdAt) > 30) { // add time since order creation
+    if (order.payment?.status === "PROCESSING" && differenceInMinutes(new Date(), order.createdAt) > 10) { // add time since order creation
       console.log(order);
-      _verifyPayment();
+      _verifyPayment({ payment_id: order.payment_id!, reference: order.payment?.reference! });
     }
   }, [order]);
 
@@ -109,7 +100,9 @@ const OrderTableRow = ({ order }: Props) => {
         {parseCurrency(order.amount)}
       </Table.TD>
       <Table.TD className="justify-evenly">
-        <ChangeStatusButton order_id={order.id} orderStatus={order.orderStatus}>
+        <ChangeStatusButton order_id={order.id} orderStatus={order.orderStatus} payment={{ link: order.payment?.checkout_url ?? '', status: order.payment?.status ?? 'FAILED' }} onVerifyPayment={() => {
+          _verifyPayment({ payment_id: order.payment_id!, reference: order.payment?.reference! });
+        }}>
           <Ellipsis className="h-5 w-5 rotate-0 scale-100 transition-all" />
         </ChangeStatusButton>
       </Table.TD>

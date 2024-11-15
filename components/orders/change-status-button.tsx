@@ -8,20 +8,27 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { orderStatuses } from "@/lib/types";
-import { ChevronDown } from "lucide-react";
-import { OrderStatus } from "@prisma/client";
+import { OrderStatus, PaymentStatus } from "@prisma/client";
 import { updateOrderStatus } from "@/lib/queries";
 import { useParams, useRouter } from "next/navigation";
+import { useModal } from "@/providers/modal-provider";
+import { _verifyPayment } from "@/lib/helpers";
 
 type Props = {
   children: ReactNode;
   order_id: string;
   orderStatus: OrderStatus;
+  payment: {
+    status: PaymentStatus,
+    link: string
+  }
+  onVerifyPayment: () => void
 };
 
-const ChangeStatusButton = ({ children, order_id, orderStatus }: Props) => {
+const ChangeStatusButton = ({ children, order_id, orderStatus, payment, onVerifyPayment }: Props) => {
   const router = useRouter();
   const { business_id } = useParams();
+  const { setOpen } = useModal();
 
   const _updateOrderStatus = async (id: string, status: OrderStatus) => {
     await updateOrderStatus(business_id as string, id, status);
@@ -54,6 +61,30 @@ const ChangeStatusButton = ({ children, order_id, orderStatus }: Props) => {
               Set to {status.toLowerCase()}
             </DropdownMenuItem>
           ))}
+
+        {['FAILED', 'ABANDONED'].includes(payment?.status) &&
+          <DropdownMenuItem
+            className="capitalize cursor-pointer"
+            onClick={async (ev) => {
+              ev.stopPropagation();
+              onVerifyPayment()
+            }}
+          >
+            Check Payment
+          </DropdownMenuItem>
+        }
+
+        {/* {['ABANDONED'].includes(payment?.status) &&
+          <DropdownMenuItem
+            className="capitalize cursor-pointer"
+            onClick={async (ev) => {
+              ev.stopPropagation();
+              // setGetPaymentLink(true);
+            }}
+          >
+            Send Payment Link
+          </DropdownMenuItem>
+        } */}
       </DropdownMenuContent>
     </DropdownMenu>
   );
