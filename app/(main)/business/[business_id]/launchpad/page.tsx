@@ -69,7 +69,7 @@ const LaunchpadPage = async ({ params: { business_id } }: Props) => {
             className="text-dark dark:text-light p-2 flex-shrink-0"
           />
         ) : (
-          <PaymentDetailsButton business={business.id} />
+            <PaymentDetailsButton />
         )}
       </div>
 
