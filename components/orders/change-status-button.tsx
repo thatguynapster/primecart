@@ -16,16 +16,16 @@ import { _verifyPayment } from "@/lib/helpers";
 
 type Props = {
   children: ReactNode;
-  order_id: string;
-  orderStatus: OrderStatus;
+  order: { id: string, status: OrderStatus },
   payment: {
+    id: string
+    reference: string
     status: PaymentStatus,
     link: string
   }
-  onVerifyPayment: () => void
 };
 
-const ChangeStatusButton = ({ children, order_id, orderStatus, payment, onVerifyPayment }: Props) => {
+const ChangeStatusButton = ({ children, order: { id: order_id, status: order_status }, payment }: Props) => {
   const router = useRouter();
   const { business_id } = useParams();
   const { setOpen } = useModal();
@@ -47,7 +47,7 @@ const ChangeStatusButton = ({ children, order_id, orderStatus, payment, onVerify
       <DropdownMenuContent className="!mb-2">
         {orderStatuses
           .filter(
-            (status) => status.toLowerCase() !== orderStatus.toLowerCase()
+            (status) => status.toLowerCase() !== order_status.toLowerCase()
           )
           .map((status, i) => (
             <DropdownMenuItem
@@ -67,7 +67,7 @@ const ChangeStatusButton = ({ children, order_id, orderStatus, payment, onVerify
             className="capitalize cursor-pointer"
             onClick={async (ev) => {
               ev.stopPropagation();
-              onVerifyPayment()
+              _verifyPayment({ payment_id: payment.id!, reference: payment.reference! });
             }}
           >
             Check Payment

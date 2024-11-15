@@ -13,6 +13,7 @@ import { getSingleOrder } from "@/lib/queries";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { routes } from "@/routes";
+import { _verifyPayment } from "@/lib/helpers";
 
 type Props = { params: { business_id: string; order_id: string } };
 
@@ -44,12 +45,22 @@ const OrderDetailsPage = async ({
               <Badge variant={order.orderStatus} className="capitalize">
                 {order.orderStatus.toLowerCase()}
               </Badge>
+              <Badge
+                variant={order.payment?.status ?? "FAILED"}
+                className="capitalize"
+              >
+                {order.payment?.status.toLowerCase() ?? "Failed"}
+              </Badge>
             </div>
 
             <div className="flex gap-6">
               <ChangeStatusButton
-                order_id={order.id}
-                orderStatus={order.orderStatus}
+                order={{ id: order.id, status: order.orderStatus }}
+                payment={{
+                  id: order.payment_id!,
+                  reference: order.payment?.reference!,
+                  link: order.payment?.checkout_url ?? '', status: order.payment?.status ?? 'FAILED'
+                }} 
               >
                 <p className="text-sm font-semibold">Change Status</p>
                 <ChevronDown size={16} />

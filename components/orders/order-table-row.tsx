@@ -100,9 +100,12 @@ const OrderTableRow = ({ order }: Props) => {
         {parseCurrency(order.amount)}
       </Table.TD>
       <Table.TD className="justify-evenly">
-        <ChangeStatusButton order_id={order.id} orderStatus={order.orderStatus} payment={{ link: order.payment?.checkout_url ?? '', status: order.payment?.status ?? 'FAILED' }} onVerifyPayment={() => {
-          _verifyPayment({ payment_id: order.payment_id!, reference: order.payment?.reference! });
-        }}>
+        <ChangeStatusButton order={{ id: order.id, status: order.orderStatus }}
+          payment={{
+            id: order.payment_id!,
+            reference: order.payment?.reference!,
+            link: order.payment?.checkout_url ?? '', status: order.payment?.status ?? 'FAILED'
+          }} >
           <Ellipsis className="h-5 w-5 rotate-0 scale-100 transition-all" />
         </ChangeStatusButton>
       </Table.TD>
