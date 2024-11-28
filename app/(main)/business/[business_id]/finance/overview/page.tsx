@@ -1,4 +1,5 @@
 import TransactionsTable from "@/components/finance/transactions-table";
+import WithdrawButton from "@/components/finance/withdraw-button";
 import { Button } from "@/components/global/button";
 import PaymentDetailsButton from "@/components/payment-details-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -35,11 +36,11 @@ const FinancePage = async ({ params: { business_id } }: Props) => {
                 {/* <p className="text-xs font-medium text-success">+23%</p> */}
               </div>
 
-              <Button variant="outline">Withdraw</Button>
+              <WithdrawButton max_amount={wallet_balance?.total ?? 0} />
             </div>
 
             <div className="flex flex-col gap-8">
-              <div className="flex flex-wrap md:flex-row justify-center items-center gap-8 pt-4">
+              <div className="flex flex-wrap md:flex-row justify-center items-center gap-8 lg:gap-x-32 pt-4">
                 <div className="flex flex-col gap-1 items-center">
                   <p className="text-2xl font-medium">{parseCurrency(wallet_balance?.lifetime ?? 0)}</p>
                   <p className="text-dark-muted dark:text-gray text-sm">
@@ -48,14 +49,14 @@ const FinancePage = async ({ params: { business_id } }: Props) => {
                 </div>
 
                 <div className="flex flex-col gap-1 items-center">
-                  <p className="text-2xl font-medium">{parseCurrency(0)}</p>
+                  <p className="text-2xl font-medium">{parseCurrency(wallet_balance?.this_month ?? 0)}</p>
                   <p className="text-dark-muted dark:text-gray text-sm">
                     This month
                   </p>
                 </div>
 
                 <div className="flex flex-col gap-1 items-center">
-                  <p className="text-2xl font-medium">{parseCurrency(0)}</p>
+                  <p className="text-2xl font-medium">{parseCurrency(wallet_balance?.this_year ?? 0)}</p>
                   <p className="text-dark-muted dark:text-gray text-sm">
                     This year
                   </p>
