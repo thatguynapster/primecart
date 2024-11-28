@@ -74,21 +74,22 @@ type Bank {
   city           String
   address        String
   zip_code       String
+  recipient_id   String?
 }
 
 type MoMo {
   provider       String
   account_number String
   account_name   String
+  recipient_id   String?
 }
 
 model Payment {
-  id           String    @id @default(auto()) @map("_id") @db.ObjectId
-  payment_type String
-  bank         Bank?
-  momo         MoMo?
-  business_id  String    @unique @db.ObjectId
-  business     Business? @relation(fields: [business_id], references: [id])
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  bank        Bank?
+  momo        MoMo?
+  business_id String    @unique @db.ObjectId
+  business    Business? @relation(fields: [business_id], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -248,8 +249,8 @@ enum TransactionType {
 
 model PaymentTransaction {
   id                String          @id @default(auto()) @map("_id") @db.ObjectId
-  payment_reference String
-  reference_id      String
+  payment_reference String?         @db.ObjectId
+  reference_id      String?
   description       String
   amount            Float
   business_id       String          @db.ObjectId
@@ -257,4 +258,5 @@ model PaymentTransaction {
   type              TransactionType
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
+  meta_data         Json?
 }

@@ -7,9 +7,10 @@ import React from "react";
 import { Button } from "@/components/global/button";
 import * as Field from "@/components/global/Field";
 import * as schema from "@/lib/schema";
+import { Payment } from "@prisma/client";
 
 type Props = {
-  data?: BankData | null;
+  data: Payment | null,
   onSave: (
     values: BankData,
     actions: Pick<FormikHelpers<BankData>, "setSubmitting">
@@ -48,17 +49,17 @@ const Bank = ({ data, onSave }: Props) => {
         zip_code: schema.requireString("Zip Code"),
       })}
       initialValues={{
-        swift_code: data?.swift_code ?? "",
-        iban: data?.iban ?? "",
-        account_number: data?.account_number ?? "",
-        account_name: data?.account_name ?? "",
-        bank_name: data?.bank_name ?? "",
-        currency: data?.currency ?? "",
-        country: data?.country ?? "",
-        state: data?.state ?? "",
-        city: data?.city ?? "",
-        address: data?.address ?? "",
-        zip_code: data?.zip_code ?? "",
+        swift_code: data?.bank?.swift_code ?? "",
+        iban: data?.bank?.iban ?? "",
+        account_number: data?.bank?.account_number ?? "",
+        account_name: data?.bank?.account_name ?? "",
+        bank_name: data?.bank?.bank_name ?? "",
+        currency: data?.bank?.currency ?? "",
+        country: data?.bank?.country ?? "",
+        state: data?.bank?.state ?? "",
+        city: data?.bank?.city ?? "",
+        address: data?.bank?.address ?? "",
+        zip_code: data?.bank?.zip_code ?? "",
       }}
       onSubmit={(values, { setSubmitting }) => {
         setSubmitting(true);

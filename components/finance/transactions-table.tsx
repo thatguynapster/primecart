@@ -44,6 +44,7 @@ const TransactionsTable = ({ transactions }: Props) => {
                   "text-success": transaction.status === 'PAID',
                   "text-error": transaction.status === "FAILED",
                 })}> <span className={clsx("w-2 h-2 rounded-full capitalize", {
+                  "bg-gray": transaction.status === 'PROCESSING',
                   "bg-success": transaction.status === 'PAID',
                   "bg-error": transaction.status === "FAILED",
                 })}></span>{transaction.status.toLowerCase()}</p>

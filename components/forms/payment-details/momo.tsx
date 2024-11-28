@@ -8,19 +8,16 @@ import { SelectOptions } from "@/components/global/Field/Select/Select";
 import { Button } from "@/components/global/button";
 import * as Field from "@/components/global/Field";
 import * as schema from "@/lib/schema";
+import { MoMo as MoMoType, Payment } from "@prisma/client";
 
 type Props = {
-  data?: MomoData | null;
+  data: Payment | null,
   onSave: (
     values: MomoData,
     actions: Pick<FormikHelpers<MomoData>, "setSubmitting">
   ) => void;
 };
-export type MomoData = {
-  provider: string;
-  account_number: string;
-  account_name: string;
-};
+export type MomoData = Omit<MoMoType, "recipient_id">
 
 const providers = [
   {
@@ -48,9 +45,9 @@ const MoMo = ({ data, onSave }: Props) => {
         account_name: schema.requireFullName("Account Name"),
       })}
       initialValues={{
-        provider: data?.provider || providers[0].value || "MTN",
-        account_number: data?.account_number || "",
-        account_name: data?.account_name || "",
+        provider: data?.momo?.provider || providers[0].value || "MTN",
+        account_number: data?.momo?.account_number || "",
+        account_name: data?.momo?.account_name || "",
       }}
       onSubmit={(values, { setSubmitting }) => {
         setSubmitting(true);

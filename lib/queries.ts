@@ -21,7 +21,7 @@ import { revalidatePath } from "next/cache";
 
 import { db } from "./db";
 import { routes } from "@/routes";
-import { startOfDay, subDays } from "date-fns";
+import { startOfDay, startOfMonth, startOfYear, subDays } from "date-fns";
 import { BestSeller, Order } from "./types";
 
 export const initUser = async (userUpdate?: Users) => {
@@ -156,6 +156,34 @@ export const upsertPaymentDetails = async (
       create: { ...data },
     });
 
+    // // create paystack transfer recipient
+    // const myHeaders = new Headers();
+    // myHeaders.append("Content-Type", "application/json");
+    // myHeaders.append(
+    //   "Authorization",
+    //   `Bearer ${process.env["PAYSTACK_SECRET_KEY"]}`
+    // );
+
+    // const requestOptions = {
+    //   method: "POST",
+    //   headers: myHeaders,
+    //   body: JSON.stringify({
+    //     type: "nuban",
+    //     name: "Tolu Robert",
+    //     account_number: "01000000010",
+    //     bank_code: "058",
+    //     currency: "NGN",
+    //   }),
+    // };
+
+    // if (paymentDetails.recipient_id) {
+    //   await fetch(
+    //     `https://api.paystack.co/transferrecipient/${paymentDetails.recipient_id}`,
+    //     requestOptions
+    //   ).then((response) => response.json());
+    // } else {
+    // }
+
     return paymentDetails;
   } catch (error) {
     console.log(error);
@@ -171,7 +199,7 @@ export const getPaymentDetails = async (id: string) => {
       },
     });
 
-    return paymentDetails ?? { bank: null, momo: null };
+    return paymentDetails;
   } catch (error) {
     console.log(error);
     throw new Error("Failed to get payment details", { cause: error });
@@ -922,7 +950,7 @@ export const updateOrderPaymentStatus = async (
     const user = await currentUser();
     if (!user) return;
 
-    const updatedORder = await db.orderPayment.update({
+    const updatedOrder = await db.orderPayment.update({
       where: {
         id: payment_id,
       },
@@ -931,7 +959,7 @@ export const updateOrderPaymentStatus = async (
 
     revalidatePath(routes.orders.index, "page");
 
-    return updatedORder;
+    return updatedOrder;
   } catch (error) {
     console.log(error);
     throw new Error("Failed to update order status", { cause: error });
@@ -988,10 +1016,95 @@ export const getTransactions = async ({
   }
 };
 
+// Function to calculate balances
+const calculateBalance = (
+  transactions: Array<{ type: string; amount: number; status: PaymentStatus }>,
+  excludeWithdrawals = false
+): number =>
+  transactions.reduce((acc, transaction) => {
+    // if (transaction.status === "PAID") {
+    switch (transaction.type) {
+      case "CREDIT":
+        return acc + transaction.amount;
+      case "DEBIT":
+        return acc - transaction.amount;
+      case "WITHDRAWAL":
+        return excludeWithdrawals ? acc : acc - transaction.amount;
+      default:
+        return acc;
+    }
+    // }
+
+    // return 0;
+  }, 0);
+
 export const getWalletBalance = async ({
   business_id,
 }: {
   business_id: string;
+}): Promise<{
+  total: number;
+  lifetime: number;
+  this_month: number;
+  this_year: number;
+} | void> => {
+  try {
+    const user = await currentUser();
+    if (!user) return;
+
+    let query = {
+      where: { business_id },
+    };
+
+    const [transactions, thisMonth, thisYear] = await db.$transaction([
+      db.paymentTransaction.findMany({ ...query }),
+      db.paymentTransaction.findMany({
+        where: {
+          ...query.where,
+          createdAt: {
+            gte: startOfMonth(new Date()).toISOString(),
+            lte: new Date().toISOString(),
+          },
+        },
+      }),
+      db.paymentTransaction.findMany({
+        where: {
+          ...query.where,
+          createdAt: {
+            gte: startOfYear(new Date()).toISOString(),
+            lte: new Date().toISOString(),
+          },
+        },
+      }),
+    ]);
+
+    const total = calculateBalance(transactions); // Includes withdrawals
+
+    // Excludes withdrawals
+    const lifetime = calculateBalance(transactions, true);
+    const this_month = calculateBalance(thisMonth, true);
+    const this_year = calculateBalance(thisYear, true);
+
+    return {
+      total,
+      lifetime,
+      this_month,
+      this_year,
+    };
+  } catch (error) {
+    console.log(error);
+    throw new Error("Failed to get wallet balance", { cause: error });
+  }
+};
+
+export const initiateWithdrawal = async ({
+  business_id,
+  amount,
+  meta_data,
+}: {
+  business_id: string;
+  amount: number;
+  meta_data: Record<string, string>;
 }) => {
   try {
     const user = await currentUser();
@@ -1001,44 +1114,27 @@ export const getWalletBalance = async ({
       where: { business_id },
     });
 
-    let total = 0;
-    let lifetime = 0;
-    transactions.map((transaction) => {
-      switch (transaction.type) {
-        case "CREDIT":
-          total += transaction.amount;
-          lifetime += transaction.amount;
-          break;
-        case "DEBIT":
-          total -= transaction.amount;
-          lifetime -= transaction.amount;
-          break;
-        case "WITHDRAWAL":
-          total -= transaction.amount;
-          break;
-      }
+    const balance = calculateBalance(transactions);
 
-      return total;
+    if (amount > balance) {
+      throw new Error("Withdrawal amount exceeds your wallet amount.");
+    }
+
+    const withdrawal = await db.paymentTransaction.create({
+      data: {
+        amount,
+        description: `Withdrawal of ${amount} from wallet`,
+        status: "PROCESSING",
+        type: "WITHDRAWAL",
+        business_id,
+        meta_data,
+      },
     });
 
-    return { total, lifetime };
-  } catch (error) {
+    revalidatePath(routes.finance.overview, "page");
+    revalidatePath(routes.finance.payout, "page");
+  } catch (error: any) {
     console.log(error);
-    throw new Error("Failed to get wallet balance", { cause: error });
-  }
-};
-
-export const getWalletSummaryTimeline = async ({
-  business_id,
-}: {
-  business_id: string;
-}) => {
-  try {
-    const user = await currentUser();
-    if (!user) return;
-    // continue code here...
-  } catch (error) {
-    console.log(error);
-    throw new Error("Failed to get wallet balance", { cause: error });
+    throw new Error(`Failed to withdraw funds: ${error.message}`);
   }
 };

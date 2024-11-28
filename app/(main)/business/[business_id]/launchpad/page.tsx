@@ -29,7 +29,7 @@ const LaunchpadPage = async ({ params: { business_id } }: Props) => {
     business?.state &&
     business?.zip_code;
 
-  const paymentAdded = payment.bank || payment.momo;
+  const paymentAdded = payment?.bank || payment?.momo;
 
   return (
     <div

@@ -40,7 +40,7 @@ export const POST = async (req: NextRequest, res: NextResponse) => {
       const order_amount = amount / 100;
       const transactionData: Omit<
         PaymentTransaction,
-        "id" | "createdAt" | "updatedAt"
+        "id" | "meta_data" | "createdAt" | "updatedAt"
       >[] = [
         {
           amount: order_amount,

@@ -31,6 +31,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             ? "border-x-0 border-t-0"
             : "border-x border-t rounded-lg"
         )}
+        id={props.name}
         {...props}
       />
     );

@@ -20,19 +20,13 @@ type Props = { children?: ReactNode };
 const PaymentDetailsButton = ({ children }: Props) => {
   const params = useParams<{ business_id: string }>()
   const { setOpen, setClose } = useModal();
-  const [payment, setPayment] = useState<{
-    bank: BankData | null;
-    momo: MomoData | null;
-  }>();
+  const [payment, setPayment] = useState<Payment | null>(null);
 
   const fetchPaymentDetails = async () => {
     try {
       let payment = await getPaymentDetails(params.business_id);
 
-      setPayment({
-        bank: payment.bank,
-        momo: payment.momo,
-      });
+      setPayment(payment);
     } catch (error) {
       console.log(error);
     }
@@ -52,7 +46,7 @@ const PaymentDetailsButton = ({ children }: Props) => {
       setClose();
     } catch (error) {
       console.log(error);
-      toast.error("Failed to add payment details");
+      toast.error("Failed to update payment details");
     } finally {
       setSubmitting(false);
     }
@@ -79,13 +73,15 @@ const PaymentDetailsButton = ({ children }: Props) => {
 
                 <TabsContent value="momo">
                   <MoMo
-                    data={payment?.momo}
+                    data={payment}
                     onSave={(values, { setSubmitting }) => {
                       savePayment({
                         data: {
                           business_id: params.business_id,
-                          payment_type: "momo",
-                          momo: { ...values },
+                          momo: {
+                            ...values,
+                            recipient_id: payment?.momo?.recipient_id ?? null
+                          },
                           bank: payment?.bank ?? null,
                         },
                         actions: { setSubmitting },
@@ -96,13 +92,15 @@ const PaymentDetailsButton = ({ children }: Props) => {
 
                 <TabsContent value="bank">
                   <Bank
-                    data={payment?.bank}
+                    data={payment}
                     onSave={(values, { setSubmitting }) => {
                       savePayment({
                         data: {
                           business_id: params.business_id,
-                          payment_type: "bank",
-                          bank: { ...values },
+                          bank: {
+                            ...values,
+                            recipient_id: payment?.momo?.recipient_id ?? null
+                          },
                           momo: payment?.momo ?? null,
                         },
                         actions: { setSubmitting },
