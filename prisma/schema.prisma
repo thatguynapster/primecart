@@ -247,16 +247,25 @@ enum TransactionType {
   WITHDRAWAL
 }
 
+enum PreferredChannel {
+  MOMO
+  BANK
+}
+
+type PaymentMetaData {
+  preferred_channel PreferredChannel
+}
+
 model PaymentTransaction {
-  id                String          @id @default(auto()) @map("_id") @db.ObjectId
-  payment_reference String?         @db.ObjectId
+  id                String           @id @default(auto()) @map("_id") @db.ObjectId
+  payment_reference String?          @db.ObjectId
   reference_id      String?
   description       String
   amount            Float
-  business_id       String          @db.ObjectId
+  business_id       String           @db.ObjectId
   status            PaymentStatus
   type              TransactionType
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
-  meta_data         Json?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  meta_data         PaymentMetaData?
 }

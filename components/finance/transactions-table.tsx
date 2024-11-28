@@ -17,8 +17,8 @@ const TransactionsTable = ({ transactions }: Props) => {
           <tr>
             <Table.TH>Date</Table.TH>
             <Table.TH>Description</Table.TH>
-            <Table.TH>Amount</Table.TH>
-            <Table.TH>Status</Table.TH>
+            <Table.TH className="justify-end">Amount</Table.TH>
+            <Table.TH className="justify-evenly">Status</Table.TH>
           </tr>
         </thead>
 
@@ -31,14 +31,14 @@ const TransactionsTable = ({ transactions }: Props) => {
               <Table.TD>
                 {transaction.description}
               </Table.TD>
-              <Table.TD className="capitalize font-semibold">
+              <Table.TD className="capitalize font-semibold justify-end">
                 <span className={clsx({
                   'text-success': transaction.type === 'CREDIT',
                   'text-error': transaction.type === 'DEBIT'
                 })}>
                   {parseCurrency(transaction.amount)}</span>
               </Table.TD>
-              <Table.TD className="capitalize">
+              <Table.TD className="capitalize justify-evenly">
 
                 <p className={clsx("flex gap-2 items-center", {
                   "text-success": transaction.status === 'PAID',

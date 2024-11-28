@@ -7,6 +7,7 @@ import {
   OrderStatus,
   Payment,
   PaymentStatus,
+  PaymentTransaction,
   ProductOrders,
   Products,
   ProductVariations,
@@ -102,4 +103,9 @@ export type BusinessCustomer = {
 export type Customers = {
   pagination: { total: number; total_pages: number };
   data: BusinessCustomer[];
+};
+
+export type Payouts = {
+  pagination: { total: number; total_pages: number };
+  payments: PaymentTransaction[];
 };

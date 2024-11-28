@@ -14,6 +14,7 @@ import {
   Prisma,
   OrderPayment,
   PaymentStatus,
+  TransactionType,
 } from "@prisma/client";
 import { currentUser } from "@clerk/nextjs/server";
 import { cache } from "react";
@@ -23,6 +24,7 @@ import { db } from "./db";
 import { routes } from "@/routes";
 import { startOfDay, startOfMonth, startOfYear, subDays } from "date-fns";
 import { BestSeller, Order } from "./types";
+import { parseCurrency } from "./utils";
 
 export const initUser = async (userUpdate?: Users) => {
   try {
@@ -1120,10 +1122,10 @@ export const initiateWithdrawal = async ({
       throw new Error("Withdrawal amount exceeds your wallet amount.");
     }
 
-    const withdrawal = await db.paymentTransaction.create({
+    await db.paymentTransaction.create({
       data: {
         amount,
-        description: `Withdrawal of ${amount} from wallet`,
+        description: `Withdrawal of ${parseCurrency(amount)} from wallet`,
         status: "PROCESSING",
         type: "WITHDRAWAL",
         business_id,
@@ -1136,5 +1138,45 @@ export const initiateWithdrawal = async ({
   } catch (error: any) {
     console.log(error);
     throw new Error(`Failed to withdraw funds: ${error.message}`);
+  }
+};
+
+export const getPayouts = async ({
+  business_id,
+  page = 1,
+  limit = 10,
+}: {
+  business_id: string;
+  page?: number;
+  limit?: number;
+}) => {
+  try {
+    const user = await currentUser();
+    if (!user) return;
+
+    const query = {
+      where: {
+        business_id,
+        type: "WITHDRAWAL" as TransactionType,
+        // status: "PAID" as PaymentStatus, //TODO: uncomment this line when done
+      },
+    };
+
+    const [transactions, count] = await db.$transaction([
+      db.paymentTransaction.findMany({
+        ...query,
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      db.paymentTransaction.count({ where: query.where }),
+    ]);
+
+    return {
+      pagination: { total: count, total_pages: Math.ceil(count / limit) },
+      payments: transactions,
+    };
+  } catch (error: any) {
+    console.log(error);
+    throw new Error(`Failed to get payouts: ${error.message}`);
   }
 };

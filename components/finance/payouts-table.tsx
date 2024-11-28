@@ -2,10 +2,19 @@
 
 import React from "react";
 import { Table } from "../global/Table";
+import { PaymentTransaction } from "@prisma/client";
+import { format } from "date-fns";
+import { Payouts } from "@/lib/types";
+import { parseCurrency } from "@/lib/utils";
+import clsx from "clsx";
 
-type Props = {};
+type Props = {
+  payouts?: Payouts
+};
 
-const PayoutsTable = (props: Props) => {
+const PayoutsTable = ({ payouts }: Props) => {
+  console.log(payouts)
+
   return (
     <div className="flex flex-col gap-4">
       <Table>
@@ -13,71 +22,55 @@ const PayoutsTable = (props: Props) => {
           <tr>
             <Table.TH>Date</Table.TH>
             <Table.TH>Description</Table.TH>
-            <Table.TH>Amount</Table.TH>
-            <Table.TH>Status</Table.TH>
+            <Table.TH className="justify-end">Amount</Table.TH>
+            <Table.TH className="justify-evenly">Status</Table.TH>
             <Table.TH>Method</Table.TH>
           </tr>
         </thead>
 
         <tbody className="divide-y">
-          {/* {orders?.data?.map((order, i) => (
-            <tr
-              key={i}
-              className="cursor-pointer"
-              onClick={() => {
-                router.push(
-                  routes.orders.details
-                    .replace(":business_id", business_id)
-                    .replace(":order_id", order.id)
-                );
-              }}
-            >
-              <Table.TD className="uppercase">
-                #{order.id.substring(order.id.length - 7)}
+          {payouts?.payments?.map((payment, i) => (
+            <tr key={i}>
+              <Table.TD className="justify-evenly whitespace-nowrap">
+                {format(payment.createdAt, "dd MMM, yyyy")}
               </Table.TD>
+
               <Table.TD>
-                <div className="flex items-center gap-2.5">
-                  <div
-                    className={clsx("grid gap-1", {
-                      "grid-cols-2": order.products.length > 1,
+                {payment.description}
+              </Table.TD>
+
+              <Table.TD className="capitalize font-semibold justify-end">
+                {parseCurrency(payment.amount)}
+              </Table.TD>
+
+              <Table.TD className="capitalize justify-evenly">
+                <div className="flex gap-2 items-center">
+                  <span
+                    className={clsx("w-2 h-2 rounded-full", {
+                      "bg-gray": payment.status === "PROCESSING",
+                      "bg-success": payment.status === "PAID",
+                      "bg-error": payment.status === "FAILED",
                     })}
-                  >
-                    {order.products
-                      .map(({ product, product_variation, quantity }) => ({
-                        name: product.name,
-                        image: product.images[0],
-                        product_variation,
-                        quantity,
-                      }))
-                      .map(
-                        ({ name, image, product_variation, quantity }, key) => (
-                          <OrderTableProduct
-                            key={key}
-                            index={key}
-                            {...{
-                              image,
-                              name,
-                              product_variation,
-                              quantity,
-                            }}
-                            dataLength={order.products.length}
-                          />
-                        )
-                      )}
-                  </div>
+                  />
+                  <p>{payment.status.toLowerCase()}</p>
                 </div>
               </Table.TD>
-              <Table.TD className="justify-evenly">
+
+              <Table.TD>
+                <p>{payment.meta_data?.preferred_channel}</p>
+              </Table.TD>
+
+              {/* <Table.TD className="justify-evenly">
                 {order.products.reduce((a, b) => a + (b?.quantity ?? 0), 0)}
-              </Table.TD>
-              <Table.TD className="justify-evenly whitespace-nowrap">
+              </Table.TD> */}
+              {/* <Table.TD className="justify-evenly whitespace-nowrap">
                 {format(order.createdAt, "dd MMM, yyyy")}
-              </Table.TD>
-              <Table.TD className="justify-evenly"></Table.TD>
-              <Table.TD className="whitespace-nowrap">
+              </Table.TD> */}
+              {/* <Table.TD className="justify-evenly"></Table.TD> */}
+              {/* <Table.TD className="whitespace-nowrap">
                 {order.customer.name}
-              </Table.TD>
-              <Table.TD className="capitalize">
+              </Table.TD> */}
+              {/* <Table.TD className="capitalize">
                 <div className="flex gap-2 items-center">
                   <span
                     className={clsx("w-2 h-2 rounded-full", {
@@ -89,29 +82,29 @@ const PayoutsTable = (props: Props) => {
                   />
                   <p>{order.orderStatus.toLowerCase()}</p>
                 </div>
-              </Table.TD>
-              <Table.TD className="justify-end capitalize">
+              </Table.TD> */}
+              {/* <Table.TD className="justify-end capitalize">
                 ${order.amount.toFixed(2)}
-              </Table.TD>
-              <Table.TD className="justify-evenly">
+              </Table.TD> */}
+              {/* <Table.TD className="justify-evenly">
                 <ChangeStatusButton
                   order_id={order.id}
                   orderStatus={order.orderStatus}
                 >
                   <Ellipsis className="h-5 w-5 rotate-0 scale-100 transition-all" />
                 </ChangeStatusButton>
-               
-              </Table.TD>
-            </tr>
-          ))} */}
 
-          {/* {!orders?.data?.length && (
+              </Table.TD> */}
+            </tr>
+          ))}
+
+          {!payouts?.payments?.length && (
             <Table.Empty className="my-8" title="No orders yet" />
-          )} */}
+          )}
         </tbody>
       </Table>
 
-      {/* <Table.Pagination page={1} pages={orders?.pagination?.total_pages ?? 1} /> */}
+      <Table.Pagination page={1} pages={payouts?.pagination?.total_pages ?? 1} />
     </div>
   );
 };
