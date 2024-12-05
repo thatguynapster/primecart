@@ -19,6 +19,7 @@ import * as Field from "@/components/global/Field";
 import { Button } from "../global/button";
 import { Table } from "../global/Table";
 import * as schema from "@/lib/schema";
+import clsx from "clsx";
 
 type Props = {
   business_id: string;
@@ -38,6 +39,8 @@ interface FormData {
   business_id: string;
   category_id: string;
   cost_price: number;
+  sale_price: number;
+  quantity: number;
 
   variations: Variation[];
 }
@@ -54,7 +57,7 @@ const ProductDetails = ({ business_id, data }: Props) => {
 
   //  WIP: create product in db
   const _createProduct = async (
-    product: FormData,
+    product: Omit<FormData, 'sale_price' | 'quantity'>,
     { setSubmitting }: Pick<FormikHelpers<FormData>, "setSubmitting">
   ) => {
     try {
@@ -112,21 +115,31 @@ const ProductDetails = ({ business_id, data }: Props) => {
         images: schema.requireArray("Product Images").min(1),
         category_id: schema.requireString("Category"),
         cost_price: schema.requireNumber("Cost Price"),
-        variations: schema.requireArray("Product Variations").min(1),
+        sale_price: schema.requireNumber('Sale Price'),
+        quantity: schema.requireNumber('Quantity'),
       })}
       initialValues={{
         name: data?.name ?? "",
         description: data?.description ?? "",
         images: data?.images ?? [],
         business_id: business_id,
-        category_id: data?.category_id ?? categories[0]?.value ?? "",
+        category_id: data?.category_id ?? categories[0]?.value ?? "-",
         cost_price: data?.cost_price ?? 0,
+        sale_price: data?.variations?.[0].price ?? 0,
+        quantity: data?.variations?.[0].quantity ?? 1,
 
         variations: data?.variations ?? [],
       }}
       onSubmit={(values: FormData, { setSubmitting }) => {
-        setSubmitting(true);
-        _createProduct(values, { setSubmitting });
+        console.log('product data:', values)
+        const { sale_price: price, quantity, ...product_data } = values
+
+        let variations = [{ price, quantity, attributes: {} }]
+
+        console.log('formatted product data:', { ...product_data, variations })
+
+        // setSubmitting(true);
+        _createProduct({ ...product_data, variations }, { setSubmitting });
       }}
     >
       {({ values, isValid, isSubmitting, handleSubmit, setFieldValue }) => (
@@ -197,115 +210,181 @@ const ProductDetails = ({ business_id, data }: Props) => {
                 />
               </Field.Group>
 
-              <Field.Group
-                className="lg:w-1/2"
-                name="cost_price"
-                label="Cost Price"
-                required
-              >
-                <Field.Input
-                  as="input"
+              <div className={clsx({ "grid grid-cols-3 gap-4": values.variations.length < 1 })}>
+                <Field.Group
+                  className={clsx({
+                    "lg:w-1/2": values.variations.length >= 1,
+                    'w-full': values.variations.length <= 1
+                  })}
                   name="cost_price"
-                  type="number"
-                  min={0}
-                  step={0.01}
-                  value={values.cost_price}
-                  placeholder="Eg: 10.99"
-                />
-              </Field.Group>
+                  label="Cost Price"
+                  required
+                >
+                  <Field.Input
+                    as="input"
+                    name="cost_price"
+                    type="number"
+                    min={0}
+                    step={0.01}
+                    value={values.cost_price}
+                    placeholder="Eg: 10.99"
+                  />
+                </Field.Group>
+
+                {(values.variations.length < 1) &&
+                  <>
+                    <Field.Group
+                      className={clsx({
+                        "lg:w-1/2": values.variations.length > 1,
+                        'w-full': values.variations.length <= 1
+                      })}
+                      name="sale_price"
+                      label="Sale Price"
+                      required
+                    >
+
+                      <Field.Input
+                        as="input"
+                        name="sale_price"
+                        type="number"
+                        min={0}
+                        step={0.1}
+                        value={values.sale_price}
+                        placeholder="Eg: 10.99"
+                      />
+                    </Field.Group>
+
+                    <Field.Group
+                      className={clsx({
+                        "lg:w-1/2": values.variations.length > 1,
+                        'w-full': values.variations.length <= 1
+                      })}
+                      name="quantity"
+                      label="Quantity"
+                      required
+                    >
+                      <Field.Input
+                        as="input"
+                        name="quantity"
+                        type="number"
+                        min={1}
+                        value={values.quantity}
+                        placeholder="Eg: 10"
+                      />
+                    </Field.Group>
+
+                    <Button
+                      className="w-max"
+                      variant="outline"
+                      type="button"
+                      onClick={() => {
+                        setFieldValue("variations", [{
+                          price: values.sale_price,
+                          quantity: values.quantity,
+                          attributes: {},
+                        }])
+                      }}
+                    >
+                      Add Variant
+                    </Button>
+                  </>
+                }
+              </div>
             </div>
 
             {/* product variants */}
-            <div className="flex flex-col lg:flex-row gap-4">
-              <div className="flex flex-col gap-4 rounded-lg border-2 w-full h-max">
-                <Table>
-                  <thead>
-                    <tr>
-                      <Table.TH>Name</Table.TH>
-                      <Table.TH className="justify-evenly">Quantity</Table.TH>
-                      <Table.TH className="justify-end">Price</Table.TH>
-                    </tr>
-                  </thead>
+            {values.variations.length >= 1 &&
+              <div className="flex flex-col lg:flex-row gap-4">
+                <div className="flex flex-col gap-4 rounded-lg border-2 w-full h-max">
+                  <Table>
+                    <thead>
+                      <tr>
+                        <Table.TH>Name</Table.TH>
+                        <Table.TH className="justify-evenly">Quantity</Table.TH>
+                        <Table.TH className="justify-end">Price</Table.TH>
+                      </tr>
+                    </thead>
 
-                  <tbody className="divide-y">
-                    {values.variations?.map((variant, i) => (
-                      <tr key={i} className="group">
-                        <Table.TD>
-                          {Object.values(variant.attributes)
-                            .map((attr, i) => attr)
-                            .join(" / ")}
-                        </Table.TD>
-                        <Table.TD className="justify-evenly">
-                          {variant.quantity}
-                        </Table.TD>
-                        <Table.TD className="justify-end">
-                          <div className="flex items-center relative">
-                            <p>GHs {variant.price}</p>
-                            <div className="absolute right-0 bg-dark dark:bg-light rounded-lg text-light dark:text-dark hidden group-hover:flex">
-                              <div
-                                className="p-2 cursor-pointer"
-                                onClick={() => {
-                                  setEditVariant({
-                                    values: variant,
-                                    index: i,
-                                  });
-                                }}
-                              >
-                                <Pencil size={16} />
-                              </div>
-                              {values.variations.length > 1 && (
+                    <tbody className="divide-y">
+                      {values.variations?.map((variant, i) => (
+                        <tr key={i} className="group">
+                          <Table.TD>
+                            {Object.values(variant.attributes)
+                              .map((attr, i) => attr)
+                              .join(" / ")}
+                          </Table.TD>
+                          <Table.TD className="justify-evenly">
+                            {variant.quantity}
+                          </Table.TD>
+                          <Table.TD className="justify-end">
+                            <div className="flex items-center relative">
+                              <p>GHs {variant.price}</p>
+                              <div className="absolute right-0 bg-dark dark:bg-light rounded-lg text-light dark:text-dark hidden group-hover:flex">
                                 <div
-                                  className="p-2 cursor-pointer bg-error rounded-lg"
+                                  className="p-2 cursor-pointer"
                                   onClick={() => {
-                                    const updatedVariants = [
-                                      ...values.variations!,
-                                    ];
-                                    updatedVariants.splice(i, 1);
-
-                                    if (variant.unique_id)
-                                      deleteVariation(variant.unique_id);
-
-                                    setFieldValue(
-                                      "variations",
-                                      updatedVariants
-                                    );
+                                    setEditVariant({
+                                      values: variant,
+                                      index: i,
+                                    });
                                   }}
                                 >
-                                  <Trash2 size={16} />
+                                  <Pencil size={16} />
                                 </div>
-                              )}
+                                {values.variations.length > 1 && (
+                                  <div
+                                    className="p-2 cursor-pointer bg-error rounded-lg"
+                                    onClick={() => {
+                                      const updatedVariants = [
+                                        ...values.variations!,
+                                      ];
+                                      updatedVariants.splice(i, 1);
+
+                                      if (variant.unique_id)
+                                        deleteVariation(variant.unique_id);
+
+                                      setFieldValue(
+                                        "variations",
+                                        updatedVariants
+                                      );
+                                    }}
+                                  >
+                                    <Trash2 size={16} />
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        </Table.TD>
-                      </tr>
-                    ))}
+                          </Table.TD>
+                        </tr>
+                      ))}
 
-                    {!values.variations?.length && (
-                      <Table.Empty title="Save a variant to see them here" />
-                    )}
-                  </tbody>
-                </Table>
+                      {!values.variations?.length && (
+                        <Table.Empty title="Save a variant to see them here" />
+                      )}
+                    </tbody>
+                  </Table>
+                </div>
+
+                <VariantDetails
+                  data={editVariant}
+                  addVariant={(variants) => {
+                    //  check if editing product
+                    if (editVariant) {
+                      const updatedVariants = [...values.variations!];
+                      updatedVariants[editVariant.index] = variants;
+
+                      setEditVariant(null);
+                      return setFieldValue("variations", updatedVariants);
+                    }
+
+                    const newVariants = [...values.variations!];
+                    newVariants.push(variants);
+
+                    setFieldValue("variations", newVariants);
+                  }}
+                />
               </div>
-
-              <VariantDetails
-                data={editVariant}
-                addVariant={(variants) => {
-                  //  check if editing product
-                  if (editVariant) {
-                    const updatedVariants = [...values.variations!];
-                    updatedVariants[editVariant.index] = variants;
-
-                    setEditVariant(null);
-                    return setFieldValue("variations", updatedVariants);
-                  }
-
-                  const newVariants = [...values.variations!];
-                  newVariants.push(variants);
-
-                  setFieldValue("variations", newVariants);
-                }}
-              />
-            </div>
+            }
 
             <Button
               className="w-max"

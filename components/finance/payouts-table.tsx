@@ -59,42 +59,6 @@ const PayoutsTable = ({ payouts }: Props) => {
               <Table.TD>
                 <p>{payment.meta_data?.preferred_channel}</p>
               </Table.TD>
-
-              {/* <Table.TD className="justify-evenly">
-                {order.products.reduce((a, b) => a + (b?.quantity ?? 0), 0)}
-              </Table.TD> */}
-              {/* <Table.TD className="justify-evenly whitespace-nowrap">
-                {format(order.createdAt, "dd MMM, yyyy")}
-              </Table.TD> */}
-              {/* <Table.TD className="justify-evenly"></Table.TD> */}
-              {/* <Table.TD className="whitespace-nowrap">
-                {order.customer.name}
-              </Table.TD> */}
-              {/* <Table.TD className="capitalize">
-                <div className="flex gap-2 items-center">
-                  <span
-                    className={clsx("w-2 h-2 rounded-full", {
-                      "bg-gray": order.orderStatus === "PENDING",
-                      "bg-dark dark:bg-light": order.orderStatus === "SHIPPING",
-                      "bg-success": order.orderStatus === "DELIVERED",
-                      "bg-warning": order.orderStatus === "CANCELLED",
-                    })}
-                  />
-                  <p>{order.orderStatus.toLowerCase()}</p>
-                </div>
-              </Table.TD> */}
-              {/* <Table.TD className="justify-end capitalize">
-                ${order.amount.toFixed(2)}
-              </Table.TD> */}
-              {/* <Table.TD className="justify-evenly">
-                <ChangeStatusButton
-                  order_id={order.id}
-                  orderStatus={order.orderStatus}
-                >
-                  <Ellipsis className="h-5 w-5 rotate-0 scale-100 transition-all" />
-                </ChangeStatusButton>
-
-              </Table.TD> */}
             </tr>
           ))}
 
