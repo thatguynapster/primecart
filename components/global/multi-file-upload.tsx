@@ -1,22 +1,16 @@
 "use client";
 
-import Image from "next/image";
-import React, { useEffect, useRef, useState } from "react";
-import { classNames } from "@/lib/utils";
-import {
-  Ellipsis,
-  EllipsisVertical,
-  Eye,
-  PlusIcon,
-  Trash2,
-} from "lucide-react";
-import { FormikHelpers } from "formik";
-import Spinner from "./icons/spinner";
-import clsx from "clsx";
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
+import { EllipsisVertical, Eye, PlusIcon, Trash2 } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import Image from "next/image";
+import clsx from "clsx";
+
+import { classNames } from "@/lib/utils";
+import Spinner from "./icons/spinner";
 
 type UploadProps = {
-  files: { file_id: string; href: string }[];
+  files: string[];
   name: string;
   limit?: number;
   type: "image" | "pdf";
@@ -60,7 +54,7 @@ const MultipleFileUpload = ({
   useEffect(() => {
     setUploading(false);
 
-    return () => {};
+    return () => { };
   }, [files]);
 
   return (
@@ -89,8 +83,6 @@ const MultipleFileUpload = ({
           "flex flex-wrap items-center gap-5"
         )}
       >
-        {/* <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-center"> */}
-        {/* <div className="flex flex-wrap gap-4 items-center"> */}
         {files.length < limit && (
           <div
             className={clsx(
@@ -123,16 +115,16 @@ const MultipleFileUpload = ({
         )}
 
         {files.length > 0 &&
-          files?.map(({ file_id, href }) => (
+          files?.map((img, i) => (
             <div
-              key={file_id}
+              key={i}
               className={classNames(
                 "relative w-20 h-20 border-2 rounded-xl group"
               )}
             >
               <Image
-                src={href}
-                alt={`uploaded file ${file_id}`}
+                src={img}
+                alt={`uploaded file ${img}`}
                 fill
                 sizes="(max-width: 1200px) 100vw, (max-width: 768px) 50vw, 33vw"
                 className="rounded-lg object-cover object-center"
@@ -176,7 +168,7 @@ const MultipleFileUpload = ({
                           "flex items-center gap-4"
                         )}
                         onClick={() => {
-                          makeThumbnail(file_id);
+                          makeThumbnail(img);
                         }}
                       >
                         <Eye size={16} />
@@ -192,7 +184,7 @@ const MultipleFileUpload = ({
                           "flex items-center gap-4"
                         )}
                         onClick={() => {
-                          deleteFile(file_id);
+                          deleteFile(img);
                         }}
                       >
                         <Trash2 size={16} />
@@ -204,7 +196,6 @@ const MultipleFileUpload = ({
               </div>
             </div>
           ))}
-        {/* </div> */}
       </div>
     </>
   );
