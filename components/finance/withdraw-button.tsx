@@ -72,10 +72,9 @@ const WithdrawButton = ({ max_amount }: Props) => {
                         }}
                         onSubmit={(values, { setSubmitting }) => {
                             console.log(values)
-                            setSubmitting(true)
-
-                            handleWithdrawal(values, { setSubmitting })
-
+                            if (values.amount > 50) {
+                                handleWithdrawal(values, { setSubmitting })
+                            }
                         }}
                     >
                         {({ values, isValid, isSubmitting, setFieldValue, handleSubmit }) => (
@@ -136,7 +135,7 @@ const WithdrawButton = ({ max_amount }: Props) => {
                                 <Button
                                     className="w-1/2 mx-auto"
                                     type="button"
-                                    disabled={isSubmitting}
+                                    disabled={(values.amount < 50) || isSubmitting}
                                     {...{ isSubmitting }}
                                     onClick={() => { handleSubmit() }}
                                 > Withdraw </Button>
