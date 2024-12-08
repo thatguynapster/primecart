@@ -19,6 +19,7 @@ import * as Field from "@/components/global/Field";
 import { Button } from "../global/button";
 import { Table } from "../global/Table";
 import * as schema from "@/lib/schema";
+import { routes } from "@/routes";
 import clsx from "clsx";
 
 type Props = {
@@ -81,10 +82,10 @@ const ProductDetails = ({ business_id, data }: Props) => {
         })),
       });
 
-      toast.success(`Product ${product.name} added.`);
-      router.back();
+      toast.success(`Product ${product.name} ${data ? 'updated' : 'added'}.`);
+      router.push(routes.inventory.index.replace(':business_id', business_id));
     } catch (error) {
-      throw new Error("Failed to create product", { cause: error });
+      throw error;
     } finally {
       setSubmitting(false);
     }
@@ -134,12 +135,17 @@ const ProductDetails = ({ business_id, data }: Props) => {
         console.log('product data:', values)
         const { sale_price: price, quantity, ...product_data } = values
 
-        let variations = [{ price, quantity, attributes: {} }]
+        if (data?.variations.length! < 2) {
+          let variations = [{ price, quantity, attributes: {} }]
 
-        console.log('formatted product data:', { ...product_data, variations })
+          console.log('formatted product data:', { ...product_data, variations })
 
-        // setSubmitting(true);
-        _createProduct({ ...product_data, variations }, { setSubmitting });
+          // setSubmitting(true);
+          return _createProduct({ ...product_data, variations }, { setSubmitting });
+        }
+
+        _createProduct({ ...product_data }, { setSubmitting });
+
       }}
     >
       {({ values, isValid, isSubmitting, handleSubmit, setFieldValue }) => (

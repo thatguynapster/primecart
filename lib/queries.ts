@@ -261,6 +261,8 @@ export const deleteVariation = async (unique_id: string) => {
       where: { unique_id },
     });
 
+    revalidatePath(routes.inventory.details, "page");
+
     return variationDetails;
   } catch (error) {
     console.log(error);
