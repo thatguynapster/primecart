@@ -49,7 +49,7 @@ async function uploadFileToS3({
 
 export const uploadFile = async (
   file: File,
-  folder: "business" | "products" | "media",
+  folder: "business" | "products" | "media" | "categories",
   ref?: string
 ) => {
   try {

@@ -15,7 +15,7 @@ type UploadProps = {
   limit?: number;
   type: "image" | "pdf";
   deleteFile: (id: string) => void;
-  makeThumbnail: (id: string) => void;
+  makeThumbnail?: (id: string) => void;
   onValueChanged: (value: File) => void;
 };
 
@@ -110,7 +110,7 @@ const MultipleFileUpload = ({
             >
               Select File
             </p>
-            <em className="text-sm">Max {limit} images</em>
+            <em className="text-sm">Max {limit} image{limit > 1 && 's'}</em>
           </div>
         )}
 
@@ -168,7 +168,7 @@ const MultipleFileUpload = ({
                           "flex items-center gap-4"
                         )}
                         onClick={() => {
-                          makeThumbnail(img);
+                          makeThumbnail?.(img);
                         }}
                       >
                         <Eye size={16} />

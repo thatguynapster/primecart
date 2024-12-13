@@ -3,15 +3,17 @@
 import { Form, Formik } from "formik";
 import toast from "react-hot-toast";
 import { object } from "yup";
-import React from "react";
+import React, { useState } from "react";
 import { v4 } from "uuid";
 
+import MultipleFileUpload from "@/components/global/multi-file-upload";
 import CustomModal from "@/components/global/custom-modal";
 import { Button } from "@/components/global/button";
 import * as Field from "@/components/global/Field";
 import { ProductCategories } from "@prisma/client";
 import { upsertCategory } from "@/lib/queries";
 import * as schema from "@/lib/schema";
+import { uploadFile } from "@/lib/s3-upload";
 
 type Props = {
   business_id: string;
@@ -23,9 +25,12 @@ interface FormData {
   name: string;
   unique_id?: string;
   description: string;
+  previewImage: string
 }
 
 const AddCategoryModal = ({ business_id, onAdd, setClose }: Props) => {
+  const [image, setImage] = useState<string>();
+
   const handleAddCategory = async (data: FormData) => {
     try {
       const category = (await upsertCategory({
@@ -36,6 +41,7 @@ const AddCategoryModal = ({ business_id, onAdd, setClose }: Props) => {
       onAdd(category);
       toast.success(`Category ${data.name} added successfully`);
 
+      setImage(undefined)
       setClose();
     } catch (error) {
       console.log(error);
@@ -55,6 +61,7 @@ const AddCategoryModal = ({ business_id, onAdd, setClose }: Props) => {
           initialValues={{
             name: "",
             description: "",
+            previewImage: '',
           }}
           onSubmit={(values, { setSubmitting }) => {
             setSubmitting(true);
@@ -85,6 +92,32 @@ const AddCategoryModal = ({ business_id, onAdd, setClose }: Props) => {
                   type="text"
                   value={values.description}
                   placeholder="Enter category description"
+                />
+              </Field.Group>
+
+              <Field.Group
+                className="w-full"
+                name="previewImage"
+                label="Preview Image"
+              >
+                <MultipleFileUpload
+                  files={image ? [image] : []}
+                  name="previewImage"
+                  type={"image"}
+                  limit={1}
+                  onValueChanged={async (file: File) => {
+                    const uploaded_file = await uploadFile(file, "categories");
+                    if (uploaded_file.url) {
+                      setFieldValue('previewImage', uploaded_file.url)
+                      setImage(uploaded_file.url);
+                    }
+
+                  }}
+                  deleteFile={async (id: string) => {
+                    setImage('');
+
+                    toast("File deleted");
+                  }}
                 />
               </Field.Group>
 
