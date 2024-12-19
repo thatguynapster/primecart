@@ -93,6 +93,10 @@ export const POST = async (req: NextRequest, res: NextResponse) => {
       })
     );
 
+    // create email to notify shop owner
+
+    // create email to notify super admin
+
     return NextResponse.json(
       {
         success: true,
@@ -110,7 +114,7 @@ export const POST = async (req: NextRequest, res: NextResponse) => {
 
     return NextResponse.json(
       {
-        success: true,
+        success: false,
         message: "Failed to create order",
         cause: error.name,
       },

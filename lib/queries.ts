@@ -142,6 +142,16 @@ export const getBusinessDetails = cache(async (id: string) => {
   }
 });
 
+export const getBusinessIdFromName = async (business_name: string) => {
+  try {
+    const business = await db.business.findUnique({
+      where: { subdomain: business_name },
+    });
+
+    return business?.id;
+  } catch (error) {}
+};
+
 export const upsertPaymentDetails = async (
   business: string,
   data: Omit<Payment, "id" | "createdAt" | "updatedAt">
