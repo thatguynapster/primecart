@@ -61,6 +61,7 @@ export const POST = async (req: NextRequest, res: NextResponse) => {
             order_id.length - 7
           )}`,
           payment_reference: reference,
+          payment_date: new Date(paid_at),
           reference_id: `ODR_${order_id}`,
           status: "PAID",
           type: "DEBIT",

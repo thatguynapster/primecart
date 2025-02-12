@@ -1140,6 +1140,7 @@ export const initiateWithdrawal = async ({
         description: `Withdrawal of ${parseCurrency(amount)} from wallet`,
         status: "PROCESSING",
         type: "WITHDRAWAL",
+        payment_date: new Date(),
         business_id,
         meta_data,
       },
