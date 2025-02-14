@@ -1,15 +1,20 @@
-import { getBusinessIdFromName } from "@/lib/queries";
+import {
+  getBusinessIdFromDomain,
+  getBusinessIdFromSubDomain,
+} from "@/lib/queries";
 import { NextRequest, NextResponse } from "next/server";
 
 export const GET = async (
   req: NextRequest,
-  { params: { business_name } }: { params: { business_name: string } },
+  // { params: { sub_or_domain } }: { params: { sub_or_domain: string } },
   res: NextResponse
 ) => {
   try {
-    console.log(business_name);
+    const subdomain = req.nextUrl.searchParams.get("subdomain");
+    const domain = req.nextUrl.searchParams.get("domain");
+    console.log("domain: ", domain, "subdomain: ", subdomain);
 
-    if (!business_name) {
+    if (!domain && !subdomain) {
       return NextResponse.json(
         {
           success: false,
@@ -19,7 +24,14 @@ export const GET = async (
       );
     }
 
-    const business = await getBusinessIdFromName(business_name);
+    let business;
+    if (domain) {
+      business = await getBusinessIdFromDomain(domain);
+    }
+
+    if (subdomain) {
+      business = await getBusinessIdFromSubDomain(subdomain);
+    }
 
     if (!business) {
       return NextResponse.json(

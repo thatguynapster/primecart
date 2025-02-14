@@ -142,10 +142,20 @@ export const getBusinessDetails = cache(async (id: string) => {
   }
 });
 
-export const getBusinessIdFromName = async (business_name: string) => {
+export const getBusinessIdFromDomain = async (domain: string) => {
   try {
     const business = await db.business.findUnique({
-      where: { subdomain: business_name },
+      where: { domain },
+    });
+
+    return business?.id;
+  } catch (error) {}
+};
+
+export const getBusinessIdFromSubDomain = async (subdomain: string) => {
+  try {
+    const business = await db.business.findUnique({
+      where: { subdomain },
     });
 
     return business?.id;
