@@ -65,6 +65,7 @@ const BusinessDetails = ({ data }: Props) => {
         deletedAt: null,
         user_id: authUser?.id!,
         subdomain: values.name.split(' ').slice(0, 2).join('-'),
+        domain: '',
         location: {
           address: values.location.address,
           country: values.location.country,

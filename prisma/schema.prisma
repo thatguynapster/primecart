@@ -41,7 +41,7 @@ model Business {
   unique_id  String    @unique() @default(uuid())
   name       String
   subdomain  String    @unique()
-  domain     String    @unique()
+  domain     String?   @unique()
   email      String
   logo       String
   phone      String
