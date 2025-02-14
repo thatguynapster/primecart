@@ -23,3 +23,6 @@ export const phoneNumberFormat = (phone: string, reverse?: boolean) => {
     return phone?.startsWith("+") ? phone.replace("+", "") : phone;
   }
 };
+
+export const arrayToObject = <T extends string>(arr: T[]): Record<T, true> =>
+  Object.fromEntries(arr.map((key) => [key, true])) as Record<T, true>;
