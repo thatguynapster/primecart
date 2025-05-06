@@ -1,6 +1,8 @@
 "use client";
+import React, { useEffect } from "react";
 
 import { EditorContent, useEditor } from "@tiptap/react";
+import Placeholder from '@tiptap/extension-placeholder';
 import TextStyle from "@tiptap/extension-text-style";
 import TextAlign from "@tiptap/extension-text-align";
 import Highlight from "@tiptap/extension-highlight";
@@ -8,17 +10,18 @@ import ListItem from "@tiptap/extension-list-item";
 import { Color } from "@tiptap/extension-color";
 import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
-import React, { useEffect } from "react";
 
 import { MenuBar } from "./menu";
 import "./styles.scss";
 
 interface TextEditorProps {
   content?: string;
+  placeholder?: string;
   onChange: (data: string) => void;
 }
 
-export const TextEditor = ({ content, onChange }: TextEditorProps) => {
+export const TextEditor = ({ content, placeholder, onChange }: TextEditorProps) => {
+
   const editor = useEditor({
     extensions: [
       Image.configure({ inline: true, allowBase64: true }),
@@ -32,6 +35,9 @@ export const TextEditor = ({ content, onChange }: TextEditorProps) => {
       // Heading.configure({
       //   levels: [1],
       // }),
+      Placeholder.configure({
+        placeholder: placeholder,
+      }),
     ],
     content: content,
     immediatelyRender: false,

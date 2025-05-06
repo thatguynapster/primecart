@@ -18,7 +18,7 @@ type Props = { user?: Users | null };
 
 const UserDetails = ({ user }: Props) => {
   return (
-    <Card className="w-full lg:max-w-80 h-fit">
+    <Card className="w-full lg:max-w-80 h-fit flex flex-col gap-4">
       <CardHeader>
         <CardTitle className="text-center">User Details</CardTitle>
       </CardHeader>

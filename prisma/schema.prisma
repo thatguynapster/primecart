@@ -37,21 +37,22 @@ type Location {
 }
 
 model Business {
-  id         String    @id @default(auto()) @map("_id") @db.ObjectId
-  unique_id  String    @unique() @default(uuid())
-  name       String
-  subdomain  String    @unique()
-  domain     String?   @unique()
-  email      String
-  logo       String
-  phone      String
-  location   Location
-  country    String
-  city       String
-  state      String
-  zip_code   String
-  is_deleted Boolean?  @default(false)
-  deletedAt  DateTime?
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  unique_id   String    @unique() @default(uuid())
+  name        String
+  subdomain   String    @unique()
+  domain      String?   @unique()
+  description String?   @default("")
+  email       String
+  logo        String
+  phone       String
+  location    Location
+  country     String
+  city        String
+  state       String
+  zip_code    String
+  is_deleted  Boolean?  @default(false)
+  deletedAt   DateTime?
 
   user_id    String              @unique @db.ObjectId
   user       Users               @relation(fields: [user_id], references: [id])
@@ -59,9 +60,59 @@ model Business {
   payment    Payment[]
   categories ProductCategories[]
 
+  // experimental_features_id  String               @unique @db.ObjectId
+  // experimental_feature_list ExperimentalFeatures @relation(fields: [experimental_features_id], references: [id])
+
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
   Customer  Customer[]
+
+  experimental_features Boolean @default(false)
+}
+
+type CTA {
+  text String
+  link String
+}
+
+type HeroSection {
+  backgroundImage String
+  title           String
+  subText         String
+  cta             CTA
+}
+
+type Support {
+  deliveryPolicy String
+  paymentPolicy  String
+  faq            String
+  privacyPolicy  String
+  UserAgreement  String
+}
+
+type SocialMediaLinks {
+  facebook  String
+  instagram String
+  twitter   String
+}
+
+type Contact {
+  email   String
+  phone   String
+  socials SocialMediaLinks
+}
+
+model ExperimentalFeatures {
+  id          String      @id @default(auto()) @map("_id") @db.ObjectId
+  business_id String      @unique @db.ObjectId // Ensures a one-to-one relationship
+  heroSection HeroSection
+}
+
+model StorefrontFeatures {
+  id          String  @id @default(auto()) @map("_id") @db.ObjectId
+  business_id String  @unique @db.ObjectId // Ensures a one-to-one relationship
+  support     Support
+  contact     Contact
 }
 
 type Bank {
@@ -219,7 +270,7 @@ model OrderPayment {
   checkout_url String // URL for the checkout process
   access_code  String
   reference    String
-  status       PaymentStatus   @default(PROCESSING) // Payment status, e.g., pending, completed, failed - obtained from payment provideer
+  status       PaymentStatus   @default(PROCESSING) // Payment status, e.g., pending, completed, failed - obtained from payment provider
 
   order_id String?        @unique @db.ObjectId // Ensures a one-to-one relationship
   order    ProductOrders? @relation

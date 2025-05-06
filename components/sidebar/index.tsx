@@ -1,8 +1,9 @@
 import React from "react";
 import MenuOptions from "./menu-options";
 import { routes } from "@/routes";
-import { getAuthUserDetails } from "@/lib/queries";
+import { getAuthUserDetails, getBusinessDetails } from "@/lib/queries";
 import useStore from "@/hooks/useStore";
+import { Business } from "@prisma/client";
 
 type Props = {
   id: string;
@@ -65,12 +66,20 @@ const Sidebar = async ({ id }: Props) => {
     },
   ];
 
+  const extraOptions = [
+    {
+      name: "Storefront",
+      icon: "storefront",
+      link: routes.storefront.replace(":business_id", user.business.id),
+    }
+  ]
+
   return (
     <>
-      <MenuOptions defaultOpen={true} {...{ id, user, sidebarOptions }} />
+      <MenuOptions defaultOpen={true} {...{ id, user, sidebarOptions, extraOptions }} />
 
       {/* mobile nav */}
-      <MenuOptions {...{ id, user, sidebarOptions }} />
+      <MenuOptions {...{ id, user, sidebarOptions, extraOptions }} />
     </>
   );
 };

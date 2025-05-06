@@ -60,7 +60,7 @@ export const MenuBar = ({ editor }: { editor: Editor | null }) => {
           </Button>
         </div>
 
-        <div className="flex gap-6">
+        {/* <div className="flex gap-6">
           <Button
             variant="outline"
             className={classNames(
@@ -106,7 +106,7 @@ export const MenuBar = ({ editor }: { editor: Editor | null }) => {
           >
             <AlignJustifyIcon size={20} />
           </Button>
-        </div>
+        </div> */}
 
         <div className="flex gap-6">
           <Button

@@ -20,6 +20,7 @@ import { Button } from "../global/button";
 import { Location } from "@/lib/types";
 import * as schema from "@/lib/schema";
 import { routes } from "@/routes";
+import { uploadFile } from "@/lib/s3-upload";
 
 type Props = { data?: Partial<Business> | null };
 
@@ -40,6 +41,7 @@ const BusinessDetails = ({ data }: Props) => {
   const router = useRouter();
 
   const [logoID, setLogoId] = useState<string>();
+  const [image, setImage] = useState<string>();
   const { setOpen } = useModal();
   ``;
 
@@ -55,6 +57,8 @@ const BusinessDetails = ({ data }: Props) => {
         unique_id: data?.unique_id ?? v4(),
         name: values.name,
         email: values.email,
+        description: "",
+        // experimental_features_id: v4(), // pseudo id; should create new document if document with this id is not found
         logo: values.logo,
         phone: values.phone,
         country: values.country,
@@ -64,8 +68,8 @@ const BusinessDetails = ({ data }: Props) => {
         is_deleted: false,
         deletedAt: null,
         user_id: authUser?.id!,
-        subdomain: values.name.split(' ').slice(0, 2).join('-'),
-        domain: '',
+        subdomain: values.name.toLowerCase().split(' ').slice(0, 2).join('-'),
+        domain: values.name.toLowerCase().split(' ').slice(0, 2).join('-'),
         location: {
           address: values.location.address,
           country: values.location.country,
@@ -75,6 +79,7 @@ const BusinessDetails = ({ data }: Props) => {
           latitude: values.location.latitude,
           region: values.location.region,
         },
+        experimental_features: false
       });
 
       toast.success(`account ${data ? "updated" : "created"}`);
@@ -89,9 +94,9 @@ const BusinessDetails = ({ data }: Props) => {
     }
   };
 
-  useEffect(() => {
-    setLogoId(data?.logo?.split("files/")[1].split("/")[0]);
-  }, [data]);
+  // useEffect(() => {
+  //   setLogoId(data?.logo?.split("files/")[1].split("/")[0]);
+  // }, [data]);
 
   return (
     <div
@@ -171,19 +176,32 @@ const BusinessDetails = ({ data }: Props) => {
                 value={values.logo}
                 name="images"
                 type={"image"}
+                // onValueChanged={async (file: File) => {
+                //   const uploaded_file = await handleImageUpload(
+                //     file,
+                //     "business"
+                //   );
+                //   setFieldValue("logo", uploaded_file.href);
+                //   setLogoId(uploaded_file.file_id);
+                // }}
+                // deleteFile={async () => {
+                //   console.log(logoID);
+                //   await deleteFile(logoID!, "business");
+
+                //   setFieldValue("logo", "");
+                // }}
                 onValueChanged={async (file: File) => {
-                  const uploaded_file = await handleImageUpload(
-                    file,
-                    "business"
-                  );
-                  setFieldValue("logo", uploaded_file.href);
-                  setLogoId(uploaded_file.file_id);
+                  const uploaded_file = await uploadFile(file, "business");
+                  if (uploaded_file.url) {
+                    setFieldValue('logo', uploaded_file.url)
+                    setImage(uploaded_file.url);
+                  }
                 }}
                 deleteFile={async () => {
-                  console.log(logoID);
-                  await deleteFile(logoID!, "business");
+                  setImage('');
+                  setFieldValue('logo', '')
 
-                  setFieldValue("logo", "");
+                  toast("File deleted");
                 }}
                 {...{ setFieldTouched }}
               />
