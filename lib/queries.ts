@@ -424,7 +424,9 @@ export const getCategories = async (business_id: string) => {
 	}
 };
 
-export const upsertCustomer = async (data: Customer) => {
+export const upsertCustomer = async (
+	data: Omit<Customer, "id" | "createdAt" | "updatedAt">
+) => {
 	try {
 		const customer = await db.customer.upsert({
 			where: {
