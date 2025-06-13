@@ -9,7 +9,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { classNames } from "@/lib/utils";
+import { classNames, parseCurrency } from "@/lib/utils";
 import { ChartContainer, type ChartConfig } from "@/components/ui/chart";
 import clsx from "clsx";
 
@@ -105,10 +105,9 @@ const CustomTooltip = ({ payload }: TooltipProps) => {
           <div
             style={{ backgroundColor: pl.color }}
             className={classNames("w-3.5 h-3.5 rounded-full")}
-          ></div>
+          />
           <p className="text-sm font-medium">
-            {pl.dataKey === "revenue" && "$"}
-            {pl.value.toFixed(pl.dataKey === "revenue" ? 2 : 0)}
+            {pl.dataKey === "revenue" ? parseCurrency(pl.value) : pl.value}
           </p>
         </div>
       ))}

@@ -214,34 +214,6 @@ export const upsertPaymentDetails = async (
 			create: { ...data },
 		});
 
-		// // create paystack transfer recipient
-		// const myHeaders = new Headers();
-		// myHeaders.append("Content-Type", "application/json");
-		// myHeaders.append(
-		//   "Authorization",
-		//   `Bearer ${process.env["PAYSTACK_SECRET_KEY"]}`
-		// );
-
-		// const requestOptions = {
-		//   method: "POST",
-		//   headers: myHeaders,
-		//   body: JSON.stringify({
-		//     type: "nuban",
-		//     name: "Tolu Robert",
-		//     account_number: "01000000010",
-		//     bank_code: "058",
-		//     currency: "NGN",
-		//   }),
-		// };
-
-		// if (paymentDetails.recipient_id) {
-		//   await fetch(
-		//     `https://api.paystack.co/transferrecipient/${paymentDetails.recipient_id}`,
-		//     requestOptions
-		//   ).then((response) => response.json());
-		// } else {
-		// }
-
 		return paymentDetails;
 	} catch (error) {
 		console.log(error);
