@@ -1,12 +1,12 @@
-import { format, startOfDay, subDays } from "date-fns";
+import { startOfDay, subDays } from "date-fns";
 import React from "react";
 
 import { getOrders, getOrderSummary } from "@/lib/queries";
-import DateRange from "@/components/global/date-range";
-import LineChart from "@/components/global/line-chart";
 import OrdersTable from "@/components/orders/orders-table";
+import LineChart from "@/components/global/line-chart";
+import DateRange from "@/components/global/date-range";
 import { ChartConfig } from "@/components/ui/chart";
-import { Orders } from "@/lib/types";
+import { parseCurrency } from "@/lib/utils";
 import { chartData } from "@/lib/pages";
 
 type Props = {
@@ -58,7 +58,8 @@ const OrdersPage = async ({ params: { business_id }, searchParams }: Props) => {
           <h1 className="text-sm font-medium text-dark-muted">Revenue</h1>
           <div className="flex justify-between gap-2 items-center">
             <h1 className="text-2xl font-semibold">
-              $ {orderSummary?.revenue.toFixed(2)}
+
+              {parseCurrency(orderSummary?.revenue.toFixed(2))}
             </h1>
 
             {/* <p className="text-sm font-bold text-success">+22%</p> */}

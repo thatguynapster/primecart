@@ -5,6 +5,7 @@ import { Table } from "../global/Table";
 import Image from "next/image";
 import { ProductOrders } from "@prisma/client";
 import { Order } from "@/lib/types";
+import { parseCurrency } from "@/lib/utils";
 
 type Props = { order: Order };
 
@@ -46,7 +47,7 @@ const OrderProductTable = ({ order }: Props) => {
                   {quantity}
                 </Table.TD>
                 <Table.TD className="font-semibold justify-end">
-                  ${amount.toFixed(2)}
+                  {parseCurrency(amount)}
                 </Table.TD>
               </tr>
             )
@@ -69,7 +70,7 @@ const OrderProductTable = ({ order }: Props) => {
         </div> */}
         <div className="flex gap-8 items-center justify-between w-full">
           <p className="text-2xl font-semibold">Total</p>
-          <p className="text-2xl font-semibold">${order.amount.toFixed(2)}</p>
+          <p className="text-2xl font-semibold">{parseCurrency(order.amount)}</p>
         </div>
       </div>
     </div>

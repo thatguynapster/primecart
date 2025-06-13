@@ -1,18 +1,19 @@
 "use client";
 
-import React, { ReactNode } from "react";
+import React, { ReactNode, useState } from "react";
+
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
-import { orderStatuses } from "@/lib/types";
 import { OrderStatus, PaymentStatus } from "@prisma/client";
-import { updateOrderStatus } from "@/lib/queries";
 import { useParams, useRouter } from "next/navigation";
-import { useModal } from "@/providers/modal-provider";
+import { updateOrderStatus } from "@/lib/queries";
 import { _verifyPayment } from "@/lib/helpers";
+import Spinner from "../global/icons/spinner";
+import { orderStatuses } from "@/lib/types";
 
 type Props = {
   children: ReactNode;
@@ -25,15 +26,15 @@ type Props = {
   }
 };
 
-const ChangeStatusButton = ({ children, order: { id: order_id, status: order_status }, payment }: Props) => {
+const ChangeStatusButton = ({ children, order: { id: order_id, status }, payment }: Props) => {
   const router = useRouter();
   const { business_id } = useParams();
-  const { setOpen } = useModal();
+  const [isLoading, setIsLoading] = useState(false)
+  const [orderStatus, setOrderStatus] = useState(status)
 
   const _updateOrderStatus = async (id: string, status: OrderStatus) => {
-    await updateOrderStatus(business_id as string, id, status);
-
-    router.refresh();
+    let newStatus = await updateOrderStatus(business_id as string, id, status);
+    setOrderStatus(newStatus?.orderStatus!)
   };
 
   return (
@@ -41,21 +42,24 @@ const ChangeStatusButton = ({ children, order: { id: order_id, status: order_sta
       <DropdownMenuTrigger
         className="px-4 py-2 border-2 rounded-lg flex gap-2 items-center"
         aria-label="Order Actions"
+        disabled={isLoading}
       >
-        {children}
+        {isLoading ? <Spinner /> : children}
       </DropdownMenuTrigger>
       <DropdownMenuContent className="!mb-2">
         {orderStatuses
           .filter(
-            (status) => status.toLowerCase() !== order_status.toLowerCase()
+            (status) => status.toLowerCase() !== orderStatus.toLowerCase()
           )
           .map((status, i) => (
             <DropdownMenuItem
               key={i}
               className="capitalize cursor-pointer"
-              onClick={(ev) => {
+              onClick={async (ev) => {
                 ev.stopPropagation();
-                _updateOrderStatus(order_id, status);
+                setIsLoading(true)
+                await _updateOrderStatus(order_id, status);
+                setIsLoading(false)
               }}
             >
               Set to {status.toLowerCase()}
@@ -67,7 +71,9 @@ const ChangeStatusButton = ({ children, order: { id: order_id, status: order_sta
             className="capitalize cursor-pointer"
             onClick={async (ev) => {
               ev.stopPropagation();
-              _verifyPayment({ payment_id: payment.id!, reference: payment.reference! });
+              setIsLoading(true)
+              await _verifyPayment({ payment_id: payment.id!, reference: payment.reference! });
+              setIsLoading(false)
             }}
           >
             Check Payment

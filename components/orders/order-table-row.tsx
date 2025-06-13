@@ -2,7 +2,7 @@
 
 import { routes } from "@/routes";
 import { useParams, useRouter } from "next/navigation";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Table } from "../global/Table";
 import { Orders } from "@/lib/types";
 import clsx from "clsx";
@@ -24,8 +24,7 @@ const OrderTableRow = ({ order }: Props) => {
   const { business_id } = useParams<{ business_id: string }>();
 
   useEffect(() => {
-    if (order.payment?.status === "PROCESSING" && differenceInMinutes(new Date(), order.createdAt) > 30) { // add time since order creation
-      console.log(order);
+    if (order.payment?.status === "PROCESSING" && differenceInMinutes(new Date(), order.createdAt) > 30) {
       _verifyPayment({ payment_id: order.payment_id!, reference: order.payment?.reference! });
     }
   }, [order]);

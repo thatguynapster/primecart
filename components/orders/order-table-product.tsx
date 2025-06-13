@@ -24,24 +24,27 @@ const OrderTableProduct = ({
       {index < 3 ? (
         <Tooltip>
           <TooltipTrigger>
-            <Image
-              src={image}
-              alt={`${name} - (${quantity})`}
-              width={30}
-              height={30}
-              className="rounded-full"
-            />
+            <div className="relative w-8 h-8">
+              <Image
+                src={image}
+                alt={`${name} - (${quantity})`}
+                fill
+                className="rounded-full"
+              />
+            </div>
           </TooltipTrigger>
           <TooltipContent>
             {/* {`${name} - (${quantity})`} */}
             <div className="flex flex-col">
               <p>{name}</p>
-              <p>
-                Variant:{" "}
-                {Object.values(product_variation.attributes!)
-                  .map((attr, i) => attr)
-                  .join(" / ")}
-              </p>
+              {!!Object.values(product_variation.attributes).length &&
+                <p>
+                  Variant:{" "}
+                  {Object.values(product_variation.attributes)
+                    .map((attr, i) => attr)
+                    .join(" / ")}
+                </p>
+              }
               <p>Qty: {quantity}</p>
             </div>
           </TooltipContent>

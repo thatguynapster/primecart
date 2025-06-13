@@ -10,7 +10,7 @@ import parse from "html-react-parser";
 
 import { useModal } from "@/providers/modal-provider";
 import CustomModal from "../global/custom-modal";
-import { classNames } from "@/lib/utils";
+import { classNames, parseCurrency } from "@/lib/utils";
 import { routes } from "@/routes";
 import { Button } from "../global/button";
 import toast from "react-hot-toast";
@@ -34,7 +34,7 @@ const ProductCard = ({ business, data }: Props) => {
 
       toast(`${data.name} deleted`);
       setClose();
-    } catch (error) {}
+    } catch (error) { }
   };
 
   return (
@@ -168,7 +168,7 @@ const ProductCard = ({ business, data }: Props) => {
           </div>
           <div className="flex justify-between">
             <p className="text-sm font-semibold">
-              ${data.variations[0]?.price}
+              {parseCurrency(data.variations[0]?.price!)}
             </p>
           </div>
         </div>

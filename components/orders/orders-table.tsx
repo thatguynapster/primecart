@@ -12,6 +12,7 @@ type Props = {
 };
 
 const OrdersTable = ({ orders, withPagination = true }: Props) => {
+
   return (
     <div className="flex flex-col gap-4">
       <Table>

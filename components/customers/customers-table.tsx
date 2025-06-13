@@ -61,14 +61,16 @@ const CustomersTable = ({ business_id, customers }: Props) => {
                 </div>
               </Table.TD>
               <Table.TD className="justify-evenly whitespace-nowrap">
-                <div className="flex flex-col gap-2.5 text-center">
-                  <p className="text-sm font-semibold text-dark-muted dark:text-gray">
-                    {`${orders[0]?.location.address}, ${orders[0]?.location.city}`}
-                  </p>
-                  <p className="text-sm font-semibold">
-                    {format(orders[0]?.createdAt, "MMM do, yyyy")}
-                  </p>
-                </div>
+                {!!orders.length &&
+                  <div className="flex flex-col gap-2.5 text-center">
+                    <p className="text-sm font-semibold text-dark-muted dark:text-gray">
+                      {`${orders[0]?.location.address}, ${orders[0]?.location.city}`}
+                    </p>
+                    <p className="text-sm font-semibold">
+                      {format(orders[0]?.createdAt, "MMM do, yyyy")}
+                    </p>
+                  </div>
+                }
               </Table.TD>
             </tr>
           ))}

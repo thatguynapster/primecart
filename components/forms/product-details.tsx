@@ -21,6 +21,7 @@ import { Table } from "../global/Table";
 import * as schema from "@/lib/schema";
 import { routes } from "@/routes";
 import clsx from "clsx";
+import { parseCurrency } from "@/lib/utils";
 
 type Props = {
   business_id: string;
@@ -324,7 +325,7 @@ const ProductDetails = ({ business_id, data }: Props) => {
                           </Table.TD>
                           <Table.TD className="justify-end">
                             <div className="flex items-center relative">
-                              <p>GHs {variant.price}</p>
+                              <p>{parseCurrency(variant.price)}</p>
                               <div className="absolute right-0 bg-dark dark:bg-light rounded-lg text-light dark:text-dark hidden group-hover:flex">
                                 <div
                                   className="p-2 cursor-pointer"

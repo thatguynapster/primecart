@@ -23,10 +23,29 @@ const SupportDetailsForm = ({ business_id, data }: Props) => {
         values: Omit<StorefrontFeatures, 'id' | 'business_id' | 'contact'>,
         actions: Pick<FormikHelpers<Omit<StorefrontFeatures, 'id'>>, "setSubmitting">
     ) => {
+        const initData = {
+            support: {
+                deliveryPolicy: "",
+                paymentPolicy: "",
+                faq: "",
+                privacyPolicy: "",
+                UserAgreement: "",
+            },
+            contact: {
+                email: "",
+                phone: "",
+                socials: {
+                    facebook: "",
+                    instagram: "",
+                    twitter: "",
+                },
+            },
+        };
+
         await updateStorefrontFeatures(business_id, {
             ...values,
             business_id,
-            contact: { ...data?.contact! }
+            contact: !data ? { ...initData.contact } : { ...data?.contact! }
         }).then(() => {
             toast.success('Support details updated')
         }).finally(() => {
@@ -40,11 +59,11 @@ const SupportDetailsForm = ({ business_id, data }: Props) => {
             enableReinitialize
             initialValues={{
                 support: {
-                    deliveryPolicy: '',
-                    paymentPolicy: '',
-                    faq: '',
-                    privacyPolicy: '',
-                    UserAgreement: '',
+                    deliveryPolicy: data?.support?.deliveryPolicy ?? '',
+                    paymentPolicy: data?.support?.paymentPolicy ?? '',
+                    faq: data?.support?.faq ?? '',
+                    privacyPolicy: data?.support?.privacyPolicy ?? '',
+                    UserAgreement: data?.support?.UserAgreement ?? '',
                 }
             }}
             onSubmit={(values, { setSubmitting }) => {

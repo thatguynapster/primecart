@@ -17,16 +17,34 @@ import { updateExperimentalFeatures, updateStorefrontFeatures } from '@/lib/quer
 type Props = { business_id: string, data?: Partial<StorefrontFeatures> | null }
 
 const ContactDetailsForm = ({ business_id, data }: Props) => {
-    const [image, setImage] = useState<string>();
-
     const handleSubmit = async (
         values: Omit<StorefrontFeatures, 'id' | 'business_id' | 'support'>,
         actions: Pick<FormikHelpers<Omit<StorefrontFeatures, 'id'>>, "setSubmitting">
     ) => {
+        const initData = {
+            support: {
+                deliveryPolicy: "",
+                paymentPolicy: "",
+                faq: "",
+                privacyPolicy: "",
+                UserAgreement: "",
+            },
+            contact: {
+                email: "",
+                phone: "",
+                socials: {
+                    facebook: "",
+                    instagram: "",
+                    twitter: "",
+                },
+            },
+        };
+
+
         await updateStorefrontFeatures(business_id, {
             ...values,
             business_id,
-            support: { ...data?.support! }
+            support: !data ? { ...initData.support } : { ...data?.support! }
         })
         toast.success('Contacts updated')
         actions.setSubmitting(false)

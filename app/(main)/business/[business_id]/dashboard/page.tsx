@@ -18,6 +18,7 @@ import Link from "next/link";
 import { routes } from "@/routes";
 import OrdersTable from "@/components/orders/orders-table";
 import { Orders } from "@/lib/types";
+import { parseCurrency } from "@/lib/utils";
 
 type Props = { params: { business_id: string }; searchParams: any };
 
@@ -78,7 +79,7 @@ const DashboardPage = async ({
                 </h1>
                 <div className="flex justify-between gap-2 items-center">
                   <h1 className="text-2xl font-semibold">
-                    ${orderSummary?.revenue.toFixed(2)}
+                    {parseCurrency(orderSummary?.revenue)}
                   </h1>
 
                   {/* <p className="text-sm font-bold text-error">-21%</p> */}
