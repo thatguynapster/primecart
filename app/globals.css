@@ -14,13 +14,66 @@
   }
 }
 
-body {
-  color: rgb(var(--foreground-rgb));
-  background: rgb(var(--background-rgb));
+*:focus {
+  outline: none;
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
   }
+}
+
+@layer base {
+  :root {
+    --chart-1: 12 76% 61%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+  }
+
+  .dark {
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+  }
+}
+
+.glass {
+  /* From https://css.glass */
+  /* background: rgba(0, 0, 0, 0.5); */
+  /* box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1); */
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+/* scrollbar style */ /* width */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+/* Track */
+::-webkit-scrollbar-track {
+  @apply bg-gray dark:bg-dark-muted;
+}
+/* Handle */
+::-webkit-scrollbar-thumb {
+  @apply bg-dark/85 dark:bg-light/85;
+}
+/* END: scrollbar style */
+
+.cl-avatarBox {
+  width: 2rem;
+  height: 2rem;
+}
+
+.ProseMirror {
+  @apply min-h-24;
+}
+
+.parseContent img {
+  @apply mb-2 rounded-lg;
 }

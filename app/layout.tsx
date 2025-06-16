@@ -1,9 +1,17 @@
+import { Montserrat } from "next/font/google";
+import { Toaster } from "react-hot-toast";
 import type { Metadata } from "next";
-import { DM_Sans } from "next/font/google";
-import "./globals.css";
-import { ThemeProvider } from "@/providers/theme-provider";
 
-const font = DM_Sans({ subsets: ["latin"] });
+import { ThemeProvider } from "@/providers/theme-provider";
+import ModalProvider from "@/providers/modal-provider";
+import { MapProvider } from "@/providers/map";
+
+import "tippy.js/animations/scale.css";
+import "tippy.js/dist/tippy.css";
+import "./globals.css";
+import { classNames } from "@/lib/utils";
+
+const font = Montserrat({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "PrimeCart",
@@ -14,18 +22,22 @@ export const metadata: Metadata = {
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: any;
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={font.className}>
+      <body className={classNames(font.className, "bg-light")}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
           enableSystem
           disableTransitionOnChange
         >
-          {children}
+          <ModalProvider>
+            <MapProvider>{children}</MapProvider>
+
+            <Toaster position="top-right" toastOptions={{ duration: 5000 }} />
+          </ModalProvider>
         </ThemeProvider>
       </body>
     </html>
