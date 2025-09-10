@@ -6,6 +6,7 @@ import {
   endOfDay,
   endOfMonth,
   endOfWeek,
+  endOfYear,
   endOfYesterday,
   format,
   getDay,
@@ -18,9 +19,11 @@ import {
   startOfDay,
   startOfMonth,
   startOfWeek,
+  startOfYear,
   startOfYesterday,
   subDays,
   subMonths,
+  subYears,
 } from "date-fns";
 import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/20/solid";
 import { useState } from "react";
@@ -110,6 +113,30 @@ const Calendar = ({ dates, onDateChange }: Props) => {
           }}
         >
           Last Month
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => {
+            setSelectedDays([startOfYear(today), endOfDay(today)]);
+            onDateChange([startOfYear(today), endOfDay(today)])
+          }}
+        >
+          This Year
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => {
+            setSelectedDays([
+              startOfYear(subYears(today, 1)),
+              endOfYear(subYears(today, 1)),
+            ]);
+            onDateChange([
+              startOfYear(subYears(today, 1)),
+              endOfYear(subYears(today, 1)),
+            ])
+          }}
+        >
+          Last Year
         </Button>
       </div>
 

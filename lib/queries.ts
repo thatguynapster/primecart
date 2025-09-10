@@ -16,7 +16,7 @@ import {
 	PaymentStatus,
 	TransactionType,
 	ExperimentalFeatures,
-	StorefrontFeatures,
+	StorefrontFeatures
 } from "@prisma/client";
 import { currentUser } from "@clerk/nextjs/server";
 import { cache } from "react";
@@ -27,11 +27,17 @@ import { routes } from "@/routes";
 import { startOfDay, startOfMonth, startOfYear, subDays } from "date-fns";
 import { BestSeller, Order } from "./types";
 import { parseCurrency } from "./utils";
+import { sendEmail } from "./email";
+import WelcomeEmail from "@/components/emails/welcome";
 
 export const initUser = async (userUpdate?: Users) => {
 	try {
 		const user = await currentUser();
 		if (!user) return;
+
+		const userExists = await db.users.findUnique({
+			where: { email: user.emailAddresses[0].emailAddress }
+		});
 
 		const userData = await db.users.upsert({
 			where: { email: user.emailAddresses[0].emailAddress },
@@ -40,9 +46,24 @@ export const initUser = async (userUpdate?: Users) => {
 				avatar: user.imageUrl,
 				email: user.emailAddresses[0].emailAddress,
 				first_name: user.firstName ?? "",
-				last_name: user.lastName ?? "",
-			},
+				last_name: user.lastName ?? ""
+			}
 		});
+
+		if (!userExists) {
+			// send welcome email
+			await sendEmail(
+				// email to customer
+				{
+					body: WelcomeEmail({
+						firstName: userData.first_name
+					}),
+					from: "info@primecart.app",
+					subject: "Welcome to PrimeCart",
+					to: userData.email
+				}
+			);
+		}
 
 		return userData;
 	} catch (error) {
@@ -58,11 +79,11 @@ export const getAuthUserDetails = async () => {
 
 		const userData = await db.users.findUnique({
 			where: {
-				email: user.emailAddresses[0].emailAddress,
+				email: user.emailAddresses[0].emailAddress
 			},
 			include: {
-				business: true,
-			},
+				business: true
+			}
 		});
 
 		return userData;
@@ -79,8 +100,8 @@ export const getUser = async (business_id: string) => {
 
 		const userData = await db.users.findUnique({
 			where: {
-				email: user.emailAddresses[0].emailAddress,
-			},
+				email: user.emailAddresses[0].emailAddress
+			}
 		});
 
 		return userData;
@@ -100,7 +121,7 @@ export const createBusiness = async (
 		const businessDetails = await db.business.upsert({
 			where: { unique_id: business.unique_id },
 			update: business,
-			create: business,
+			create: business
 		});
 
 		// create any other needed documents here...
@@ -109,15 +130,15 @@ export const createBusiness = async (
 			contact: {
 				email: "",
 				phone: "",
-				socials: { facebook: "", instagram: "", twitter: "" },
+				socials: { facebook: "", instagram: "", twitter: "" }
 			},
 			support: {
 				deliveryPolicy: "",
 				faq: "",
 				paymentPolicy: "",
 				privacyPolicy: "",
-				UserAgreement: "",
-			},
+				UserAgreement: ""
+			}
 		});
 
 		return businessDetails;
@@ -134,7 +155,7 @@ export const updateBusiness = async (id: string, data: Partial<Business>) => {
 
 		const businessDetails = await db.business.update({
 			where: { id },
-			data,
+			data
 		});
 
 		return businessDetails;
@@ -150,7 +171,7 @@ export const deleteBusiness = async (id: string) => {
 		if (!user) return;
 
 		const business = await db.business.delete({
-			where: { id },
+			where: { id }
 		});
 
 		return business;
@@ -160,15 +181,15 @@ export const deleteBusiness = async (id: string) => {
 	}
 };
 
-export const getBusinessDetails = cache(async (id: string) => {
+export const getBusinessDetails = async (id: string) => {
 	try {
 		const user = await currentUser();
 		if (!user) return;
 
 		const business = await db.business.findUnique({
 			where: {
-				id,
-			},
+				id
+			}
 		});
 
 		return business;
@@ -176,12 +197,27 @@ export const getBusinessDetails = cache(async (id: string) => {
 		console.log(error);
 		throw new Error("Failed to get business details", { cause: error });
 	}
-});
+};
+
+export const getBusinessDetailsFromID = async (id: string) => {
+	try {
+		const business = await db.business.findUnique({
+			where: {
+				id
+			}
+		});
+
+		return business;
+	} catch (error) {
+		console.log(error);
+		throw new Error("Failed to get business details", { cause: error });
+	}
+};
 
 export const getBusinessIdFromDomain = async (domain: string) => {
 	try {
 		const business = await db.business.findUnique({
-			where: { domain },
+			where: { domain }
 		});
 
 		return business?.id;
@@ -191,7 +227,7 @@ export const getBusinessIdFromDomain = async (domain: string) => {
 export const getBusinessIdFromSubDomain = async (subdomain: string) => {
 	try {
 		const business = await db.business.findUnique({
-			where: { subdomain },
+			where: { subdomain }
 		});
 
 		return business?.id;
@@ -208,10 +244,10 @@ export const upsertPaymentDetails = async (
 
 		const paymentDetails = await db.payment.upsert({
 			where: {
-				business_id: business,
+				business_id: business
 			},
 			update: { ...data },
-			create: { ...data },
+			create: { ...data }
 		});
 
 		return paymentDetails;
@@ -225,8 +261,8 @@ export const getPaymentDetails = async (id: string) => {
 	try {
 		const paymentDetails = await db.payment.findUnique({
 			where: {
-				business_id: id,
-			},
+				business_id: id
+			}
 		});
 
 		return paymentDetails;
@@ -238,7 +274,7 @@ export const getPaymentDetails = async (id: string) => {
 
 export const upsertProduct = async ({
 	product,
-	variations,
+	variations
 }: {
 	product: Omit<
 		Products,
@@ -257,7 +293,7 @@ export const upsertProduct = async ({
 		const productDetails = await db.products.upsert({
 			where: { unique_id: product.unique_id },
 			update: product,
-			create: { ...product },
+			create: { ...product }
 		});
 
 		// update/create product variation
@@ -266,7 +302,7 @@ export const upsertProduct = async ({
 				return await db.productVariations.upsert({
 					where: { unique_id: variant.unique_id },
 					update: variant,
-					create: { ...variant, product_id: productDetails.id },
+					create: { ...variant, product_id: productDetails.id }
 				});
 			})
 		);
@@ -286,7 +322,7 @@ export const deleteVariation = async (unique_id: string) => {
 		if (!user) return;
 
 		const variationDetails = await db.productVariations.delete({
-			where: { unique_id },
+			where: { unique_id }
 		});
 
 		revalidatePath(routes.inventory.details, "page");
@@ -308,11 +344,11 @@ export const getProducts = async (business_id: string) => {
 			orderBy: { createdAt: "desc" },
 			include: {
 				variations: {
-					select: { price: true, quantity: true },
+					select: { price: true, quantity: true }
 				},
 				// category: true,
-				_count: { select: { orders: true } },
-			},
+				_count: { select: { orders: true } }
+			}
 		});
 
 		return products;
@@ -329,7 +365,7 @@ export const getProduct = async (product_id: string, business_id: string) => {
 
 		const product = await db.products.findUnique({
 			where: { id: product_id, business_id },
-			include: { variations: true },
+			include: { variations: true }
 		});
 		if (product) return product;
 
@@ -347,7 +383,7 @@ export const deleteProduct = async (id: string) => {
 
 		// delete product variations
 		const variations = await db.productVariations.deleteMany({
-			where: { product_id: id },
+			where: { product_id: id }
 		});
 
 		const productDetails = await db.products.delete({ where: { id } });
@@ -370,7 +406,7 @@ export const upsertCategory = async (
 		const category = await db.productCategories.upsert({
 			where: { unique_id: data.unique_id },
 			update: data,
-			create: data,
+			create: data
 		});
 
 		return category;
@@ -386,7 +422,7 @@ export const getCategories = async (business_id: string) => {
 		if (!user) return;
 
 		const categories = await db.productCategories.findMany({
-			where: { business_id },
+			where: { business_id }
 		});
 
 		return categories;
@@ -402,10 +438,10 @@ export const upsertCustomer = async (
 	try {
 		const customer = await db.customer.upsert({
 			where: {
-				phone: data.phone,
+				phone: data.phone
 			},
 			update: data,
-			create: data,
+			create: data
 		});
 
 		return customer;
@@ -449,7 +485,7 @@ export const getOrders = async ({
 	from_date = startOfDay(subDays(Date.now(), 7)).valueOf(),
 	to_date = new Date().valueOf(),
 	page = 1,
-	limit = 10,
+	limit = 10
 }: {
 	business_id: string;
 	from_date?: number;
@@ -471,12 +507,12 @@ export const getOrders = async ({
 				business_id,
 				createdAt: {
 					gte: new Date(from_date).toISOString(),
-					lte: new Date(to_date).toISOString(),
-				},
+					lte: new Date(to_date).toISOString()
+				}
 			},
 			orderBy: {
-				createdAt: "desc",
-			},
+				createdAt: "desc"
+			}
 		};
 
 		const [orders, count] = await db.$transaction([
@@ -489,8 +525,8 @@ export const getOrders = async ({
 						select: {
 							email: true,
 							name: true,
-							phone: true,
-						},
+							phone: true
+						}
 					},
 					payment: true,
 					products: {
@@ -499,22 +535,22 @@ export const getOrders = async ({
 								select: {
 									name: true,
 									description: true,
-									images: true,
-								},
+									images: true
+								}
 							},
 							product_variation: { select: { attributes: true } },
 							quantity: true,
-							amount: true,
-						},
-					},
-				},
+							amount: true
+						}
+					}
+				}
 			}),
-			db.productOrders.count({ where: query.where }),
+			db.productOrders.count({ where: query.where })
 		]);
 
 		return {
 			pagination: { total: count, total_pages: Math.ceil(count / limit) },
-			data: orders,
+			data: orders
 		};
 	} catch (error) {
 		console.log(error);
@@ -525,7 +561,7 @@ export const getOrders = async ({
 export const getOrderSummary = async ({
 	business_id,
 	from_date = startOfDay(subDays(Date.now(), 7)).valueOf(),
-	to_date = Date.now().valueOf(),
+	to_date = Date.now().valueOf()
 }: {
 	business_id: string;
 	from_date?: number;
@@ -545,10 +581,10 @@ export const getOrderSummary = async ({
 				business_id,
 				createdAt: {
 					gte: new Date(from_date).toISOString(),
-					lte: new Date(to_date).toISOString(),
-				},
+					lte: new Date(to_date).toISOString()
+				}
 			},
-			select: { amount: true, createdAt: true },
+			select: { amount: true, createdAt: true }
 		});
 
 		const orders = orders_in_period.length;
@@ -575,9 +611,9 @@ export const updateOrderStatus = async (
 
 		const updatedORder = await db.productOrders.update({
 			where: {
-				id: order_id,
+				id: order_id
 			},
-			data: { orderStatus },
+			data: { orderStatus }
 		});
 
 		revalidatePath(routes.orders.index, "page");
@@ -601,8 +637,8 @@ export const getSingleOrder = async (business_id: string, order_id: string) => {
 					select: {
 						email: true,
 						name: true,
-						phone: true,
-					},
+						phone: true
+					}
 				},
 				payment: true,
 				products: {
@@ -611,15 +647,15 @@ export const getSingleOrder = async (business_id: string, order_id: string) => {
 							select: {
 								images: true,
 								description: true,
-								name: true,
-							},
+								name: true
+							}
 						},
 						product_variation: { select: { attributes: true } },
 						quantity: true,
-						amount: true,
-					},
-				},
-			},
+						amount: true
+					}
+				}
+			}
 		});
 
 		return order;
@@ -630,7 +666,7 @@ export const getSingleOrder = async (business_id: string, order_id: string) => {
 };
 
 export const getBestSellers = async ({
-	business_id,
+	business_id
 }: {
 	business_id: string;
 }): Promise<BestSeller[] | void> => {
@@ -642,32 +678,32 @@ export const getBestSellers = async ({
 			where: {
 				business_id,
 				orders: {
-					some: {}, // Ensures only products with at least one order are included
-				},
+					some: {} // Ensures only products with at least one order are included
+				}
 			},
 			include: {
 				_count: {
 					select: {
-						orders: true, // Counting the number of orders for each product
-					},
+						orders: true // Counting the number of orders for each product
+					}
 				},
 				orders: {
 					select: {
 						product_id: true, // Fetching the product ID for order filtering
 						quantity: true,
-						createdAt: true, // Fetching the createdAt date for orders
+						createdAt: true // Fetching the createdAt date for orders
 					},
 					orderBy: {
-						createdAt: "desc", // Ordering by the latest order date
-					},
-				},
+						createdAt: "desc" // Ordering by the latest order date
+					}
+				}
 			},
 			orderBy: {
 				orders: {
-					_count: "desc", // Sorting by the total number of orders in descending order
-				},
+					_count: "desc" // Sorting by the total number of orders in descending order
+				}
 			},
-			take: 10, // Optionally limit the results to the top 10 best-selling products
+			take: 10 // Optionally limit the results to the top 10 best-selling products
 		});
 
 		// Calculate the total units sold for each product and filter out duplicates
@@ -703,7 +739,7 @@ export const getBestSellers = async ({
 					lastOrderDate:
 						uniqueOrders.length > 0
 							? uniqueOrders[0].createdAt
-							: null, // Most recent order date
+							: null // Most recent order date
 				};
 			})
 			.filter((product) => product.totalUnitsSold > 0) // Exclude products with no units sold
@@ -726,12 +762,12 @@ export const getLatestOrders = async (business_id: string) => {
 				business_id,
 				NOT: {
 					orderStatus: {
-						in: ["CANCELLED", "DELIVERED"], // Exclude CANCELLED and DELIVERED orders
-					},
-				},
+						in: ["CANCELLED", "DELIVERED"] // Exclude CANCELLED and DELIVERED orders
+					}
+				}
 			},
 			orderBy: {
-				createdAt: "desc", // Sort by the most recent order date
+				createdAt: "desc" // Sort by the most recent order date
 			},
 			take: 10, // Limit to 10 most recent orders
 			include: {
@@ -739,8 +775,8 @@ export const getLatestOrders = async (business_id: string) => {
 					select: {
 						name: true,
 						email: true,
-						phone: true,
-					},
+						phone: true
+					}
 				},
 				products: {
 					select: {
@@ -748,16 +784,16 @@ export const getLatestOrders = async (business_id: string) => {
 							select: {
 								name: true,
 								description: true,
-								images: true,
-							},
+								images: true
+							}
 						},
 						product_variation: { select: { attributes: true } },
 						quantity: true,
-						amount: true,
-					},
+						amount: true
+					}
 				},
-				payment: true,
-			},
+				payment: true
+			}
 		});
 
 		return recentOrders;
@@ -770,7 +806,7 @@ export const getLatestOrders = async (business_id: string) => {
 export const getCustomers = async ({
 	business_id,
 	limit = 10,
-	page = 1,
+	page = 1
 }: {
 	business_id: string;
 	limit?: number;
@@ -794,22 +830,22 @@ export const getCustomers = async ({
 					phone: true,
 					orders: {
 						orderBy: {
-							createdAt: "desc", // Sort orders by the most recent
+							createdAt: "desc" // Sort orders by the most recent
 						},
 						take: 1, // Only fetch the most recent order
 						select: {
 							createdAt: true,
-							location: true,
-						},
-					},
-				},
+							location: true
+						}
+					}
+				}
 			}),
-			db.customer.count({ where: query.where }),
+			db.customer.count({ where: query.where })
 		]);
 
 		return {
 			pagination: { total: count, total_pages: Math.ceil(count / limit) },
-			data: customers,
+			data: customers
 		};
 	} catch (error) {
 		console.log(error);
@@ -850,19 +886,19 @@ export const getSingleCustomer = async (
 				location: {
 					select: {
 						address: true,
-						city: true,
-					},
+						city: true
+					}
 				},
 				orders: {
 					orderBy: {
-						createdAt: "asc", // Sort orders by the oldest
+						createdAt: "asc" // Sort orders by the oldest
 					},
 					select: {
 						id: true,
-						createdAt: true,
-					},
-				},
-			},
+						createdAt: true
+					}
+				}
+			}
 		});
 
 		if (!customer) {
@@ -882,7 +918,7 @@ export const getSingleCustomer = async (
 			customer = {
 				...customer,
 				firstOrder,
-				lastOrder,
+				lastOrder
 			};
 		}
 
@@ -897,7 +933,7 @@ export const getCustomerOrders = async ({
 	business_id,
 	customer_id,
 	page = 1,
-	limit = 10,
+	limit = 10
 }: {
 	business_id: string;
 	customer_id: string;
@@ -911,11 +947,11 @@ export const getCustomerOrders = async ({
 		const query: Prisma.ProductOrdersFindManyArgs = {
 			where: {
 				business_id,
-				customer_id,
+				customer_id
 			},
 			orderBy: {
-				createdAt: "desc",
-			},
+				createdAt: "desc"
+			}
 		};
 
 		const [orders, count] = await db.$transaction([
@@ -928,8 +964,8 @@ export const getCustomerOrders = async ({
 						select: {
 							email: true,
 							name: true,
-							phone: true,
-						},
+							phone: true
+						}
 					},
 					payment: true,
 					products: {
@@ -938,22 +974,22 @@ export const getCustomerOrders = async ({
 								select: {
 									name: true,
 									description: true,
-									images: true,
-								},
+									images: true
+								}
 							},
 							product_variation: { select: { attributes: true } },
 							quantity: true,
-							amount: true,
-						},
-					},
-				},
+							amount: true
+						}
+					}
+				}
 			}),
-			db.productOrders.count({ where: query.where }),
+			db.productOrders.count({ where: query.where })
 		]);
 
 		return {
 			pagination: { total: count, total_pages: Math.ceil(count / limit) },
-			data: orders,
+			data: orders
 		};
 	} catch (error) {
 		console.log(error);
@@ -971,11 +1007,11 @@ export const createOrderPayment = async (
 		// update order with payment id
 		await db.productOrders.update({
 			where: {
-				id: data.order_id!,
+				id: data.order_id!
 			},
 			data: {
-				payment_id: orderPayment.id,
-			},
+				payment_id: orderPayment.id
+			}
 		});
 
 		return orderPayment;
@@ -995,9 +1031,9 @@ export const updateOrderPaymentStatus = async (
 
 		const updatedOrder = await db.orderPayment.update({
 			where: {
-				id: payment_id,
+				id: payment_id
 			},
-			data: { status: paymentStatus },
+			data: { status: paymentStatus }
 		});
 
 		revalidatePath(routes.orders.index, "page");
@@ -1015,7 +1051,7 @@ export const getPayments = async ({ business_id }: { business_id: string }) => {
 		if (!user) return;
 
 		const payments = await db.payment.findUnique({
-			where: { business_id },
+			where: { business_id }
 		});
 
 		return payments;
@@ -1028,7 +1064,7 @@ export const getPayments = async ({ business_id }: { business_id: string }) => {
 export const getTransactions = async ({
 	business_id,
 	page = 1,
-	limit = 10,
+	limit = 10
 }: {
 	business_id: string;
 	page?: number;
@@ -1044,14 +1080,14 @@ export const getTransactions = async ({
 			db.paymentTransaction.findMany({
 				...query,
 				skip: (page - 1) * limit,
-				take: limit,
+				take: limit
 			}),
-			db.paymentTransaction.count({ where: query.where }),
+			db.paymentTransaction.count({ where: query.where })
 		]);
 
 		return {
 			pagination: { total: count, total_pages: Math.ceil(count / limit) },
-			data: transactions,
+			data: transactions
 		};
 	} catch (error) {
 		console.log(error);
@@ -1086,7 +1122,7 @@ const calculateBalance = (
 	}, 0);
 
 export const getWalletBalance = async ({
-	business_id,
+	business_id
 }: {
 	business_id: string;
 }): Promise<{
@@ -1100,7 +1136,7 @@ export const getWalletBalance = async ({
 		if (!user) return;
 
 		let query = {
-			where: { business_id },
+			where: { business_id }
 		};
 
 		const [transactions, thisMonth, thisYear] = await db.$transaction([
@@ -1110,19 +1146,19 @@ export const getWalletBalance = async ({
 					...query.where,
 					createdAt: {
 						gte: startOfMonth(new Date()).toISOString(),
-						lte: new Date().toISOString(),
-					},
-				},
+						lte: new Date().toISOString()
+					}
+				}
 			}),
 			db.paymentTransaction.findMany({
 				where: {
 					...query.where,
 					createdAt: {
 						gte: startOfYear(new Date()).toISOString(),
-						lte: new Date().toISOString(),
-					},
-				},
-			}),
+						lte: new Date().toISOString()
+					}
+				}
+			})
 		]);
 
 		const total = calculateBalance(transactions); // Includes withdrawals
@@ -1136,7 +1172,7 @@ export const getWalletBalance = async ({
 			total,
 			lifetime,
 			this_month,
-			this_year,
+			this_year
 		};
 	} catch (error) {
 		console.log(error);
@@ -1147,7 +1183,7 @@ export const getWalletBalance = async ({
 export const initiateWithdrawal = async ({
 	business_id,
 	amount,
-	meta_data,
+	meta_data
 }: {
 	business_id: string;
 	amount: number;
@@ -1158,7 +1194,7 @@ export const initiateWithdrawal = async ({
 		if (!user) return;
 
 		const transactions = await db.paymentTransaction.findMany({
-			where: { business_id },
+			where: { business_id }
 		});
 
 		const balance = calculateBalance(transactions);
@@ -1177,8 +1213,8 @@ export const initiateWithdrawal = async ({
 				type: "WITHDRAWAL",
 				payment_date: new Date(),
 				business_id,
-				meta_data,
-			},
+				meta_data
+			}
 		});
 
 		revalidatePath(routes.finance.overview, "page");
@@ -1192,7 +1228,7 @@ export const initiateWithdrawal = async ({
 export const getPayouts = async ({
 	business_id,
 	page = 1,
-	limit = 10,
+	limit = 10
 }: {
 	business_id: string;
 	page?: number;
@@ -1205,23 +1241,23 @@ export const getPayouts = async ({
 		const query = {
 			where: {
 				business_id,
-				type: "WITHDRAWAL" as TransactionType,
+				type: "WITHDRAWAL" as TransactionType
 				// status: "PAID" as PaymentStatus, //TODO: uncomment this line when done
-			},
+			}
 		};
 
 		const [transactions, count] = await db.$transaction([
 			db.paymentTransaction.findMany({
 				...query,
 				skip: (page - 1) * limit,
-				take: limit,
+				take: limit
 			}),
-			db.paymentTransaction.count({ where: query.where }),
+			db.paymentTransaction.count({ where: query.where })
 		]);
 
 		return {
 			pagination: { total: count, total_pages: Math.ceil(count / limit) },
-			payments: transactions,
+			payments: transactions
 		};
 	} catch (error: any) {
 		console.log(error);
@@ -1236,10 +1272,10 @@ const updateExperimentalFeaturesFunc = async (
 	// check if experimental features document exists for business or create one
 	const experimentalFeatures = await db.experimentalFeatures.upsert({
 		where: {
-			business_id: id,
+			business_id: id
 		},
 		update: features,
-		create: features,
+		create: features
 	});
 
 	return experimentalFeatures;
@@ -1255,7 +1291,7 @@ export const toggleExperimentalFeatures = async (
 
 		const businessDetails = await db.business.update({
 			where: { id },
-			data: toggle,
+			data: toggle
 		});
 
 		if (businessDetails.experimental_features) {
@@ -1270,8 +1306,8 @@ export const toggleExperimentalFeatures = async (
 					backgroundImage: "",
 					cta: { link: "", text: "" },
 					subText: "",
-					title: "",
-				},
+					title: ""
+				}
 				// support: {
 				// 	deliveryPolicy: "",
 				// 	faq: "",
@@ -1313,8 +1349,8 @@ export const getExperimentalFeatures = async (id: string) => {
 
 		const features = await db.experimentalFeatures.findFirst({
 			where: {
-				business_id: id,
-			},
+				business_id: id
+			}
 		});
 		console.log("experimental features:", features);
 
@@ -1322,7 +1358,7 @@ export const getExperimentalFeatures = async (id: string) => {
 	} catch (error) {
 		console.log(error);
 		throw new Error("Failed to get experimental features", {
-			cause: error,
+			cause: error
 		});
 	}
 };
@@ -1334,10 +1370,10 @@ const updateStorefrontFeaturesFunc = async (
 	// check if experimental features document exists for business or create one
 	const experimentalFeatures = await db.storefrontFeatures.upsert({
 		where: {
-			business_id: id,
+			business_id: id
 		},
 		update: features,
-		create: features,
+		create: features
 	});
 
 	return experimentalFeatures;
@@ -1367,8 +1403,8 @@ export const getStorefrontFeatures = async (id: string) => {
 
 		const features = await db.storefrontFeatures.findFirst({
 			where: {
-				business_id: id,
-			},
+				business_id: id
+			}
 		});
 		console.log("storefront features:", features);
 
@@ -1376,7 +1412,7 @@ export const getStorefrontFeatures = async (id: string) => {
 	} catch (error) {
 		console.log(error);
 		throw new Error("Failed to get storefront features", {
-			cause: error,
+			cause: error
 		});
 	}
 };
@@ -1392,14 +1428,14 @@ export const createExperimentalFeature = async (
 		const features = await db.experimentalFeatures.upsert({
 			where: { id },
 			update: { ...feature },
-			create: { ...feature },
+			create: { ...feature }
 		});
 
 		return features;
 	} catch (error) {
 		console.log(error);
 		throw new Error("Failed to create experimental feature", {
-			cause: error,
+			cause: error
 		});
 	}
 };

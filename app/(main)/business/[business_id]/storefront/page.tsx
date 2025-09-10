@@ -24,7 +24,7 @@ const StorefrontPage = async ({ params: { business_id } }: Props) => {
         <div className="flex flex-col w-full gap-4">
             <div className="flex gap-4">
                 {business?.experimental_features &&
-                    <Card className="flex flex-col gap-4">
+                    <Card className="flex flex-col gap-4 w-full">
                         <CardHeader>
                             <CardTitle className="text-center">Homepage Hero Section</CardTitle>
                         </CardHeader>
@@ -34,7 +34,7 @@ const StorefrontPage = async ({ params: { business_id } }: Props) => {
                     </Card>
                 }
 
-                <Card className="flex flex-col gap-4">
+                <Card className="flex flex-col gap-4 w-full">
                     <CardHeader>
                         <CardTitle className="text-center">Contact</CardTitle>
                     </CardHeader>

@@ -28,6 +28,7 @@ import SubNavStart from "@/components/global/icons/sub-nav-start";
 import SubNavMid from "@/components/global/icons/sub-nav-mid";
 import SubNavEnd from "@/components/global/icons/sub-nav-end";
 import { getBusinessDetails } from "@/lib/queries";
+import { ScrollArea } from "../ui/scroll-area";
 
 type Props = {
   defaultOpen?: boolean;
@@ -61,7 +62,8 @@ const MenuOptions = ({ id, sidebarOptions, extraOptions, defaultOpen }: Props) =
         className={clsx(
           "backdrop-blur-xl fixed top-0 border-r-2",
           { "hidden md:inline-block z-0 w-[280px]": defaultOpen },
-          { "inline-block md:hidden z-[100]": !defaultOpen }
+          { "inline-block md:hidden z-[100]": !defaultOpen },
+          'h-screen min-h-52 overflow-y-auto'
         )}
       >
         <SheetDescription></SheetDescription>

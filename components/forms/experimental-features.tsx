@@ -9,6 +9,7 @@ import * as Field from "@/components/global/Field";
 import { Card, CardContent } from "../ui/card";
 import { Switch } from "../ui/switch";
 import { Label } from "../ui/label";
+import toast from "react-hot-toast";
 
 type Props = { enabled: boolean };
 
@@ -27,6 +28,7 @@ const ExperimentalFeatures = ({ enabled = false }: Props) => {
           }}
           onSubmit={async (values, { setSubmitting }) => {
             await toggleExperimentalFeatures(params.business_id, values);
+            toast.success(`Experimental features ${values.experimental_features ? 'enabled' : 'disabled'}`)
             router.refresh()
           }}
         >

@@ -4,6 +4,7 @@ import {
   endOfDay,
   format,
   getTime,
+  getYear,
   startOfDay,
   subDays,
 } from "date-fns";
@@ -45,18 +46,17 @@ const DateRange = ({ }: Props) => {
       <DropdownMenuTrigger>
         <div className="flex items-center gap-1 border-2 rounded-lg px-4 py-2 text-sm">
           <CalendarIcon size={16} />
-          <span>{format(selectedDays[0] ?? Date.now(), "MMM dd")}</span>
+          <span>{format(selectedDays[0], getYear(selectedDays[1]) < getYear(Date.now()) ? "MMM dd, yyyy" : "MMM dd")}</span>
 
           {selectedDays[1] && (
             <>
               {" - "}
-              <span>{format(selectedDays[1] ?? Date.now(), "MMM dd")}</span>
+              <span>{format(selectedDays[1], getYear(selectedDays[1]) < getYear(Date.now()) ? "MMM dd, yyyy" : "MMM dd")}</span>
             </>
           )}
         </div>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-max py-4">
-
         <Calendar
           dates={selectedDays}
           onDateChange={(dates: Date[] | null) => {
