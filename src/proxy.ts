@@ -31,7 +31,18 @@ import { getMerchantBySubdomain, getSubscriptionStatus } from "@/lib/merchant/lo
  * re-derive the merchant from the session and authorize independently.
  */
 const PUBLIC_EXACT = new Set(["/", "/store-unavailable"]);
-const PUBLIC_PREFIXES = ["/sign-in", "/sign-up", "/api/webhooks", "/api/cron"];
+const PUBLIC_PREFIXES = [
+  "/sign-in",
+  "/sign-up",
+  "/api/webhooks",
+  "/api/cron",
+  // Domain-verification and well-known URIs (RFC 8615). Vercel probes
+  // /.well-known/vercel/* to verify the domain and detect proxies in front of
+  // it, and Let's Encrypt uses /.well-known/acme-challenge/* for HTTP-01.
+  // Redirecting these to sign-in makes domain verification and certificate
+  // issuance fail, with an error that names neither.
+  "/.well-known",
+];
 
 /** Root-domain routes reachable without signing in. */
 function isPublicRoute(pathname: string): boolean {

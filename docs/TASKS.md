@@ -125,6 +125,7 @@ Port `bak/middleware.ts` — the subdomain resolution logic is correct, keep it 
 | 3.10 | Placeholder rewrite targets so the proxy is testable: `/store/[subdomain]`, `/store-unavailable`, `/billing`               | [x] replaced in Phases 8 and 13 | 2026-08-13 |
 | 3.11 | Call `invalidateStorefront` / `invalidateSubscription` wherever those fields are mutated                                    | [ ] Phases 6 and 13 | |
 | 3.12 | Re-derive `merchantId` from the session and authorize inside every page, route handler and Server Action — never rely on the proxy alone | [ ] Phases 6 onward | |
+| 3.13 | `/.well-known/*` treated as public — domain verification and ACME must never hit the auth guard                             | [x] verified 404 not 307 | 2026-08-13 |
 
 **Phase 3 notes — verified behaviour**
 
@@ -154,14 +155,25 @@ Exercised against the running app with real `Host` headers and live fixture merc
 
 ## Phase 4 — Vercel Wildcard Subdomain Config
 
-**Project owner handles Vercel configuration** (D-4). My deliverable is the setup instructions plus verification.
+**Project owner handles Vercel configuration** (D-4). My deliverable is the setup instructions plus verification afterwards.
+
+Full guide: **[`VERCEL_SETUP.md`](./VERCEL_SETUP.md)**
 
 | #   | Task                                                                          | Status | Done |
 | --- | ------------------------------------------------------------------------------- | ------ | ---- |
-| 4.0 | Vercel **Root Directory** stays as the repo root (default) — the Next.js app is top-level | [ ]    |      |
-| 4.1 | Write setup instructions for wildcard `*.primecart.app` + root DNS on Vercel   | [ ]    |      |
-| 4.2 | *(Owner)* Apply the Vercel wildcard domain and DNS records                     | [ ]    |      |
-| 4.3 | Verify a test subdomain resolves and hits middleware                           | [ ]    |      |
+| 4.0 | Vercel **Root Directory** stays as the repo root (default) — the Next.js app is top-level | [x] documented | 2026-08-13 |
+| 4.1 | Write setup instructions for wildcard `*.primecart.app` + root DNS on Vercel   | [x] `VERCEL_SETUP.md`, from current Vercel docs | 2026-08-13 |
+| 4.2 | *(Owner)* Move nameservers to Vercel, add apex + wildcard domain, set production env vars | [ ]    |      |
+| 4.3 | Verify subdomain resolution, TLS, and the 404/unavailable paths through real DNS | [ ] blocked on 4.2 | |
+
+**Phase 4 notes**
+
+- **A wildcard domain forces DNS onto Vercel's nameservers.** Vercel must answer the ACME DNS challenge to issue wildcard certificates, so a CNAME or A record at the current registrar cannot work for `*.primecart.app`. This is the one part with no alternative.
+- **The migration risk is email, not the website.** Switching nameservers drops every DNS record not recreated in Vercel — MX, SPF, DKIM, DMARC. The guide's pre-flight step is to export the existing zone first.
+- **Clerk needs a production instance with its own DNS records** (`clerk`, `accounts`, `clkmail`, two DKIM). Development keys work only on localhost. Best done in the same sitting as the nameserver move so the DNS work happens once.
+- **Storefronts cannot be tested on preview deployments.** Preview URLs are `*.vercel.app`, which don't match `NEXT_PUBLIC_ROOT_DOMAIN`, so the proxy treats them as the root domain and serves the marketing site. Production or local only.
+- **MongoDB Atlas needs to accept Vercel's traffic.** Vercel functions have no fixed IPs, so Atlas's default IP allowlist blocks them — the build succeeds and every database call then fails at runtime.
+- **`NEXT_PUBLIC_ROOT_DOMAIN` is the single highest-risk variable.** Left at its dev value, every storefront silently serves the marketing site instead.
 
 ## Phase 5 — Landing Page (`primecart.app` root)
 
@@ -360,3 +372,5 @@ Built against **test-mode** plan `PLN_2b0d04ozbt798kj`. A live plan code is crea
 | 2026-08-13 | **Phase 1 fully closed** — owner supplied `DATABASE_URL` and Clerk keys (1.8, 1.10), both verified. Paystack test keys and plan code also already in place, ahead of their phases. Environment readiness table added; `CRON_SECRET` and the R2 vars remain the only gaps |
 | 2026-08-13 | **Phase 3 complete** — `src/proxy.ts` built and verified live against fixture merchants. Found that the handover's Fix 2 (response headers) could not work and leaked the merchant id to the client; implemented as request headers instead. Also found `bak/middleware.ts` has no subdomain logic to port, so it was written fresh from the fixes' description |
 | 2026-08-13 | Replaced Clerk's deprecated `createRouteMatcher` with plain path predicates after it emitted a removal warning. Confirmed `/billing` requires sign-in but is not subscription-guarded, so there is no redirect loop. Added task 3.12 for resource-level authorization |
+| 2026-08-13 | **Phase 4 instructions delivered** — `VERCEL_SETUP.md` written from current Vercel docs. Key constraint: wildcard domains require moving nameservers to Vercel, which drops any DNS records not recreated there. Awaiting owner to apply (4.2) before verification (4.3) |
+| 2026-08-13 | Owner moved nameservers and added `*.dev.primecart.app`; Vercel reported a proxy-check failure. Diagnosed: DNS and wildcard TLS both correct, no deployment existed (`DEPLOYMENT_NOT_FOUND`). Fixed a real proxy bug found while investigating — `/.well-known/*` was hitting the auth guard and would have broken domain verification post-deploy (3.13). Documented that a `dev.` environment needs `NEXT_PUBLIC_ROOT_DOMAIN=dev.primecart.app` |
