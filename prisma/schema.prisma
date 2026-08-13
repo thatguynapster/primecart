@@ -1,0 +1,16 @@
+// PrimeCart — Prisma schema
+//
+// Models are added in Phase 2 (see docs/TASKS.md). This file currently
+// establishes only the generator and the MongoDB datasource so the client
+// can be generated and the connection verified.
+//
+// Prisma is pinned to 6.19.x. Do not upgrade to v7 — it drops MongoDB support.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}

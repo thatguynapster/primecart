@@ -20,7 +20,8 @@ Tracking file for the rebuild described in [`PrimeCart_Handoff.md`](./PrimeCart_
 - Mobile-first for **all** UI, dashboard included.
 - Follow official documentation for every third-party integration (Next.js, Clerk, Prisma, Paystack, Cloudflare R2, Shadcn/ui).
 - Domain is `primecart.app`. Storefronts are `merchant.primecart.app`.
-- The Next.js app lives in `web/`. `docs/` and `bak/` stay at the repo root. All paths in this file that refer to application code are relative to `web/`.
+- The Next.js app lives at the **repo root** — `src/`, `prisma/`, `public/`, `package.json` are all top-level. `docs/` and `bak/` sit alongside them. All paths in this file are relative to the repo root.
+- `bak/` is reference-only: excluded in `tsconfig.json` and ignored in `eslint.config.mjs`. It is never compiled, linted, or imported from.
 
 ---
 
@@ -38,20 +39,30 @@ Three changes to the original handover, approved by the project owner on 2026-08
 
 ## Phase 1 — Project Setup
 
-**Scaffolding rule:** use the official `create-next-app` flow and let it install everything it offers (TypeScript, Tailwind, ESLint, App Router) rather than adding dependencies by hand afterwards. The repo root is not empty — it holds `.git`, `.gitignore`, `bak/`, and `docs/` — so `create-next-app` will refuse to scaffold there. Scaffold into a subfolder instead; `bak/` and `docs/` stay at the repo root.
+**Scaffolding rule:** use the official `create-next-app` flow and let it install everything it offers (TypeScript, Tailwind, ESLint, App Router) rather than adding dependencies by hand afterwards. `create-next-app` refuses to scaffold into a non-empty directory, so it was run into a temporary subfolder and the result relocated to the repo root — the Next.js app is top-level, not nested.
 
 | #    | Task                                                                                                  | Status | Done |
 | ---- | ----------------------------------------------------------------------------------------------------- | ------ | ---- |
-| 1.1  | Scaffold via `npx create-next-app@latest` into `web/` — App Router, TypeScript, Tailwind, ESLint, src dir, import alias. Verify it resolves to Next.js 16.x (14 is EOL — do not use) | [ ]    |      |
-| 1.2  | Verify the generated Tailwind setup; add mobile-first conventions on top of it                        | [ ]    |      |
-| 1.3  | Shadcn/ui init (`npx shadcn@latest init`) inside `web/`                                               | [ ]    |      |
-| 1.4  | Install Prisma pinned: `npm install prisma@6.19 @prisma/client@6.19` (v7 has no MongoDB support)      | [ ]    |      |
-| 1.5  | Add `.vscode/settings.json` — `prisma.prismaFmtBinPath` + prisma formatter binding                    | [ ]    |      |
-| 1.6  | Add `.vscode/extensions.json` recommending `Prisma.prisma`                                            | [ ]    |      |
-| 1.7  | Provision the new MongoDB Atlas database, wire `DATABASE_URL`, Prisma client singleton                | [ ]    |      |
-| 1.8  | Clerk.js install + provider wiring (merchant auth only)                                               | [ ]    |      |
-| 1.9  | Zustand install (client state only)                                                                   | [ ]    |      |
-| 1.10 | `.env.example` — `DATABASE_URL`, Clerk keys, `PAYSTACK_SECRET_KEY`, `PAYSTACK_PUBLIC_KEY`, `CRON_SECRET`, R2 vars | [ ]    |      |
+| 1.1  | Scaffold via `npx create-next-app@latest` — App Router, TypeScript, Tailwind, ESLint, src dir, import alias. Verify it resolves to Next.js 16.x (14 is EOL — do not use). Scaffolded into a temp subfolder because the repo root was non-empty, then relocated to the root | [x] Next.js 16.3.0, React 19.2.8 | 2026-08-13 |
+| 1.2  | Verify the generated Tailwind setup; add mobile-first conventions on top of it                        | [x] Tailwind v4, CSS-first config (no `tailwind.config.ts`) | 2026-08-13 |
+| 1.3  | Shadcn/ui init (`npx shadcn@latest init`)                                                             | [x] Base UI + Nova preset — see note below | 2026-08-13 |
+| 1.4  | Install Prisma pinned: `npm install prisma@6.19 @prisma/client@6.19` (v7 has no MongoDB support)      | [x] `6.19.3` exact, no caret | 2026-08-13 |
+| 1.5  | Add `.vscode/settings.json` — `prisma.prismaFmtBinPath` + prisma formatter binding                    | [x] path `./node_modules/.bin/prisma`, plus `prisma.pinToPrisma6` | 2026-08-13 |
+| 1.6  | Add `.vscode/extensions.json` recommending `Prisma.prisma`                                            | [x]    | 2026-08-13 |
+| 1.7  | Prisma datasource + client singleton (`src/lib/prisma.ts`); `prisma generate` passes                  | [x]    | 2026-08-13 |
+| 1.8  | *(Owner)* Provision the new MongoDB Atlas database and supply `DATABASE_URL` — needed for 2.8 `db push` | [ ]    |      |
+| 1.9  | Clerk install + `ClerkProvider` in root layout                                                        | [x] `@clerk/nextjs` 7.7.4, Next 16 supported | 2026-08-13 |
+| 1.10 | *(Owner)* Supply Clerk publishable + secret keys — needed to exercise auth in Phase 6                 | [ ]    |      |
+| 1.11 | Zustand install (client state only)                                                                   | [x] 5.0.15 | 2026-08-13 |
+| 1.12 | `.env.example` — DB, Clerk, Paystack (incl. `PAYSTACK_PLAN_CODE`), `CRON_SECRET`, R2, root domain      | [x]    | 2026-08-13 |
+| 1.13 | Verify build: `tsc --noEmit`, `eslint`, `next build` all pass                                          | [x] all clean | 2026-08-13 |
+
+**Phase 1 notes**
+
+- **Shadcn/ui now asks which primitive library to use** — Base UI (its own "Recommended"), React Aria, or Radix UI. Took the recommended default, Base UI, with the `Nova` preset (Lucide icons, Geist font) per the CLI's documented default of `base-nova`. Radix was the classic shadcn foundation; if you want it instead, say so before components are built.
+- **Tailwind v4** configures through CSS (`src/app/globals.css`), not `tailwind.config.ts`. The `/bak` project used v3 — its Tailwind config does not port across.
+- The build passes without Clerk keys present; Clerk runs in "keyless mode" in dev and writes a `.clerk/` directory, which is gitignored. Real keys are only needed once auth routes exist.
+- `tsconfig.json` excludes `bak` and `eslint.config.mjs` ignores `bak/**` — without this the old codebase is compiled and fails the build.
 
 ## Phase 2 — Schema & Indexes
 
@@ -92,7 +103,7 @@ Port `bak/middleware.ts` (subdomain resolution logic is correct — keep it) and
 
 | #   | Task                                                                          | Status | Done |
 | --- | ------------------------------------------------------------------------------- | ------ | ---- |
-| 4.0 | Vercel **Root Directory** must be set to `web/` — the app is not at the repo root | [ ]    |      |
+| 4.0 | Vercel **Root Directory** stays as the repo root (default) — the Next.js app is top-level | [ ]    |      |
 | 4.1 | Write setup instructions for wildcard `*.primecart.app` + root DNS on Vercel   | [ ]    |      |
 | 4.2 | *(Owner)* Apply the Vercel wildcard domain and DNS records                     | [ ]    |      |
 | 4.3 | Verify a test subdomain resolves and hits middleware                           | [ ]    |      |
@@ -245,7 +256,9 @@ Built against **test-mode** plan `PLN_2b0d04ozbt798kj`. A live plan code is crea
 
 ## Open Decisions
 
-**None.** All decisions raised against the handover document have been resolved — see below.
+| ID   | Issue                                                                                                                                                                                                                                                                                                                          | Blocks  |
+| ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| D-13 | **Next.js 16 renamed Middleware to Proxy.** The convention is now `proxy.ts` exporting a `proxy` function; `middleware.ts` still works but is formally **deprecated** in 16, with a codemod (`npx @next/codemod@canary middleware-to-proxy`) provided. The handover's §Middleware says `middleware.ts` throughout. Confirm we port `/bak/middleware.ts` to `proxy.ts` (recommended — it is the supported convention, and Clerk 7.7.4 works either way), or deliberately stay on the deprecated filename. | Phase 3 |
 
 ### Resolved 2026-08-13 by project owner
 
@@ -285,4 +298,6 @@ Built against **test-mode** plan `PLN_2b0d04ozbt798kj`. A live plan code is crea
 | 2026-08-13 | D-6 resolved in handover — `percentage_charge: 0` on subaccount, 3% applied once via `transaction_charge`          |
 | 2026-08-13 | All remaining decisions resolved by owner. Added Owner-Approved Amendments (DEV-1/2/3), owner-handled tasks marked, verification task 9.17 added. **No open blockers — Phase 1 can start** |
 | 2026-08-13 | `PrimeCart_Handoff.md` updated to carry all agreements; Decision Log added to it. The two documents now agree — no divergence to track |
-| 2026-08-13 | Scaffolding rule added: official `create-next-app` flow with all offered dependencies, into `web/` since the repo root is non-empty. Vercel Root Directory task (4.0) added as a consequence |
+| 2026-08-13 | Scaffolding rule added: official `create-next-app` flow with all offered dependencies |
+| 2026-08-13 | **Phase 1 complete** — Next.js 16.3.0 scaffolded, Tailwind v4, shadcn (Base UI/Nova), Prisma 6.19.3 exact, Clerk 7.7.4, Zustand. Build/lint/typecheck clean. Owner still to supply `DATABASE_URL` (1.8) and Clerk keys (1.10). New decision D-13 raised: Next 16 deprecates `middleware.ts` in favour of `proxy.ts` |
+| 2026-08-13 | App relocated from `web/` to the repo root by owner. All `web/` references in this file corrected; `tsconfig`/`eslint` excludes added for `bak/`; package renamed to `primecart`. Build, lint, typecheck and dev server all verified from the root |
