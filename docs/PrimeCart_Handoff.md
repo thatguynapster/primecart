@@ -163,8 +163,9 @@ The existing subdomain resolution logic is reused — see the Proxy notes below.
 
 Clerk 7.7.4 supports this — `clerkMiddleware` is still the export name from `@clerk/nextjs/server`, and it composes inside `proxy.ts`.
 
-The existing `bak/middleware.ts` subdomain resolution logic is correct and should be kept.
-Three fixes must be applied before use:
+**Correction:** `bak/middleware.ts` does **not** contain subdomain resolution. It only protects routes, redirects sign-in paths, and rewrites `/` to `/site`. There is no `getBusiness` call, no caching, and no storefront routing anywhere in `/bak` — the old app never had public storefront routes. The three fixes below therefore describe the target state to build, not edits to existing code. What is worth keeping from the old file is its route-protection shape and matcher.
+
+Three fixes to apply:
 
 **Fix 1 — Add in-memory caching to prevent a DB hit on every request:**
 
@@ -187,15 +188,25 @@ async function getCachedBusiness(key: string, lookup: Record<string, string>) {
 
 **Fix 2 — Pass only merchantId in response header, not the full merchant object:**
 
-Header names are `x-merchant-id` / `x-merchant-slug`, not `x-business-id` / `x-business-slug`. The old codebase in `/bak` uses `business` and `business_id` throughout; that naming is dropped. `merchant` is the term used everywhere — schema, service layer, and headers. Rename as you port the middleware.
+Header names are `x-merchant-id` / `x-merchant-slug`, not `x-business-id` / `x-business-slug`. The old codebase in `/bak` uses `business` and `business_id` throughout; that naming is dropped. `merchant` is the term used everywhere — schema, service layer, and headers.
+
+**These must be set as _request_ headers, not response headers.** A Server Component reads the incoming request headers via `headers()`. Response headers are sent onward to the browser, where the app cannot read them — so setting them there both fails to deliver the id to the page and leaks it to the client, which is the very thing this fix exists to prevent.
 
 ```typescript
 // Wrong — leaks data, hits header size limits
 response.headers.append("business", business.data);
 
-// Correct
+// Also wrong — the page cannot read this, and it is sent to the browser
 response.headers.set("x-merchant-id", merchant.id);
-response.headers.set("x-merchant-slug", subdomain || domain);
+
+// Correct — forwarded to the app, never to the client
+const requestHeaders = new Headers(req.headers);
+requestHeaders.set("x-merchant-id", merchant.id);
+requestHeaders.set("x-merchant-slug", subdomain);
+
+return NextResponse.rewrite(new URL(target, req.url), {
+	request: { headers: requestHeaders }
+});
 ```
 
 **Fix 3 — Wrap the merchant lookup in try/catch. Proxy must never crash a request:**
@@ -804,6 +815,8 @@ Amendments agreed with the project owner on 2026-08-13, after the initial handov
 | `@@index([email])` removed from `Merchant`                                                               | `@unique` already creates that index; declaring both fails Prisma schema validation                  |
 | `storefront.subdomain` index is `sparse` as well as `unique`                                             | Merchant records exist briefly without a storefront; a non-sparse unique index would break onboarding after the first signup |
 | Added `Order(status, paymentStatus, reservedUntil)` and `Merchant(subscriptionStatus, trialExpiresAt)` indexes | Both cron jobs query on exactly these fields and would otherwise do full collection scans            |
+| Merchant headers are set as request headers via `NextResponse.rewrite(..., { request: { headers } })`     | Response headers cannot be read by Server Components and would send the merchant id to the browser   |
+| Subdomain resolution written fresh rather than ported                                                    | `bak/middleware.ts` contains none — the document's premise that it exists does not hold              |
 | `storefront.isActive: false` serves a "temporarily unavailable" page, not a 404                          | A lapsed store is not a nonexistent store                                                            |
 | `expireAbandonedOrders` clears `reservedUntil`, and its embedded-array read must be proven by a test     | The original sample left `reservedUntil` set, and the embedded-array read was never verified against Prisma v6.19 |
 | `PAYSTACK_PLAN_CODE` moved to an environment variable                                                    | Test-mode plan now, live plan at deploy — a config change, not a code change                          |

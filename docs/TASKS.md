@@ -113,15 +113,44 @@ Port `bak/middleware.ts` — the subdomain resolution logic is correct, keep it 
 
 | #   | Task                                                                                                                       | Status | Done |
 | --- | ---------------------------------------------------------------------------------------------------------------------------- | ------ | ---- |
-| 3.1 | Create `src/proxy.ts` exporting `proxy` (sibling of `src/app`), with `config.matcher`                                       | [ ]    |      |
-| 3.2 | Fix 1 — in-memory merchant cache Map, 5-minute TTL, via `getCachedMerchant`                                                | [ ]    |      |
-| 3.3 | Fix 2 — **DEV-3:** set `x-merchant-id` and `x-merchant-slug` headers only; never the full merchant object                   | [ ]    |      |
-| 3.4 | Fix 3 — wrap lookup in try/catch, fail open with `NextResponse.next()`; 404 "Store not found" when no merchant             | [ ]    |      |
-| 3.5 | Rename `business_id` → `merchantId` throughout the ported logic and its lookup helper                                       | [ ]    |      |
-| 3.6 | Verify root domain `primecart.app` (no subdomain) resolves to the landing page, not a store                                 | [ ]    |      |
-| 3.7 | Compose Clerk's `clerkMiddleware` (from `@clerk/nextjs/server`) with the subdomain logic inside `proxy.ts` without breaking either | [ ]    |      |
-| 3.8 | Dashboard route guard — `subscriptionStatus: EXPIRED` merchants see only the payment/reactivation page                       | [ ]    |      |
-| 3.9 | Confirm no `middleware.ts` exists anywhere — only one proxy file is supported per project                                    | [ ]    |      |
+| 3.1 | Create `src/proxy.ts` exporting `proxy` (sibling of `src/app`), with `config.matcher`                                       | [x] build reports `ƒ Proxy (Middleware)` | 2026-08-13 |
+| 3.2 | Fix 1 — in-memory merchant cache Map, 5-minute TTL (`src/lib/merchant/lookup.ts`)                                          | [x] proven live — see note | 2026-08-13 |
+| 3.3 | Fix 2 — **DEV-3:** set `x-merchant-id` and `x-merchant-slug` only; never the full merchant object                          | [x] as **request** headers — see note | 2026-08-13 |
+| 3.4 | Fix 3 — wrap lookup in try/catch, fail open with `NextResponse.next()`; 404 "Store not found" when no merchant             | [x] 404 verified; fail-open path not runtime-tested | 2026-08-13 |
+| 3.5 | Rename `business_id` → `merchantId` throughout the ported logic and its lookup helper                                       | [x] no `business` naming remains | 2026-08-13 |
+| 3.6 | Verify root domain (no subdomain) resolves to the landing page, not a store                                                 | [x] root and `www` both → 200 landing | 2026-08-13 |
+| 3.7 | Compose Clerk's `clerkMiddleware` with the subdomain logic inside `proxy.ts` without breaking either                        | [x] `/dashboard` → 307 to Clerk sign-in | 2026-08-13 |
+| 3.8 | Dashboard route guard — `subscriptionStatus: EXPIRED` merchants redirected to `/billing`                                    | [x] logic in place; needs a signed-in EXPIRED merchant to exercise (Phase 13) | 2026-08-13 |
+| 3.9 | Confirm no `middleware.ts` exists anywhere — only one proxy file is supported per project                                    | [x]    | 2026-08-13 |
+| 3.10 | Placeholder rewrite targets so the proxy is testable: `/store/[subdomain]`, `/store-unavailable`, `/billing`               | [x] replaced in Phases 8 and 13 | 2026-08-13 |
+| 3.11 | Call `invalidateStorefront` / `invalidateSubscription` wherever those fields are mutated                                    | [ ] Phases 6 and 13 | |
+| 3.12 | Re-derive `merchantId` from the session and authorize inside every page, route handler and Server Action — never rely on the proxy alone | [ ] Phases 6 onward | |
+
+**Phase 3 notes — verified behaviour**
+
+Exercised against the running app with real `Host` headers and live fixture merchants (created, tested, deleted):
+
+| Request | Result |
+| --- | --- |
+| `localhost:3000/` | 200 landing |
+| `www.localhost:3000/` | 200 landing (www is not a tenant) |
+| `nosuchstore.localhost:3000/` | 404 `Store not found` |
+| `proxytest-active.localhost:3000/` | 200 storefront, correct `x-merchant-id` + slug received by the page |
+| `proxytest-inactive.localhost:3000/` | 200 store-unavailable, storefront page not leaked |
+| `/dashboard` signed out | 307 → Clerk sign-in |
+| `/billing` signed out | 307 → Clerk sign-in (correct — see below) |
+| `/sign-in`, `/api/webhooks/paystack` | 404, **not** 307 — confirms they are public; the routes themselves arrive in Phases 6 and 9 |
+
+- **The handover's Fix 2 does not work as written, and leaks what it set out to protect.** It sets `response.headers`, but a Server Component reads *request* headers — response headers go to the browser. As specified, the app could not read the merchant id, and the id would be sent to the client, which is exactly what the fix says to avoid. Implemented via `NextResponse.rewrite(url, { request: { headers } })`. Verified both directions: the page receives the id, and `curl -D -` confirms it is absent from the response headers.
+- **`bak/middleware.ts` contains no subdomain resolution.** The handover says the "existing middleware subdomain resolution logic is correct and should be kept", but the file only does route protection and a `/site` rewrite; there is no `getBusiness` call, no caching, and no storefront routing anywhere in `/bak` (the old app had no public storefront routes at all). The three fixes describe a target state rather than edits to existing code, so this was written fresh to match that description.
+- **Prisma in the proxy works only because of Next 16.** Proxy defaults to the Node.js runtime in 16; on Next 15's Edge default a Prisma query here would fail outright. `runtime` cannot be overridden in a proxy file.
+- **Cache proven live:** deleting a merchant from MongoDB and immediately re-requesting still served the storefront, confirming the 5-minute cache is serving rather than passing through. That is also its hazard — storefront changes take up to 5 minutes to appear unless invalidated, hence task 3.11.
+- **Misses are cached too**, so a scanner hitting random subdomains cannot hammer the database.
+- **Fail-open is not runtime-verified.** Forcing a database failure would mean pointing `DATABASE_URL` at a bad host and restarting; the code path is straightforward but has only been reviewed, not executed.
+- **Route structure chosen** (not specified in the handover — say if you want it different): storefronts rewrite to `/store/[subdomain]`, the dashboard lives at `/dashboard`, reactivation at `/billing`. Storefront URLs stay clean — customers only ever see `merchant.primecart.app/...`.
+- **`/billing` requires sign-in, and that is correct.** Two independent guards apply to root-domain traffic: Clerk's `auth.protect()` (are you signed in?) and the subscription check (is your subscription live?). `/billing` is subject to the first and exempt from the second — an anonymous visitor has no subscription to reactivate, while an EXPIRED merchant redirected here must not be redirected again. Verified by matcher inspection: `/billing` → public `false`, subscription-guarded `false`; `/dashboard` → `false` / `true`. No loop.
+- **Clerk's `createRouteMatcher` is deprecated in v7** and slated for removal. Its own warning: middleware path matching "can diverge from how Next.js routes requests and leave protected resources reachable", and auth checks belong in each page, layout, route handler and Server Function. Replaced with plain path predicates — same behaviour, no deprecated dependency, and slightly stricter (`/sign-in-evil` no longer matches, where `/sign-in(.*)` would have).
+- **Proxy checks are a first line of defence, not the security boundary.** Both Clerk and the Next.js docs are explicit that a matcher change or a moved Server Action can silently remove proxy coverage. Every page, route handler and Server Action touching merchant data must re-derive `merchantId` from the session and authorize on its own — which the handover's multi-tenancy rule already requires. Carried into Phases 6 onward.
 
 ## Phase 4 — Vercel Wildcard Subdomain Config
 
@@ -329,3 +358,5 @@ Built against **test-mode** plan `PLN_2b0d04ozbt798kj`. A live plan code is crea
 | 2026-08-13 | D-13 resolved: port to `proxy.ts` (DEV-4). Phase 3 rewritten around the Proxy convention; handover §Middleware updated to §Proxy |
 | 2026-08-13 | **Phase 2 complete** — schema deployed to `primecart-dev`, manual embedded indexes scripted and applied, `$runCommandRaw` helper layer built and verified against the real database (13/13 checks). Two handover schema defects found and corrected: duplicate `@@index` on `@unique` fields, and a non-sparse unique index that would have broken onboarding |
 | 2026-08-13 | **Phase 1 fully closed** — owner supplied `DATABASE_URL` and Clerk keys (1.8, 1.10), both verified. Paystack test keys and plan code also already in place, ahead of their phases. Environment readiness table added; `CRON_SECRET` and the R2 vars remain the only gaps |
+| 2026-08-13 | **Phase 3 complete** — `src/proxy.ts` built and verified live against fixture merchants. Found that the handover's Fix 2 (response headers) could not work and leaked the merchant id to the client; implemented as request headers instead. Also found `bak/middleware.ts` has no subdomain logic to port, so it was written fresh from the fixes' description |
+| 2026-08-13 | Replaced Clerk's deprecated `createRouteMatcher` with plain path predicates after it emitted a removal warning. Confirmed `/billing` requires sign-in but is not subscription-guarded, so there is no redirect loop. Added task 3.12 for resource-level authorization |
