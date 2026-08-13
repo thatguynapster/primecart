@@ -53,7 +53,7 @@ Target merchants: phone accessory shops, electronics gadget sellers, fashion and
     - Features overview — inventory, orders, storefront, reporting
     - Pricing — GHS 79/month + 3% per transaction (covers all payment processing fees), 30-day free trial, no hidden fees
     - CTA section — bottom of page signup prompt
-- The root domain route is already handled correctly by the existing middleware — `primecart.app` with no subdomain resolves to the landing page, not a merchant store
+- The root domain route is already handled correctly by the existing subdomain resolution logic — `primecart.app` with no subdomain resolves to the landing page, not a merchant store
 - Full creative latitude on layout, component choices, and visual execution within the design direction above
 
 ### 3. Storefront
@@ -155,11 +155,15 @@ async function getProducts(merchantId: string, filters?: ProductFilters) {
 ### Subdomain Routing
 
 Wildcard subdomain routing must be configured on Vercel from day one.
-The existing middleware handles subdomain resolution — see middleware notes below.
+The existing subdomain resolution logic is reused — see the Proxy notes below.
 
-### Middleware
+### Proxy (formerly Middleware)
 
-The existing `middleware.ts` subdomain resolution logic is correct and should be kept.
+**Next.js 16 renamed Middleware to Proxy.** The convention is a `proxy.ts` file exporting a `proxy` function, placed alongside `app/` (so `src/proxy.ts` in this project). `middleware.ts` still runs but is deprecated in 16; Next ships a codemod (`npx @next/codemod@canary middleware-to-proxy`) for existing projects. Functionality is unchanged — only the file and export names differ. We build `proxy.ts` from the start. Only one proxy file is supported per project; split logic into imported modules rather than multiple proxy files.
+
+Clerk 7.7.4 supports this — `clerkMiddleware` is still the export name from `@clerk/nextjs/server`, and it composes inside `proxy.ts`.
+
+The existing `bak/middleware.ts` subdomain resolution logic is correct and should be kept.
 Three fixes must be applied before use:
 
 **Fix 1 — Add in-memory caching to prevent a DB hit on every request:**
@@ -194,7 +198,7 @@ response.headers.set("x-merchant-id", merchant.id);
 response.headers.set("x-merchant-slug", subdomain || domain);
 ```
 
-**Fix 3 — Wrap getBusiness call in try/catch. Middleware must never crash a request:**
+**Fix 3 — Wrap the merchant lookup in try/catch. Proxy must never crash a request:**
 
 ```typescript
 try {
@@ -274,8 +278,10 @@ model Merchant {
   orders    Order[]
   customers Customer[]
 
-  @@index([email])
-  @@index([clerkUserId])
+  // No @@index([email]) or @@index([clerkUserId]) — @unique already creates
+  // those indexes. Declaring both fails validation with
+  // "Index already exists in the model".
+  @@index([subscriptionStatus, trialExpiresAt]) // daily trial-expiry cron
 }
 
 type MerchantStorefront {
@@ -434,9 +440,17 @@ enum PaymentStatus {
 **`storefront.subdomain` must be indexed.** Add this index manually via MongoDB Atlas or a migration script since Prisma cannot index embedded type fields directly:
 
 ```javascript
-db.Merchant.createIndex({ "storefront.subdomain": 1 }, { unique: true });
+// sparse as well as unique — see below.
+db.Merchant.createIndex(
+	{ "storefront.subdomain": 1 },
+	{ unique: true, sparse: true }
+);
 db.Merchant.createIndex({ "storefront.customDomain": 1 }, { sparse: true });
 ```
+
+**The subdomain index must be `sparse` as well as `unique`.** A `Merchant` record is created at first Clerk sign-in, before the storefront is configured, so `storefront` is briefly absent. A non-sparse unique index treats every missing value as `null`, so the second merchant to sign up without a storefront collides with the first and onboarding breaks for every user after the first. `sparse` exempts documents missing the field while still enforcing uniqueness among those that have it.
+
+These are applied by `prisma/indexes.mjs` (`npm run db:indexes`), which is idempotent and must be run once per environment after `prisma db push`.
 
 ---
 
@@ -715,7 +729,7 @@ Build in this order. Do not skip ahead.
 
 1. **Project setup** — Next.js 16, TypeScript, Tailwind, Shadcn/ui, Clerk, Prisma + MongoDB connection
 2. **Schema + indexes** — Deploy schema, create manual indexes for storefront.subdomain
-3. **Middleware fixes** — Apply the three fixes documented above to existing middleware.ts
+3. **Proxy fixes** — Port `bak/middleware.ts` to `src/proxy.ts` and apply the three fixes documented above
 4. **Vercel wildcard subdomain config** — Configure this before building any storefront routes. Project owner applies the Vercel and DNS settings; the coding agent supplies the instructions and verifies a test subdomain resolves
 5. **Landing page** — Read /bak/app/site for content, redesign UI, deploy at primecart.app root
 6. **Merchant onboarding** — Clerk auth + merchant profile + Paystack subaccount creation
@@ -770,7 +784,7 @@ No open questions remain. Every item below is settled; the coding agent implemen
     - `invoice.payment_failed` → mark merchant `subscriptionStatus: EXPIRED`, deactivate storefront
     - `subscription.disable` → same as above
 
-    **Protect all dashboard routes:** middleware must check `subscriptionStatus` — EXPIRED merchants see only a payment/reactivation page, nothing else.
+    **Protect all dashboard routes:** the proxy must check `subscriptionStatus` — EXPIRED merchants see only a payment/reactivation page, nothing else.
 
 4. **Merchant validation** — Storefront goes live automatically on signup. No manual review or approval step. `storefront.isActive` is set to `true` immediately on onboarding completion and only set to `false` if the merchant's subscription expires.
 5. **Third-party dashboard configuration** — The project owner performs all external dashboard setup: the Vercel wildcard domain and DNS, both cron-job.org jobs, the Cloudflare R2 bucket, and the live Paystack plan at deploy. The coding agent does not have access to these and must not attempt it. For each, the agent's deliverable is the working endpoint or config plus written setup instructions, and verification once the owner has applied it.
@@ -785,7 +799,11 @@ Amendments agreed with the project owner on 2026-08-13, after the initial handov
 | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
 | `Merchant.password` removed; `clerkUserId String @unique` added                                          | Auth is Clerk — PrimeCart never handles passwords, and a Clerk session needs a link field to resolve a merchant |
 | `EXPIRED` added to `OrderStatus`; the expiry cron sets `EXPIRED`, not `CANCELLED`                        | Abandoned checkouts and merchant cancellations are different events and should not share a status in reporting |
-| Middleware headers are `x-merchant-id` / `x-merchant-slug`, not `x-business-id` / `x-business-slug`      | `merchant` is the term used in the schema and service layer; the `/bak` codebase's `business` naming is dropped |
+| Proxy headers are `x-merchant-id` / `x-merchant-slug`, not `x-business-id` / `x-business-slug`           | `merchant` is the term used in the schema and service layer; the `/bak` codebase's `business` naming is dropped |
+| Subdomain logic lives in `src/proxy.ts`, not `middleware.ts`                                             | Next.js 16 renamed Middleware to Proxy and deprecated the old filename                               |
+| `@@index([email])` removed from `Merchant`                                                               | `@unique` already creates that index; declaring both fails Prisma schema validation                  |
+| `storefront.subdomain` index is `sparse` as well as `unique`                                             | Merchant records exist briefly without a storefront; a non-sparse unique index would break onboarding after the first signup |
+| Added `Order(status, paymentStatus, reservedUntil)` and `Merchant(subscriptionStatus, trialExpiresAt)` indexes | Both cron jobs query on exactly these fields and would otherwise do full collection scans            |
 | `storefront.isActive: false` serves a "temporarily unavailable" page, not a 404                          | A lapsed store is not a nonexistent store                                                            |
 | `expireAbandonedOrders` clears `reservedUntil`, and its embedded-array read must be proven by a test     | The original sample left `reservedUntil` set, and the embedded-array read was never verified against Prisma v6.19 |
 | `PAYSTACK_PLAN_CODE` moved to an environment variable                                                    | Test-mode plan now, live plan at deploy — a config change, not a code change                          |

@@ -1,10 +1,15 @@
 // PrimeCart — Prisma schema
 //
-// Models are added in Phase 2 (see docs/TASKS.md). This file currently
-// establishes only the generator and the MongoDB datasource so the client
-// can be generated and the connection verified.
-//
 // Prisma is pinned to 6.19.x. Do not upgrade to v7 — it drops MongoDB support.
+//
+// Multi-tenancy: every document is scoped by merchantId, and every query must
+// filter on it first. merchantId is always derived from the Clerk session
+// server-side — never accepted from the client.
+//
+// Embedded types (MerchantStorefront, ProductVariant, OrderLineItem,
+// ShippingAddress) cannot be written through standard Prisma Client methods on
+// MongoDB. All writes touching them go through prisma.$runCommandRaw — see
+// src/lib/db/embedded.ts.
 
 generator client {
   provider = "prisma-client-js"
@@ -13,4 +18,208 @@ generator client {
 datasource db {
   provider = "mongodb"
   url      = env("DATABASE_URL")
+}
+
+// ============================================
+// MERCHANT
+// ============================================
+model Merchant {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  // Clerk owns authentication — no password is ever stored here.
+  // This is the only supported way to resolve a session to a merchant.
+  clerkUserId String @unique
+
+  email     String   @unique
+  name      String
+  phone     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  storefront MerchantStorefront?
+
+  // Paystack. Subaccount is created at onboarding with percentage_charge: 0 —
+  // the 3% is applied per-transaction via transaction_charge at initialization.
+  paystackSubaccountCode String?
+
+  // Subscription. Merchants are not enrolled in the plan at signup; they get 30
+  // days free, and the subscription is initiated at trial expiry.
+  trialExpiresAt           DateTime
+  subscriptionStatus       SubscriptionStatus @default(TRIAL)
+  paystackSubscriptionCode String?
+
+  products  Product[]
+  orders    Order[]
+  customers Customer[]
+
+  // No @@index([email]) or @@index([clerkUserId]) — @unique already creates
+  // those indexes, and declaring them twice fails schema validation.
+  //
+  // Drives the daily trial-expiry cron's lookup.
+  @@index([subscriptionStatus, trialExpiresAt])
+}
+
+// storefront.subdomain and storefront.customDomain need indexes that Prisma
+// cannot declare on embedded types. They are created by prisma/indexes.ts.
+type MerchantStorefront {
+  subdomain    String
+  customDomain String?
+  businessName String
+  logoUrl      String?
+  primaryColor String  @default("#000000")
+  description  String?
+  isActive     Boolean @default(true)
+}
+
+// ============================================
+// PRODUCT
+// ============================================
+model Product {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  merchantId  String   @db.ObjectId
+  name        String
+  description String?
+  category    String?
+  images      String[]
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  variants ProductVariant[]
+  merchant Merchant         @relation(fields: [merchantId], references: [id])
+
+  @@index([merchantId])
+  @@index([merchantId, isActive])
+  @@index([merchantId, category])
+}
+
+// Variants are embedded and have no independent existence. Do not create a
+// separate collection for them.
+type ProductVariant {
+  id                String  @default(cuid())
+  name              String
+  sku               String?
+  price             Float
+  stock             Int     @default(0)
+  lowStockThreshold Int     @default(5)
+  attributes        Json
+  isActive          Boolean @default(true)
+}
+
+// ============================================
+// CUSTOMER
+// ============================================
+model Customer {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  merchantId String   @db.ObjectId
+  name       String
+  email      String?
+  phone      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  merchant Merchant @relation(fields: [merchantId], references: [id])
+  orders   Order[]
+
+  @@index([merchantId])
+  @@index([merchantId, email])
+  @@index([merchantId, phone])
+}
+
+// ============================================
+// ORDER
+// ============================================
+model Order {
+  id          String      @id @default(auto()) @map("_id") @db.ObjectId
+  merchantId  String      @db.ObjectId
+  customerId  String?     @db.ObjectId
+  orderNumber String
+  status      OrderStatus @default(PENDING)
+  source      OrderSource @default(MANUAL)
+
+  paymentStatus PaymentStatus @default(UNPAID)
+  paymentRef    String?
+
+  subtotal Float
+  total    Float
+
+  lineItems       OrderLineItem[]
+  shippingAddress ShippingAddress?
+
+  // Stock is reserved (hard decrement) at order creation. This holds the
+  // 30-minute deadline for payment, and is cleared once payment is confirmed
+  // or the order is expired by the cron job.
+  reservedUntil DateTime?
+
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  merchant Merchant  @relation(fields: [merchantId], references: [id])
+  customer Customer? @relation(fields: [customerId], references: [id])
+
+  @@index([merchantId])
+  @@index([merchantId, status])
+  @@index([merchantId, createdAt])
+  @@index([merchantId, orderNumber])
+  @@index([paymentRef])
+  // Drives the expiry cron's lookup of abandoned reservations.
+  @@index([status, paymentStatus, reservedUntil])
+}
+
+// Snapshot pattern: product name, variant name, SKU and price are copied in at
+// order time. Never read live product data from a historical order.
+type OrderLineItem {
+  productId   String
+  variantId   String
+  productName String
+  variantName String
+  sku         String?
+  price       Float
+  quantity    Int
+  subtotal    Float
+}
+
+type ShippingAddress {
+  name    String
+  phone   String
+  address String
+  city    String
+  region  String?
+}
+
+// ============================================
+// ENUMS
+// ============================================
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  // Set by the expiry cron when a checkout is abandoned and the stock
+  // reservation lapses. Never selectable by a merchant — CANCELLED is the
+  // merchant's deliberate cancellation.
+  EXPIRED
+}
+
+enum OrderSource {
+  STOREFRONT
+  MANUAL
+  WHATSAPP // deferred to Phase 2 — placeholder only
+}
+
+enum PaymentStatus {
+  UNPAID
+  PAID
+  PARTIALLY_PAID
+  REFUNDED
+}
+
+enum SubscriptionStatus {
+  TRIAL
+  ACTIVE
+  EXPIRED
+  CANCELLED
 }

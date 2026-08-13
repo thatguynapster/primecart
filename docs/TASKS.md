@@ -33,7 +33,8 @@ Three changes to the original handover, approved by the project owner on 2026-08
 | ----- | ------------------------------------------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ |
 | DEV-1 | `Merchant` has `email @unique` + `password`                 | `Merchant` has `clerkUserId @unique`; `password` removed         | Auth is Clerk — PrimeCart never handles passwords, and a Clerk session needs a link field |
 | DEV-2 | `OrderStatus` has no `EXPIRED`; expiry job sets `CANCELLED` | `EXPIRED` added to `OrderStatus`; expiry job sets `EXPIRED`      | Separates abandoned checkouts from genuine merchant cancellations in reporting            |
-| DEV-3 | Middleware sets `x-business-id` / `x-business-slug`         | Middleware sets `x-merchant-id` / `x-merchant-slug`              | Consistent with `merchantId` used everywhere in the schema and service layer               |
+| DEV-3 | Middleware sets `x-business-id` / `x-business-slug`         | Proxy sets `x-merchant-id` / `x-merchant-slug`                   | Consistent with `merchantId` used everywhere in the schema and service layer               |
+| DEV-4 | `middleware.ts` exporting `middleware`                      | `proxy.ts` exporting `proxy`                                     | Next.js 16 renamed Middleware to Proxy; `middleware.ts` is deprecated. Same functionality, new convention |
 
 ---
 
@@ -50,9 +51,9 @@ Three changes to the original handover, approved by the project owner on 2026-08
 | 1.5  | Add `.vscode/settings.json` — `prisma.prismaFmtBinPath` + prisma formatter binding                    | [x] path `./node_modules/.bin/prisma`, plus `prisma.pinToPrisma6` | 2026-08-13 |
 | 1.6  | Add `.vscode/extensions.json` recommending `Prisma.prisma`                                            | [x]    | 2026-08-13 |
 | 1.7  | Prisma datasource + client singleton (`src/lib/prisma.ts`); `prisma generate` passes                  | [x]    | 2026-08-13 |
-| 1.8  | *(Owner)* Provision the new MongoDB Atlas database and supply `DATABASE_URL` — needed for 2.8 `db push` | [ ]    |      |
+| 1.8  | *(Owner)* Provision the new MongoDB Atlas database and supply `DATABASE_URL` — needed for 2.8 `db push` | [x] db `primecart-dev`, verified by a successful `db push` | 2026-08-13 |
 | 1.9  | Clerk install + `ClerkProvider` in root layout                                                        | [x] `@clerk/nextjs` 7.7.4, Next 16 supported | 2026-08-13 |
-| 1.10 | *(Owner)* Supply Clerk publishable + secret keys — needed to exercise auth in Phase 6                 | [ ]    |      |
+| 1.10 | *(Owner)* Supply Clerk publishable + secret keys — needed to exercise auth in Phase 6                 | [x] test-mode keys; dev server no longer runs keyless | 2026-08-13 |
 | 1.11 | Zustand install (client state only)                                                                   | [x] 5.0.15 | 2026-08-13 |
 | 1.12 | `.env.example` — DB, Clerk, Paystack (incl. `PAYSTACK_PLAN_CODE`), `CRON_SECRET`, R2, root domain      | [x]    | 2026-08-13 |
 | 1.13 | Verify build: `tsc --noEmit`, `eslint`, `next build` all pass                                          | [x] all clean | 2026-08-13 |
@@ -61,8 +62,22 @@ Three changes to the original handover, approved by the project owner on 2026-08
 
 - **Shadcn/ui now asks which primitive library to use** — Base UI (its own "Recommended"), React Aria, or Radix UI. Took the recommended default, Base UI, with the `Nova` preset (Lucide icons, Geist font) per the CLI's documented default of `base-nova`. Radix was the classic shadcn foundation; if you want it instead, say so before components are built.
 - **Tailwind v4** configures through CSS (`src/app/globals.css`), not `tailwind.config.ts`. The `/bak` project used v3 — its Tailwind config does not port across.
-- The build passes without Clerk keys present; Clerk runs in "keyless mode" in dev and writes a `.clerk/` directory, which is gitignored. Real keys are only needed once auth routes exist.
 - `tsconfig.json` excludes `bak` and `eslint.config.mjs` ignores `bak/**` — without this the old codebase is compiled and fails the build.
+- Before keys were supplied, Clerk ran in "keyless mode" and wrote a `.clerk/` directory (gitignored). With real keys present it no longer does; the leftover directory is inert.
+
+**Environment readiness** (`.env`, gitignored — `.env.example` is the committed template)
+
+| Variable | State | Needed by |
+| --- | --- | --- |
+| `DATABASE_URL` | ✅ set — `primecart-dev` | Phase 2 onward |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` / `CLERK_SECRET_KEY` | ✅ set (test mode) | Phase 6 |
+| `PAYSTACK_SECRET_KEY` / `PAYSTACK_PUBLIC_KEY` | ✅ set (test mode) | Phases 6, 9 |
+| `PAYSTACK_PLAN_CODE` | ✅ set (test plan `PLN_2b0d04ozbt798kj`) | Phase 13 |
+| `NEXT_PUBLIC_ROOT_DOMAIN` | ✅ set to `localhost:3000` for dev — must become `primecart.app` in the Vercel environment | Phases 3, 8 |
+| `CRON_SECRET` | ⬜ empty — generate a long random string, and set the identical value in cron-job.org's Authorization header | Phase 9 (9.13–9.15) |
+| `R2_*` (5 vars) | ⬜ empty — supplied by owner when Phase 7 is reached | Phase 7 (7.7–7.9) |
+
+All keys are test-mode, which is correct for development. Live Paystack keys and the live plan code are swapped in at deploy (D-2, D-3).
 
 ## Phase 2 — Schema & Indexes
 
@@ -70,32 +85,43 @@ Database is brand new and empty — no migration or backfill concerns (D-12 reso
 
 | #    | Task                                                                                                                            | Status | Done |
 | ---- | ------------------------------------------------------------------------------------------------------------------------------- | ------ | ---- |
-| 2.1  | Write `schema.prisma` per handover §Database Schema                                                                             | [ ]    |      |
-| 2.2  | **DEV-1:** `Merchant` gets `clerkUserId String @unique` + `@@index([clerkUserId])`; remove the `password` field                  | [ ]    |      |
-| 2.3  | Add `reservedUntil DateTime?` to `Order` (§Stock Deduction Logic)                                                                | [ ]    |      |
-| 2.4  | Add `paystackSubaccountCode String?` to `Merchant` (§Paystack Integration Spec)                                                  | [ ]    |      |
-| 2.5  | Add subscription fields to `Merchant`: `trialExpiresAt DateTime` (required), `subscriptionStatus SubscriptionStatus @default(TRIAL)`, `paystackSubscriptionCode String?` | [ ]    |      |
-| 2.6  | Add `SubscriptionStatus` enum: `TRIAL \| ACTIVE \| EXPIRED \| CANCELLED`                                                          | [ ]    |      |
-| 2.7  | **DEV-2:** Add `EXPIRED` to the `OrderStatus` enum                                                                               | [ ]    |      |
-| 2.8  | `prisma db push` + generate client                                                                                              | [ ]    |      |
-| 2.9  | Manual index: `db.Merchant.createIndex({ "storefront.subdomain": 1 }, { unique: true })`                                         | [ ]    |      |
-| 2.10 | Manual index: `db.Merchant.createIndex({ "storefront.customDomain": 1 }, { sparse: true })`                                      | [ ]    |      |
-| 2.11 | Script both manual indexes so they are reproducible per environment                                                             | [ ]    |      |
-| 2.12 | Build the `$runCommandRaw` helper layer for embedded-type writes                                                                | [ ]    |      |
+| 2.1  | Write `schema.prisma` per handover §Database Schema                                                                             | [x]    | 2026-08-13 |
+| 2.2  | **DEV-1:** `Merchant` gets `clerkUserId String @unique`; remove the `password` field                                            | [x] see note on duplicate indexes | 2026-08-13 |
+| 2.3  | Add `reservedUntil DateTime?` to `Order` (§Stock Deduction Logic)                                                                | [x]    | 2026-08-13 |
+| 2.4  | Add `paystackSubaccountCode String?` to `Merchant` (§Paystack Integration Spec)                                                  | [x]    | 2026-08-13 |
+| 2.5  | Add subscription fields to `Merchant`: `trialExpiresAt DateTime` (required), `subscriptionStatus SubscriptionStatus @default(TRIAL)`, `paystackSubscriptionCode String?` | [x]    | 2026-08-13 |
+| 2.6  | Add `SubscriptionStatus` enum: `TRIAL \| ACTIVE \| EXPIRED \| CANCELLED`                                                          | [x]    | 2026-08-13 |
+| 2.7  | **DEV-2:** Add `EXPIRED` to the `OrderStatus` enum                                                                               | [x]    | 2026-08-13 |
+| 2.8  | `prisma db push` + generate client                                                                                              | [x] db `primecart-dev`, 4 collections, 15 indexes | 2026-08-13 |
+| 2.9  | Manual index on `storefront.subdomain` — unique **and sparse** (see note)                                                        | [x]    | 2026-08-13 |
+| 2.10 | Manual index: `{ "storefront.customDomain": 1 }, { sparse: true }`                                                               | [x]    | 2026-08-13 |
+| 2.11 | Script both manual indexes so they are reproducible per environment                                                             | [x] `prisma/indexes.mjs`, `npm run db:indexes`, idempotent | 2026-08-13 |
+| 2.12 | Build the `$runCommandRaw` helper layer for embedded-type writes                                                                | [x] `src/lib/db/embedded.ts` | 2026-08-13 |
+| 2.13 | Prove the embedded mechanics against the real database before building on them                                                  | [x] 13/13 checks passed | 2026-08-13 |
 
-## Phase 3 — Middleware Fixes
+**Phase 2 notes**
 
-Port `bak/middleware.ts` (subdomain resolution logic is correct — keep it) and apply the three fixes.
+- **The handover's schema does not validate as written.** It declares `email String @unique` *and* `@@index([email])` on `Merchant`; Prisma 6 rejects the pair with "Index already exists in the model", because `@unique` already creates the index. Both `@@index([email])` and the equivalent for `clerkUserId` are omitted. No behavioural difference — the indexes exist either way.
+- **The `storefront.subdomain` index is `sparse` as well as `unique`.** The handover specifies only `unique`. A `Merchant` row is created at first Clerk sign-in (6.2) before the storefront is configured (6.4), so `storefront` is briefly absent. A non-sparse unique index treats every missing value as `null`, and the *second* merchant to sign up without a storefront would collide with the first — onboarding would break for everyone after the first user. `sparse` exempts documents missing the field while still enforcing uniqueness among those that have it.
+- **Two extra indexes were added** for the cron queries the handover requires: `Order(status, paymentStatus, reservedUntil)` for the order-expiry job, and `Merchant(subscriptionStatus, trialExpiresAt)` for the daily trial-expiry job. Without these both cron jobs do full collection scans every five minutes / every day.
+- **D-11 / task 9.17 is answered.** Verified against the real database: embedded arrays read back fully populated through Prisma Client, including on the exact `findMany` shape `expireAbandonedOrders` uses — `order.lineItems` returned both items with fields intact. No `$runCommandRaw` needed for *reads*. Task 9.17 remains, narrowed to re-confirming this inside the finished job.
+- **Silent no-match confirmed as a real hazard.** A raw update whose filter matches nothing returns `ok:1, n:0` — indistinguishable from success. `runEmbeddedUpdate` throws on `n === 0` by default (`requireMatch`), which is why all embedded writes must go through it rather than calling `$runCommandRaw` directly.
+
+## Phase 3 — Proxy (formerly Middleware)
+
+Port `bak/middleware.ts` — the subdomain resolution logic is correct, keep it — into `src/proxy.ts` (**DEV-4**) and apply the three fixes. The file exports a `proxy` function, not `middleware`.
 
 | #   | Task                                                                                                                       | Status | Done |
 | --- | ---------------------------------------------------------------------------------------------------------------------------- | ------ | ---- |
-| 3.1 | Fix 1 — in-memory `businessCache` Map, 5-minute TTL, via `getCachedBusiness`                                                | [ ]    |      |
-| 3.2 | Fix 2 — **DEV-3:** set `x-merchant-id` and `x-merchant-slug` headers only; never the full merchant object                   | [ ]    |      |
-| 3.3 | Fix 3 — wrap lookup in try/catch, fail open with `NextResponse.next()`; 404 "Store not found" when no merchant             | [ ]    |      |
-| 3.4 | Rename `business_id` → `merchantId` throughout the ported middleware and its lookup helper                                  | [ ]    |      |
-| 3.5 | Verify root domain `primecart.app` (no subdomain) resolves to the landing page, not a store                                 | [ ]    |      |
-| 3.6 | Compose Clerk middleware with subdomain middleware without breaking either                                                  | [ ]    |      |
-| 3.7 | Dashboard route guard — `subscriptionStatus: EXPIRED` merchants see only the payment/reactivation page                       | [ ]    |      |
+| 3.1 | Create `src/proxy.ts` exporting `proxy` (sibling of `src/app`), with `config.matcher`                                       | [ ]    |      |
+| 3.2 | Fix 1 — in-memory merchant cache Map, 5-minute TTL, via `getCachedMerchant`                                                | [ ]    |      |
+| 3.3 | Fix 2 — **DEV-3:** set `x-merchant-id` and `x-merchant-slug` headers only; never the full merchant object                   | [ ]    |      |
+| 3.4 | Fix 3 — wrap lookup in try/catch, fail open with `NextResponse.next()`; 404 "Store not found" when no merchant             | [ ]    |      |
+| 3.5 | Rename `business_id` → `merchantId` throughout the ported logic and its lookup helper                                       | [ ]    |      |
+| 3.6 | Verify root domain `primecart.app` (no subdomain) resolves to the landing page, not a store                                 | [ ]    |      |
+| 3.7 | Compose Clerk's `clerkMiddleware` (from `@clerk/nextjs/server`) with the subdomain logic inside `proxy.ts` without breaking either | [ ]    |      |
+| 3.8 | Dashboard route guard — `subscriptionStatus: EXPIRED` merchants see only the payment/reactivation page                       | [ ]    |      |
+| 3.9 | Confirm no `middleware.ts` exists anywhere — only one proxy file is supported per project                                    | [ ]    |      |
 
 ## Phase 4 — Vercel Wildcard Subdomain Config
 
@@ -194,10 +220,10 @@ Design reference: [`docs/landing_sample.webp`](./landing_sample.webp) · source:
 | 9.11 | `expireAbandonedOrders` — restore stock per line item, set `status: EXPIRED` (DEV-2), **and clear `reservedUntil`** (D-11) | [ ]    |      |
 | 9.12 | `GET /api/cron/expire-orders` route                                                                                      | [ ]    |      |
 | 9.13 | Endpoint auth: reject unless `Authorization: Bearer ${process.env.CRON_SECRET}` — 401 otherwise                          | [ ]    |      |
-| 9.14 | Generate `CRON_SECRET`, set in env                                                                                       | [ ]    |      |
+| 9.14 | Generate `CRON_SECRET` and set it in env — the key is present in `.env` but empty                                        | [ ]    |      |
 | 9.15 | *(Owner)* Register cron-job.org job: `https://primecart.app/api/cron/expire-orders`, every 5 min (`*/5 * * * *`), Authorization header — **not** Vercel Cron (Pro-plan only) | [ ]    |      |
 | 9.16 | Confirm the 3% transaction fee applies to storefront orders only, never to manual orders                                 | [ ]    |      |
-| 9.17 | **Verify** reading `order.lineItems` (embedded array) through Prisma Client returns fully populated items — if not, rewrite the expiry query with `$runCommandRaw` (D-11) | [ ]    |      |
+| 9.17 | Re-confirm inside the finished expiry job that `order.lineItems` is fully populated. Already proven in isolation against the real DB in Phase 2 (D-11) | [ ]    |      |
 
 ## Phase 10 — Order Management
 
@@ -256,9 +282,7 @@ Built against **test-mode** plan `PLN_2b0d04ozbt798kj`. A live plan code is crea
 
 ## Open Decisions
 
-| ID   | Issue                                                                                                                                                                                                                                                                                                                          | Blocks  |
-| ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
-| D-13 | **Next.js 16 renamed Middleware to Proxy.** The convention is now `proxy.ts` exporting a `proxy` function; `middleware.ts` still works but is formally **deprecated** in 16, with a codemod (`npx @next/codemod@canary middleware-to-proxy`) provided. The handover's §Middleware says `middleware.ts` throughout. Confirm we port `/bak/middleware.ts` to `proxy.ts` (recommended — it is the supported convention, and Clerk 7.7.4 works either way), or deliberately stay on the deprecated filename. | Phase 3 |
+**None.** All decisions raised against the handover document have been resolved — see below.
 
 ### Resolved 2026-08-13 by project owner
 
@@ -275,6 +299,7 @@ Built against **test-mode** plan `PLN_2b0d04ozbt798kj`. A live plan code is crea
 | D-10 | `merchantId` vs `business` naming                     | Normalise to `x-merchant-id` / `x-merchant-slug`. Logged as DEV-3                                    |
 | D-11 | `expireAbandonedOrders` gaps                          | Confirmed: clear `reservedUntil` on expiry (9.11), and **prove** the embedded-array read works (9.17) |
 | D-12 | `trialExpiresAt` optionality                          | Required. New empty database — no backfill concern                                                   |
+| D-13 | `middleware.ts` vs Next 16's `proxy.ts`               | Port to `proxy.ts` — the new standard. Logged as DEV-4                                               |
 
 ### Resolved by handover revisions
 
@@ -301,3 +326,6 @@ Built against **test-mode** plan `PLN_2b0d04ozbt798kj`. A live plan code is crea
 | 2026-08-13 | Scaffolding rule added: official `create-next-app` flow with all offered dependencies |
 | 2026-08-13 | **Phase 1 complete** — Next.js 16.3.0 scaffolded, Tailwind v4, shadcn (Base UI/Nova), Prisma 6.19.3 exact, Clerk 7.7.4, Zustand. Build/lint/typecheck clean. Owner still to supply `DATABASE_URL` (1.8) and Clerk keys (1.10). New decision D-13 raised: Next 16 deprecates `middleware.ts` in favour of `proxy.ts` |
 | 2026-08-13 | App relocated from `web/` to the repo root by owner. All `web/` references in this file corrected; `tsconfig`/`eslint` excludes added for `bak/`; package renamed to `primecart`. Build, lint, typecheck and dev server all verified from the root |
+| 2026-08-13 | D-13 resolved: port to `proxy.ts` (DEV-4). Phase 3 rewritten around the Proxy convention; handover §Middleware updated to §Proxy |
+| 2026-08-13 | **Phase 2 complete** — schema deployed to `primecart-dev`, manual embedded indexes scripted and applied, `$runCommandRaw` helper layer built and verified against the real database (13/13 checks). Two handover schema defects found and corrected: duplicate `@@index` on `@unique` fields, and a non-sparse unique index that would have broken onboarding |
+| 2026-08-13 | **Phase 1 fully closed** — owner supplied `DATABASE_URL` and Clerk keys (1.8, 1.10), both verified. Paystack test keys and plan code also already in place, ahead of their phases. Environment readiness table added; `CRON_SECRET` and the R2 vars remain the only gaps |
