@@ -163,8 +163,39 @@ Full guide: **[`VERCEL_SETUP.md`](./VERCEL_SETUP.md)**
 | --- | ------------------------------------------------------------------------------- | ------ | ---- |
 | 4.0 | Vercel **Root Directory** stays as the repo root (default) — the Next.js app is top-level | [x] documented | 2026-08-13 |
 | 4.1 | Write setup instructions for wildcard `*.primecart.app` + root DNS on Vercel   | [x] `VERCEL_SETUP.md`, from current Vercel docs | 2026-08-13 |
-| 4.2 | *(Owner)* Move nameservers to Vercel, add apex + wildcard domain, set production env vars | [ ]    |      |
-| 4.3 | Verify subdomain resolution, TLS, and the 404/unavailable paths through real DNS | [ ] blocked on 4.2 | |
+| 4.2 | *(Owner)* Move nameservers to Vercel, add apex + wildcard domain, set env vars | [~] done for `dev.primecart.app`; apex/production still failing | |
+| 4.3 | Verify subdomain resolution, TLS, and the 404/unavailable paths through real DNS | [x] passes on `*.dev.primecart.app` | 2026-08-13 |
+
+**Phase 4 verification — `*.dev.primecart.app` (2026-08-13)**
+
+Run against the live deployment with a real merchant created in MongoDB, then deleted:
+
+| Check | Result |
+| --- | --- |
+| `dev.primecart.app` | ✅ 200 |
+| `<merchant>.dev.primecart.app` | ✅ 200, storefront renders, correct slug reached the page |
+| `nosuchstore.dev.primecart.app` | ✅ 404 `Store not found` |
+| Wildcard TLS | ✅ valid (`ssl_verify=0`) |
+| `x-merchant-id` in response headers | ✅ absent — reaches the app only, never the browser |
+| `/.well-known/vercel/*` | ✅ 404, not redirected to auth |
+
+Subdomain routing therefore works end to end through real DNS, TLS and Vercel — not just locally.
+
+**Outstanding on the apex / production domains**
+
+| Domain | Result |
+| --- | --- |
+| `primecart.app` | `DEPLOYMENT_NOT_FOUND` — not assigned to a deployment |
+| `www.primecart.app` | **500 `MIDDLEWARE_INVOCATION_FAILED`** |
+| `<anything>.primecart.app` | **500 `MIDDLEWARE_INVOCATION_FAILED`** |
+
+The proxy throws on every request to those domains, so even the marketing site 500s.
+
+**Cause reproduced locally: invalid or missing Clerk environment variables.** Running the dev server with a bad publishable key produces `Error: Publishable key not valid.` and a 500 on *every* route — marketing site and storefronts alike — which matches the production symptom exactly. `clerkMiddleware` wraps the whole proxy, so it fails before any of our routing logic runs, and no try/catch inside the handler can intercept it.
+
+Fix: set `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` (production instance) in the Vercel **Production** scope, alongside `DATABASE_URL` and `NEXT_PUBLIC_ROOT_DOMAIN=primecart.app`. Supporting evidence: `dev.primecart.app` returns `X-Clerk-Auth-Reason: dev-browser-missing`, so that environment's Clerk keys resolve correctly.
+
+**Correction to an earlier note here:** this was first attributed to `DATABASE_URL` throwing at module load. That is wrong — Prisma 6.19 does not throw when constructed with a missing or malformed `DATABASE_URL`; it throws on first query, which the proxy's try/catch already catches. Verified directly. `src/lib/prisma.ts` was still made lazy (worthwhile hardening — no connection opened for requests that never query, and any future construction-time failure lands inside the request path), but it was not the cause of the 500s and does not fix them.
 
 **Phase 4 notes**
 
@@ -310,6 +341,7 @@ Built against **test-mode** plan `PLN_2b0d04ozbt798kj`. A live plan code is crea
 | 13.3  | Protect the daily cron endpoint with `CRON_SECRET` the same way as 9.13                                          | [ ]    |      |
 | 13.4  | *(Owner)* Register the daily job on cron-job.org                                                                  | [ ]    |      |
 | 13.5  | Payment page collecting card details, initiating a Paystack subscription against the plan code                   | [ ]    |      |
+| 13.5a | **Resolve D-14 first** — does `/billing` stay sign-in-only, or split into a public explainer + protected payment page? | [ ]    |      |
 | 13.6  | On successful subscription: store `paystackSubscriptionCode`, set `subscriptionStatus: ACTIVE`                    | [ ]    |      |
 | 13.7  | Unpaid after trial expiry → `subscriptionStatus: EXPIRED` + `storefront.isActive: false`                          | [ ]    |      |
 | 13.8  | Webhook `subscription.create` → confirm active, update merchant record                                            | [ ]    |      |
@@ -323,7 +355,13 @@ Built against **test-mode** plan `PLN_2b0d04ozbt798kj`. A live plan code is crea
 
 ## Open Decisions
 
-**None.** All decisions raised against the handover document have been resolved — see below.
+Deferred by the project owner — revisit before the phase that depends on it.
+
+| ID   | Question                                                                                                                                                                                                                                          | Decide before |
+| ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
+| D-14 | **Should `/billing` be reachable signed-out?** It currently requires sign-in, which is correct for a payment page — Phase 13 charges a specific merchant's card, so a session is needed, and an anonymous visitor has no subscription to reactivate. The alternative is to split it: a public "your trial has ended" explainer with a sign-in button, plus a protected payment page behind it. Purely a product/UX choice; both are straightforward to build. Current behaviour is safe to leave until then. | Phase 13      |
+
+All other decisions raised against the handover document are resolved — see below.
 
 ### Resolved 2026-08-13 by project owner
 
@@ -374,3 +412,6 @@ Built against **test-mode** plan `PLN_2b0d04ozbt798kj`. A live plan code is crea
 | 2026-08-13 | Replaced Clerk's deprecated `createRouteMatcher` with plain path predicates after it emitted a removal warning. Confirmed `/billing` requires sign-in but is not subscription-guarded, so there is no redirect loop. Added task 3.12 for resource-level authorization |
 | 2026-08-13 | **Phase 4 instructions delivered** — `VERCEL_SETUP.md` written from current Vercel docs. Key constraint: wildcard domains require moving nameservers to Vercel, which drops any DNS records not recreated there. Awaiting owner to apply (4.2) before verification (4.3) |
 | 2026-08-13 | Owner moved nameservers and added `*.dev.primecart.app`; Vercel reported a proxy-check failure. Diagnosed: DNS and wildcard TLS both correct, no deployment existed (`DEPLOYMENT_NOT_FOUND`). Fixed a real proxy bug found while investigating — `/.well-known/*` was hitting the auth guard and would have broken domain verification post-deploy (3.13). Documented that a `dev.` environment needs `NEXT_PUBLIC_ROOT_DOMAIN=dev.primecart.app` |
+| 2026-08-13 | D-14 raised and deferred by owner: whether `/billing` should be reachable signed-out. Current sign-in-only behaviour left in place; revisit in Phase 13 (13.5a) |
+| 2026-08-13 | **Phase 4 verified on `*.dev.primecart.app`** — subdomain routing, wildcard TLS, 404 and header-leak checks all pass against the live deployment. Apex and `www` still return 500 `MIDDLEWARE_INVOCATION_FAILED`, almost certainly missing Production env vars |
+| 2026-08-13 | Made `src/lib/prisma.ts` lazy. Reproduced the production 500 locally: **invalid Clerk keys**, not `DATABASE_URL` — Prisma 6.19 does not throw at construction, contrary to the earlier note, which is now corrected in the Phase 4 section |

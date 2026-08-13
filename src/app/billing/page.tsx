@@ -10,6 +10,9 @@
  * What it must *not* be is a dashboard route — the subscription guard redirects
  * EXPIRED merchants here, so if this path were itself guarded the redirect
  * would loop and the merchant could never pay.
+ *
+ * OPEN: D-14 in docs/TASKS.md — whether to split this into a public "your trial
+ * has ended" explainer plus a protected payment page. Deferred to Phase 13.
  */
 export default function BillingPlaceholder() {
   return (
