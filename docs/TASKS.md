@@ -213,22 +213,34 @@ Design reference: [`docs/landing_sample.webp`](./landing_sample.webp) · source:
 
 | #    | Task                                                                                                                     | Status | Done |
 | ---- | ------------------------------------------------------------------------------------------------------------------------ | ------ | ---- |
-| 5.1  | Read `/bak/app/site` (`page.tsx`, `layout.tsx`) and extract copy, sections, value propositions to carry over             | [ ]    |      |
-| 5.2  | Design system: off-white/light-grey background (#F5F5F5 range), subtle grid/tile pattern behind hero                      | [ ]    |      |
-| 5.3  | Typography: large heavy sans-serif headlines, bold weight, tight tracking; small restrained body text                     | [ ]    |      |
-| 5.4  | Palette: near-monochromatic — light greys, white surfaces, dark text; one near-black CTA, ghost/outline secondary CTA     | [ ]    |      |
-| 5.5  | Navigation: horizontal, logo left, links centre, single pill/rounded CTA right                                            | [ ]    |      |
-| 5.6  | Hero: centred — trust badge, large headline, short subheadline, two side-by-side CTAs                                     | [ ]    |      |
-| 5.7  | Product preview: partial dashboard screenshot below hero CTAs, partially visible below the fold                           | [ ]    |      |
-| 5.8  | Cards/surfaces: white, soft shadows, rounded corners, generous padding                                                    | [ ]    |      |
-| 5.9  | Subtle 3D accent decorations in corners/background (optional — only if execution is clean)                                | [ ]    |      |
-| 5.10 | Section: Problem statement — life without PrimeCart (lost stock, manual tracking, WhatsApp chaos)                         | [ ]    |      |
-| 5.11 | Section: Features overview — inventory, orders, storefront, reporting                                                     | [ ]    |      |
-| 5.12 | Section: Pricing — GHS 79/month + 3% per transaction (covers all payment processing fees), 30-day free trial, no hidden fees | [ ]    |      |
-| 5.13 | Pricing transparency copy, verbatim: "We charge 3% on storefront sales only. That 3% covers all payment processing fees — no hidden charges on top. Manual orders are always free. You keep 97% of every sale." | [ ]    |      |
-| 5.14 | Section: bottom CTA — signup prompt (Start free trial)                                                                    | [ ]    |      |
-| 5.15 | Copy tone check: practical and direct, aimed at small Ghanaian retailers — operational pain points, not abstract SaaS benefits | [ ]    |      |
-| 5.16 | Mobile-first responsive pass across the whole page                                                                        | [ ]    |      |
+| 5.1  | Read `/bak/app/site` (`page.tsx`, `layout.tsx`) and extract copy, sections, value propositions to carry over             | [x] most copy rejected — see note | 2026-08-13 |
+| 5.2  | Design system: off-white/light-grey background (#F5F5F5 range), subtle grid/tile pattern behind hero                      | [x] `#F5F5F4` + 64px rule grid, masked, with filled cells | 2026-08-13 |
+| 5.3  | Typography: large heavy sans-serif headlines, bold weight, tight tracking; small restrained body text                     | [x] Archivo 800 display / Geist body | 2026-08-13 |
+| 5.4  | Palette: near-monochromatic — light greys, white surfaces, dark text; one near-black CTA, ghost/outline secondary CTA     | [x]    | 2026-08-13 |
+| 5.5  | Navigation: horizontal, logo left, links centre, single pill/rounded CTA right                                            | [x] sticky, blurred | 2026-08-13 |
+| 5.6  | Hero: centred — trust badge, large headline, short subheadline, two side-by-side CTAs                                     | [x]    | 2026-08-13 |
+| 5.7  | Product preview: partial dashboard screenshot below hero CTAs, partially visible below the fold                           | [x] built as markup, not a screenshot — see note | 2026-08-13 |
+| 5.8  | Cards/surfaces: white, soft shadows, rounded corners, generous padding                                                    | [x]    | 2026-08-13 |
+| 5.9  | Subtle 3D accent decorations in corners/background (optional — only if execution is clean)                                | [—] deliberately skipped — see note | 2026-08-13 |
+| 5.10 | Section: Problem statement — life without PrimeCart (lost stock, manual tracking, WhatsApp chaos)                         | [x] three cards | 2026-08-13 |
+| 5.11 | Section: Features overview — inventory, orders, storefront, reporting                                                     | [x] four cards | 2026-08-13 |
+| 5.12 | Section: Pricing — GHS 79/month + 3% per transaction (covers all payment processing fees), 30-day free trial, no hidden fees | [x] plus the GHS 200 worked example | 2026-08-13 |
+| 5.13 | Pricing transparency copy, verbatim: "We charge 3% on storefront sales only. That 3% covers all payment processing fees — no hidden charges on top. Manual orders are always free. You keep 97% of every sale." | [x] verbatim | 2026-08-13 |
+| 5.14 | Section: bottom CTA — signup prompt (Start free trial)                                                                    | [x]    | 2026-08-13 |
+| 5.15 | Copy tone check: practical and direct, aimed at small Ghanaian retailers — operational pain points, not abstract SaaS benefits | [x] rewritten from scratch | 2026-08-13 |
+| 5.16 | Mobile-first responsive pass across the whole page                                                                        | [ ] **not yet verified on a real viewport** | |
+
+**Phase 5 notes**
+
+- **Most of the old copy was rejected, not carried over.** `/bak/app/site` advertised a drag-and-drop store builder, multi-language support, a freemium tier and 24/7 support. All four are outside MVP scope — multi-language is explicitly deferred and pricing is a flat GHS 79 with a 30-day trial — so carrying them over would have promised things we are not building. What survived is the section skeleton (hero → features → CTA) and the dashboard-preview idea.
+- **No fabricated social proof.** The design reference badge reads "Trusted by 10,000+ Online Stores". Replaced with "30 days free — no card needed", which is true.
+- **The product preview is markup, not a screenshot** (`src/components/site/dashboard-preview.tsx`). The real dashboard does not exist until Phase 6, so the only available screenshots were of the deleted old UI. It shows the moment after a storefront order lands — order notice visible, `−2 sold` chip, stock already down to 10 — which demonstrates the sync rather than asserting it. Swap for a real screenshot once the dashboard ships.
+- **3D accents skipped.** The brief marks them optional and conditional on clean execution; in a strictly monochrome palette they tend to read as cheap gradient blobs. The weight went into the grid and filled cells instead. Easy to add later.
+- **Tailwind only, no custom CSS.** An earlier pass used custom `@keyframes` for an animated stock tick. That was removed on instruction — and it was also a latent hazard, since the rules sat outside Tailwind's layers and outranked every utility. The preview is now static.
+- **Nav IA fixed after review:** "How it works" pointed at the problem section, which describes life *without* PrimeCart. Renamed to "Why PrimeCart" (`#why`), and the hero's secondary CTA now points at `#features`, which genuinely answers "how it works". Added `scroll-mt-16` so anchored headings don't land under the sticky header.
+- **Known gap:** CTAs link to `/sign-up`, which 404s until Phase 6. Correct targets, not yet live.
+
+**Cause of the first broken render, for the record:** the dev server was serving a stale, incomplete CSS chunk — `py-20`, `p-7`, `mt-12`, `gap-5` and others were missing from it while present in the production build. Every gap collapsed and the `h1` fell back to body size, because Tailwind preflight resets `h1` to inherit. A clean rebuild plus a dev-server restart resolved it. Worth remembering: if a page renders as near-unstyled markup, suspect the dev CSS chunk before the markup.
 
 ## Phase 6 — Merchant Onboarding
 
@@ -415,3 +427,4 @@ All other decisions raised against the handover document are resolved — see be
 | 2026-08-13 | D-14 raised and deferred by owner: whether `/billing` should be reachable signed-out. Current sign-in-only behaviour left in place; revisit in Phase 13 (13.5a) |
 | 2026-08-13 | **Phase 4 verified on `*.dev.primecart.app`** — subdomain routing, wildcard TLS, 404 and header-leak checks all pass against the live deployment. Apex and `www` still return 500 `MIDDLEWARE_INVOCATION_FAILED`, almost certainly missing Production env vars |
 | 2026-08-13 | Made `src/lib/prisma.ts` lazy. Reproduced the production 500 locally: **invalid Clerk keys**, not `DATABASE_URL` — Prisma 6.19 does not throw at construction, contrary to the earlier note, which is now corrected in the Phase 4 section |
+| 2026-08-13 | **Phase 5 complete** except the mobile pass (5.16). Landing page built with Archivo/Geist, monochrome palette, markup-based product preview. Custom CSS removed on instruction — Tailwind only. Nav IA corrected after visual review |

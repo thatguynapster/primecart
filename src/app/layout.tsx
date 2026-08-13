@@ -1,11 +1,21 @@
 import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Archivo, Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
+// Body and UI. Bound to --font-sans, which globals.css expects.
 const geistSans = Geist({
-  variable: "--font-geist-sans",
+  variable: "--font-sans",
   subsets: ["latin"],
+});
+
+// Display. Archivo carries real weight at large sizes and tightens well, which
+// is what the headline treatment needs; Geist stays for everything else so the
+// two roles read as deliberately different rather than one family stretched.
+const archivo = Archivo({
+  variable: "--font-display",
+  subsets: ["latin"],
+  weight: ["600", "700", "800"],
 });
 
 const geistMono = Geist_Mono({
@@ -14,9 +24,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "PrimeCart",
+  title: "PrimeCart — stock, orders and your own shop link",
   description:
-    "Inventory, orders, and a storefront for small Ghanaian retailers.",
+    "Keep inventory, orders and an online storefront in one place. Built for shops in Ghana. GHS 79/month, 30 days free.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -24,7 +34,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <ClerkProvider>
       <html
         lang="en"
-        className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+        className={`${geistSans.variable} ${archivo.variable} ${geistMono.variable} h-full antialiased motion-safe:scroll-smooth`}
       >
         <body className="min-h-full flex flex-col">{children}</body>
       </html>
