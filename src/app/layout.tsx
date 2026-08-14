@@ -31,7 +31,9 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <ClerkProvider>
+    // Points Clerk's client components at this app's own auth screens. The
+    // proxy's server-side guard is configured separately, in src/proxy.ts.
+    <ClerkProvider signInUrl="/sign-in" signUpUrl="/sign-up">
       <html
         lang="en"
         className={`${geistSans.variable} ${archivo.variable} ${geistMono.variable} h-full antialiased motion-safe:scroll-smooth`}

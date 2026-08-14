@@ -135,6 +135,12 @@ export default clerkMiddleware(async (auth, req) => {
   }
 
   return NextResponse.next();
+}, {
+  // Send unauthenticated users to this app's sign-in screens. Without these,
+  // auth.protect() redirects to Clerk's hosted accounts.dev pages — the
+  // ClerkProvider props in the layout only affect client components.
+  signInUrl: "/sign-in",
+  signUpUrl: "/sign-up",
 });
 
 export const config = {

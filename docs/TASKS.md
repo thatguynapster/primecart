@@ -246,17 +246,43 @@ Design reference: [`docs/landing_sample.webp`](./landing_sample.webp) · source:
 
 | #    | Task                                                                                                     | Status | Done |
 | ---- | -------------------------------------------------------------------------------------------------------- | ------ | ---- |
-| 6.1  | Clerk sign-up / sign-in flows for merchants                                                              | [ ]    |      |
-| 6.2  | On first sign-in, create the `Merchant` record keyed to `clerkUserId` (DEV-1)                            | [ ]    |      |
-| 6.3  | Server-side helper: resolve Clerk session → `merchantId` — never from client input                       | [ ]    |      |
-| 6.4  | Merchant profile creation: business name, subdomain, logo, primary colour, description                   | [ ]    |      |
-| 6.5  | Subdomain availability check against the unique index                                                    | [ ]    |      |
-| 6.6  | Set `trialExpiresAt = now + 30 days` and `subscriptionStatus = TRIAL` at signup — no payment details collected | [ ]    |      |
-| 6.7  | Set `storefront.isActive = true` immediately on onboarding completion (no manual approval step)          | [ ]    |      |
-| 6.8  | Ghanaian bank dropdown with Paystack bank codes                                                          | [ ]    |      |
-| 6.9  | Paystack Create Subaccount — `business_name`, `settlement_bank`, `account_number`, **`percentage_charge: 0`** (must be 0; the 3% is applied per-transaction via `transaction_charge`, setting both stacks to ~6%) | [ ]    |      |
-| 6.10 | Persist returned `subaccount_code` to `Merchant.paystackSubaccountCode`                                  | [ ]    |      |
-| 6.11 | Onboarding flow states the 3% transparency copy (see 5.13)                                               | [ ]    |      |
+| 6.1  | Clerk sign-up / sign-in flows for merchants                                                              | [x] `/sign-in`, `/sign-up` catch-all routes | 2026-08-14 |
+| 6.2  | On first sign-in, create the `Merchant` record keyed to `clerkUserId` (DEV-1)                            | [x] lazy creation, race-safe — see note | 2026-08-14 |
+| 6.3  | Server-side helper: resolve Clerk session → `merchantId` — never from client input                       | [x] `src/lib/merchant/current.ts` | 2026-08-14 |
+| 6.4  | Merchant profile creation: business name, subdomain, logo, primary colour, description                   | [x] except **logo**, which needs R2 (Phase 7) | 2026-08-14 |
+| 6.5  | Subdomain availability check against the unique index                                                    | [x] live debounced check + reserved list | 2026-08-14 |
+| 6.6  | Set `trialExpiresAt = now + 30 days` and `subscriptionStatus = TRIAL` at signup — no payment details collected | [x] set at merchant creation | 2026-08-14 |
+| 6.7  | Set `storefront.isActive = true` immediately on onboarding completion (no manual approval step)          | [x]    | 2026-08-14 |
+| 6.8  | Ghanaian bank dropdown with Paystack bank codes                                                          | [x] fetched live, incl. mobile money — see note | 2026-08-14 |
+| 6.9  | Paystack Create Subaccount — `business_name`, `settlement_bank`, `account_number`, **`percentage_charge: 0`** (must be 0; the 3% is applied per-transaction via `transaction_charge`, setting both stacks to ~6%) | [x] `src/lib/paystack.ts` | 2026-08-14 |
+| 6.10 | Persist returned `subaccount_code` to `Merchant.paystackSubaccountCode`                                  | [x] same write as the storefront | 2026-08-14 |
+| 6.11 | Onboarding flow states the 3% transparency copy (see 5.13)                                               | [x] verbatim, above the payout fields | 2026-08-14 |
+| 6.12 | **End-to-end run by a real signed-in user** — sign up, onboard, land on the dashboard                    | [ ] **not yet done** — see note | |
+
+Also closed here: **3.11** (`invalidateStorefront` is called after the storefront write, so a new shop resolves immediately instead of 404ing for up to five minutes) and **3.12** (every page and action resolves the merchant from the session via `requireMerchant`, never from form input).
+
+**Phase 6 notes**
+
+- **Prisma *can* write embedded composites — but only wholesale.** Tested against the real database: `storefront: { set: {...} }` works through Prisma Client, while `storefront: { update: { isActive } }` fails with `Unknown argument 'update'`. So onboarding uses typed Prisma, and partial flips of a single embedded field — deactivating a storefront in Phase 13 — must go through `runEmbeddedUpdate` with `$set: { "storefront.isActive": false }`. This narrows the handover's blanket claim that all embedded operations need `$runCommandRaw`.
+- **Merchant records are created lazily, not by webhook.** The row is created the first time a signed-in user reaches the app, which avoids depending on a Clerk webhook being configured and delivered before their first request. Two parallel requests can race; the unique index on `clerkUserId` means one loses, and the loser re-reads rather than failing.
+- **The bank list is fetched from Paystack, not hardcoded** (`/bank?country=ghana&currency=GHS`, cached 24h). 34 institutions, and critically it includes **mobile money** (MTN, AirtelTigo, Telecel) alongside banks — for this merchant profile MoMo is often the only settlement account they have. The form groups them separately using Paystack's `type` field.
+- **Paystack errors are shown at form level, not pinned to a field.** Verified against the live API: an invalid bank returns `"Settlement Bank is invalid"`, which would have been misleading attached to the account-number input. Paystack's message names the real problem but not reliably which field owns it.
+- **Sign-in redirects needed configuring in two places.** `ClerkProvider`'s `signInUrl` only affects client components; the proxy's `auth.protect()` kept redirecting to Clerk's hosted `accounts.dev` page until `signInUrl`/`signUpUrl` were passed as options to `clerkMiddleware` itself.
+- **Onboarding is one-time** — returning to `/onboarding` after completing it redirects to the dashboard, rather than offering to claim a second subdomain and create a second Paystack subaccount.
+- **Paystack call ordering:** the subaccount is created *before* the database write. If it fails the merchant simply retries; the reverse order would leave a live storefront that cannot take payment.
+- **`/dashboard` is a placeholder** confirming the shop is live, with the storefront link and trial days remaining. The real dashboard arrives with Phases 7 and 12.
+
+**What is verified, and what is not**
+
+| Verified | How |
+| --- | --- |
+| `/sign-in`, `/sign-up` reachable signed-out | 200 |
+| `/onboarding`, `/dashboard` guarded | 307 → `/sign-in?redirect_url=…` (this app, not accounts.dev) |
+| Paystack bank list | live call, 34 Ghanaian institutions |
+| Paystack error handling | live call with invalid details — surfaced Paystack's own message, created nothing |
+| Embedded composite write semantics | live database test |
+
+**Not verified: the signed-in path.** Creating a Clerk account needs a real email and verification code, which I cannot complete. Nothing has actually run `getCurrentMerchant` against a live session, so merchant auto-creation, the onboarding form, subaccount creation and the dashboard have not been exercised end to end. Task 6.12 tracks this — worth doing before Phase 7 builds on top of it.
 
 ## Phase 7 — Product & Inventory Module
 
@@ -428,3 +454,5 @@ All other decisions raised against the handover document are resolved — see be
 | 2026-08-13 | **Phase 4 verified on `*.dev.primecart.app`** — subdomain routing, wildcard TLS, 404 and header-leak checks all pass against the live deployment. Apex and `www` still return 500 `MIDDLEWARE_INVOCATION_FAILED`, almost certainly missing Production env vars |
 | 2026-08-13 | Made `src/lib/prisma.ts` lazy. Reproduced the production 500 locally: **invalid Clerk keys**, not `DATABASE_URL` — Prisma 6.19 does not throw at construction, contrary to the earlier note, which is now corrected in the Phase 4 section |
 | 2026-08-13 | **Phase 5 complete** except the mobile pass (5.16). Landing page built with Archivo/Geist, monochrome palette, markup-based product preview. Custom CSS removed on instruction — Tailwind only. Nav IA corrected after visual review |
+| 2026-08-13 | Smooth scrolling (`motion-safe:scroll-smooth`) and initial-hash scroll (`HashScroll`) added to the landing page |
+| 2026-08-14 | **Phase 6 built** — Clerk auth pages, lazy merchant creation, onboarding form with live subdomain check and Paystack subaccount creation, placeholder dashboard. Closes 3.11 and 3.12. Established that Prisma writes embedded composites wholesale but not per-field. **Signed-in path not yet exercised (6.12)** |
