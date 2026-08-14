@@ -66,7 +66,7 @@ export default function LandingPage() {
               texture rather than graph paper. */}
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgb(0_0_0/0.05)_1px,transparent_1px),linear-gradient(to_bottom,rgb(0_0_0/0.05)_1px,transparent_1px)] bg-[size:64px_64px] [mask-image:radial-gradient(ellipse_75%_55%_at_50%_0%,#000_35%,transparent_100%)]"
+            className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgb(0_0_0/0.05)_1px,transparent_1px),linear-gradient(to_bottom,rgb(0_0_0/0.05)_1px,transparent_1px)] bg-size-[64px_64px] mask-[radial-gradient(ellipse_75%_55%_at_50%_0%,#000_35%,transparent_100%)]"
           />
 
           {/* A few filled cells, aligned to the same 64px grid, to give the
@@ -75,10 +75,10 @@ export default function LandingPage() {
             aria-hidden="true"
             className="pointer-events-none absolute inset-0 overflow-hidden"
           >
-            <span className="absolute top-[128px] left-[6%] hidden size-16 bg-neutral-900/[0.035] lg:block" />
-            <span className="absolute top-[320px] left-[14%] hidden size-16 bg-neutral-900/[0.05] lg:block" />
-            <span className="absolute top-[192px] right-[9%] hidden size-16 bg-neutral-900/[0.045] lg:block" />
-            <span className="absolute top-[384px] right-[17%] hidden size-16 bg-neutral-900/[0.03] lg:block" />
+            <span className="absolute top-32 left-[6%] hidden size-16 bg-neutral-900/[0.035] lg:block" />
+            <span className="absolute top-80 left-[14%] hidden size-16 bg-neutral-900/5 lg:block" />
+            <span className="absolute top-48 right-[9%] hidden size-16 bg-neutral-900/4.5 lg:block" />
+            <span className="absolute top-96 right-[17%] hidden size-16 bg-neutral-900/3 lg:block" />
           </div>
 
           <div className="relative mx-auto max-w-6xl px-5 pt-20 sm:px-8 sm:pt-28">

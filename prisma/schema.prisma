@@ -96,14 +96,21 @@ model Product {
 // Variants are embedded and have no independent existence. Do not create a
 // separate collection for them.
 type ProductVariant {
-  id                String  @default(cuid())
+  id                String   @default(cuid())
   name              String
   sku               String?
   price             Float
-  stock             Int     @default(0)
-  lowStockThreshold Int     @default(5)
+  stock             Int      @default(0)
+  lowStockThreshold Int      @default(5)
   attributes        Json
-  isActive          Boolean @default(true)
+  isActive          Boolean  @default(true)
+
+  // References into the parent Product.images — this option does not own
+  // uploads of its own. Keeping photos on the product means a shared shot is
+  // uploaded once, and the per-product cap still means something.
+  //
+  // Empty is meaningful: the option shows all of the product's photos.
+  imageUrls         String[]
 }
 
 // ============================================

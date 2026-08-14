@@ -11,9 +11,9 @@ const DEFAULT_ROOT_DOMAIN = "primecart.app";
 
 /** Root domain with any port stripped, lowercased. */
 export function getRootDomain(): string {
-  return (process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? DEFAULT_ROOT_DOMAIN)
-    .split(":")[0]
-    .toLowerCase();
+	return (process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? DEFAULT_ROOT_DOMAIN)
+		.split(":")[0]
+		.toLowerCase();
 }
 
 /**
@@ -24,18 +24,19 @@ export function getRootDomain(): string {
  * therefore behave like the root domain rather than a broken store.
  */
 export function getSubdomain(host: string | null | undefined): string | null {
-  if (!host) return null;
+	if (!host) return null;
 
-  const hostname = host.split(":")[0].toLowerCase();
-  const root = getRootDomain();
+	const hostname = host.split(":")[0].toLowerCase();
+	const root = getRootDomain();
 
-  if (hostname === root) return null;
-  if (!hostname.endsWith(`.${root}`)) return null;
+	if (hostname === root) return null;
+	if (!hostname.endsWith(`.${root}`)) return null;
 
-  const subdomain = hostname.slice(0, hostname.length - root.length - 1);
+	const subdomain = hostname.slice(0, hostname.length - root.length - 1);
 
-  // Reject empty, `www`, and any nested subdomain (a.b.primecart.app).
-  if (!subdomain || subdomain === "www" || subdomain.includes(".")) return null;
+	// Reject empty, `www`, and any nested subdomain (a.b.primecart.app).
+	if (!subdomain || subdomain === "www" || subdomain.includes("."))
+		return null;
 
-  return subdomain;
+	return subdomain;
 }

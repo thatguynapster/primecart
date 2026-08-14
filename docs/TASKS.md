@@ -35,6 +35,7 @@ Three changes to the original handover, approved by the project owner on 2026-08
 | DEV-2 | `OrderStatus` has no `EXPIRED`; expiry job sets `CANCELLED` | `EXPIRED` added to `OrderStatus`; expiry job sets `EXPIRED`      | Separates abandoned checkouts from genuine merchant cancellations in reporting            |
 | DEV-3 | Middleware sets `x-business-id` / `x-business-slug`         | Proxy sets `x-merchant-id` / `x-merchant-slug`                   | Consistent with `merchantId` used everywhere in the schema and service layer               |
 | DEV-4 | `middleware.ts` exporting `middleware`                      | `proxy.ts` exporting `proxy`                                     | Next.js 16 renamed Middleware to Proxy; `middleware.ts` is deprecated. Same functionality, new convention |
+| DEV-5 | `ProductVariant` has no image field                         | `ProductVariant` gains `imageUrls String[]` — **references** to the parent product's images, not its own uploads | Lets the storefront gallery follow the selected option (pick Red, see the red photos) without duplicating uploads or multiplying the photo cap. Scope addition beyond the handover, approved by owner 2026-08-14 |
 
 ---
 
@@ -257,7 +258,7 @@ Design reference: [`docs/landing_sample.webp`](./landing_sample.webp) · source:
 | 6.9  | Paystack Create Subaccount — `business_name`, `settlement_bank`, `account_number`, **`percentage_charge: 0`** (must be 0; the 3% is applied per-transaction via `transaction_charge`, setting both stacks to ~6%) | [x] `src/lib/paystack.ts` | 2026-08-14 |
 | 6.10 | Persist returned `subaccount_code` to `Merchant.paystackSubaccountCode`                                  | [x] same write as the storefront | 2026-08-14 |
 | 6.11 | Onboarding flow states the 3% transparency copy (see 5.13)                                               | [x] verbatim, above the payout fields | 2026-08-14 |
-| 6.12 | **End-to-end run by a real signed-in user** — sign up, onboard, land on the dashboard                    | [ ] **not yet done** — see note | |
+| 6.12 | **End-to-end run by a real signed-in user** — sign up, onboard, land on the dashboard                    | [x] merchant `gadgethub` live, Paystack subaccount `ACCT_…` created | 2026-08-14 |
 
 Also closed here: **3.11** (`invalidateStorefront` is called after the storefront write, so a new shop resolves immediately instead of 404ing for up to five minutes) and **3.12** (every page and action resolves the merchant from the session via `requireMerchant`, never from form input).
 
@@ -282,23 +283,85 @@ Also closed here: **3.11** (`invalidateStorefront` is called after the storefron
 | Paystack error handling | live call with invalid details — surfaced Paystack's own message, created nothing |
 | Embedded composite write semantics | live database test |
 
-**Not verified: the signed-in path.** Creating a Clerk account needs a real email and verification code, which I cannot complete. Nothing has actually run `getCurrentMerchant` against a live session, so merchant auto-creation, the onboarding form, subaccount creation and the dashboard have not been exercised end to end. Task 6.12 tracks this — worth doing before Phase 7 builds on top of it.
+**The signed-in path is now verified** (2026-08-14). The owner signed up and onboarded, producing a real merchant: `clerkUserId` set by lazy creation, storefront `gadgethub` live and active, **Paystack subaccount `ACCT_…` created against the live API**, `subscriptionStatus: TRIAL` with `trialExpiresAt` set. The Paystack call in particular could only be proven this way — every earlier check deliberately avoided creating a subaccount.
 
 ## Phase 7 — Product & Inventory Module
 
 | #    | Task                                                                              | Status | Done |
 | ---- | --------------------------------------------------------------------------------- | ------ | ---- |
-| 7.1  | Product create (Server Action) with embedded variants                             | [ ]    |      |
-| 7.2  | Product edit — variant edits via `$runCommandRaw`                                 | [ ]    |      |
-| 7.3  | Product archive (`isActive: false`)                                               | [ ]    |      |
-| 7.4  | Variant management: name, sku, price, stock, `lowStockThreshold` (default 5), attributes | [ ]    |      |
-| 7.5  | Stock level display + manual adjustment                                           | [ ]    |      |
-| 7.6  | Low stock alerts driven by per-variant threshold                                  | [ ]    |      |
-| 7.7  | *(Owner)* Complete Cloudflare R2 setup, supply bucket name, Account ID, Access Key ID, Secret Access Key, public bucket URL | [ ]    |      |
-| 7.8  | R2 client via `@aws-sdk/client-s3` — endpoint `https://<ACCOUNT_ID>.r2.cloudflarestorage.com`, region `auto` | [ ]    |      |
-| 7.9  | Image upload → public R2 URL stored in `Product.images` (public bucket, no signed requests) | [ ]    |      |
-| 7.10 | Product list + detail dashboard UI (mobile-first)                                 | [ ]    |      |
-| 7.11 | Verify every product query filters on `merchantId` first                          | [ ]    |      |
+| 7.1  | Product create (Server Action) with embedded variants                             | [x] created with its first option | 2026-08-14 |
+| 7.2  | Product edit — variant edits via `$runCommandRaw`                                 | [x] `arrayFilters` per variant | 2026-08-14 |
+| 7.3  | Product archive (`isActive: false`)                                               | [x] product and variant level | 2026-08-14 |
+| 7.4  | Variant management: name, sku, price, stock, `lowStockThreshold` (default 5), attributes | [x] one attribute pair in the UI — see note | 2026-08-14 |
+| 7.5  | Stock level display + manual adjustment                                           | [x] inline recount on the variant row | 2026-08-14 |
+| 7.6  | Low stock alerts driven by per-variant threshold                                  | [x] aggregation, surfaced on the overview | 2026-08-14 |
+| 7.7  | *(Owner)* Complete Cloudflare R2 setup, supply credentials — steps in **[`R2_SETUP.md`](./R2_SETUP.md)** | [x] bucket `primecart`, dev URL | 2026-08-14 |
+| 7.8  | R2 client via `@aws-sdk/client-s3` — endpoint `https://<ACCOUNT_ID>.r2.cloudflarestorage.com`, region `auto` | [x] `src/lib/r2.ts`, verified live | 2026-08-14 |
+| 7.9  | Image upload → public R2 URL stored in `Product.images` (public bucket, no signed requests) | [x] up to 6 per product, 5MB each | 2026-08-14 |
+| 7.10 | Product list + detail dashboard UI (mobile-first)                                 | [x] list, create, detail + dashboard shell | 2026-08-14 |
+| 7.11 | Verify every product query filters on `merchantId` first                          | [x] proven cross-merchant — see note | 2026-08-14 |
+| 7.12 | **End-to-end run by a signed-in merchant** — add a product, edit an option, recount stock | [x] product with 3 R2 photos and an option with photo refs | 2026-08-14 |
+| 7.13 | **DEV-5:** add `imageUrls String[]` to `ProductVariant`; confirm Prisma reads documents written before the field existed | [x] reads as `null`, not `[]` — see note | 2026-08-14 |
+| 7.14 | Variant editor: choose which of the product's photos belong to this option | [x] toggleable thumbnails, empty = all | 2026-08-14 |
+| 7.15 | Removing a product photo clears it from every variant that references it | [x] `$pull` on `variants.$[].imageUrls` | 2026-08-14 |
+
+**DEV-5 notes — two hazards this surfaced**
+
+> ### ⚠️ `prisma db push` silently drops the manual embedded indexes
+>
+> Running `db push` for this schema change **deleted `storefront_subdomain_unique` and `storefront_customDomain_sparse`**. Prisma syncs indexes to what the schema declares, and it cannot declare indexes on embedded fields — so it treats them as extraneous and removes them.
+>
+> Losing the unique index means two merchants can claim the same subdomain, and nothing would complain until the storefront resolved to the wrong shop. It was restored immediately with `npm run db:indexes` and verified.
+>
+> **`npm run db:push` must always be followed by `npm run db:indexes`.** This applies to every environment, and it is why that script is idempotent.
+
+- **A variant missing `imageUrls` reads back as `null`, not `[]`.** Prisma types the field `string[]`, so the type lies for any document written before the field existed, and `.length` or `.map` on it throws. Verified by stripping the field with `$unset` and reading through Prisma Client. New variants are safe — `buildVariant` always writes the field — but reads go through `variantImages()` rather than touching the property, so legacy or raw-written documents cannot crash a page.
+- **Photo references are validated server-side** against the product's own `images` before being saved, so a tampered form cannot point a variant at an arbitrary URL.
+- **Empty selection is meaningful**, not missing data: the option falls back to showing all of the product's photos. That is the right default when options are sizes rather than colours.
+- **`$pull` with `variants.$[]`** clears a deleted photo from every variant in one write, regardless of how many variants a product has.
+
+> ### ⚠️ After a schema change, stop the dev server before `prisma generate`
+>
+> On Windows, `prisma generate` cannot replace `query_engine-windows.dll.node` while a dev server holds it open — it fails with `EPERM: operation not permitted, rename …` and leaves `.tmp` files behind.
+>
+> The failure is loud, but its consequence is silent. Node caches modules on import, so a dev server started *before* the regenerate keeps the old client in memory for as long as it runs. That client does not know the new field exists.
+>
+> This produced a genuinely confusing bug while building DEV-5: variant photo selections **saved correctly but never appeared**. The asymmetry is the tell — writes go through `$runCommandRaw`, which sends commands straight to MongoDB and ignores the client's schema, while reads go through the typed client, which silently omits a field it has never heard of. The data was right in the database the whole time.
+>
+> **The sequence after any schema change:** stop the dev server → `npm run db:push` (which now chains `db:indexes`) → `npx prisma generate` → restart. If reads of a new field come back empty while writes appear to work, suspect a stale in-memory client before suspecting the code.
+
+**Phase 7 notes**
+
+- **Image upload is wired and verified against the live bucket.** A round trip — authenticate, `PutObject`, fetch back over the public URL with no credentials, `DeleteObject` — passed 5/5. Content type survives the round trip, so images serve as `image/jpeg` rather than a download prompt.
+- **Server Actions cap request bodies at 1MB by default**, which a phone photo exceeds immediately. `next.config.ts` raises `serverActions.bodySizeLimit` to `6mb` while the action itself enforces 5MB per file — the gap covers multipart boundaries and field metadata, as the Next docs advise.
+- **Uploads roll back on partial failure.** Uploading three photos where the third is rejected deletes the first two, so the bucket never accumulates objects no product references. The same rollback runs if the product disappears between upload and the database write.
+- **Object keys are `products/<merchantId>/<productId>/<uuid>.<ext>`** — namespaced by owner, so an object is traceable, and randomly named, so re-uploading never overwrites and the customer's original filename is not exposed.
+- **Deletion is best-effort.** Removing a photo is a database change; if the R2 delete fails the object is orphaned rather than the merchant's action failing. Orphans cost storage, not correctness.
+- **`R2_PUBLIC_URL` is currently a `pub-*.r2.dev` development URL**, which Cloudflare rate-limits and documents as non-production. See the production options in [`R2_SETUP.md`](./R2_SETUP.md) — this is a decision to make before launch, and it is a one-variable change.
+- **Variant ids are generated in application code**, not by the schema's `@default(cuid())`. Defaults are applied by Prisma Client, and variants pushed via `$runCommandRaw` bypass it entirely — so `newVariantId()` keeps the format consistent however a variant was created.
+- **`arrayFilters` rather than the positional `$`.** `$` only ever matches the first array element satisfying the query, which silently edits the wrong variant once a product has several. Every variant write targets `$[v]` with `arrayFilters: [{ "v.id": variantId }]`.
+- **Low stock is an aggregation, not a JavaScript filter.** The threshold is per-variant, so the comparison is between two fields of the same document (`$expr: { $lte: [...] }`) — which Prisma Client cannot express. It also avoids loading the whole catalogue to find a handful of rows.
+- **One attribute pair is editable in the UI.** The schema stores `attributes` as a map; the form exposes a single type/value pair (Colour → Black), which covers the size-and-colour case without inventing a repeater UI. Storefront variant selection in Phase 8 will show whether more is needed.
+- **Archive, never delete.** Order line items reference variants by id, and the snapshot pattern only holds if history stays readable. Both products and individual options archive and restore.
+- **UI language is "option", not "variant"** — a merchant selling shirts thinks in sizes and colours.
+- **React's purity rule rejects `Date.now()` during render**, including in async Server Components. Reading the clock moved to `daysUntil()` in `src/lib/format.ts`.
+- **`Prisma.InputJsonObject` has a read-only index signature**, so update documents are assembled as a mutable `Record` and handed over at the call site.
+
+**Verified against the real database** (two fixture merchants, created and deleted — 13/13 checks):
+
+| Check | Result |
+| --- | --- |
+| Create product with embedded variant | ✅ |
+| `$push` a second variant | ✅ |
+| `arrayFilters` update hits only the targeted variant | ✅ other variant's name and price untouched |
+| Another merchant's write to the same product | ✅ matches nothing (`n=0`) |
+| Another merchant's read of the same product | ✅ returns null |
+| Low-stock aggregation | ✅ returns only the below-threshold variant |
+| Threshold respected per-variant | ✅ stock 3 vs threshold 5 flagged; stock 10 vs 5 not |
+| Aggregation scoped to merchant | ✅ empty for the other merchant |
+| Archived variant | ✅ drops out of low-stock |
+
+That covers 7.11 with evidence rather than inspection: a second merchant can neither read nor write the first merchant's product, through both the typed client and the raw path.
 
 ## Phase 8 — Storefront
 
@@ -456,3 +519,9 @@ All other decisions raised against the handover document are resolved — see be
 | 2026-08-13 | **Phase 5 complete** except the mobile pass (5.16). Landing page built with Archivo/Geist, monochrome palette, markup-based product preview. Custom CSS removed on instruction — Tailwind only. Nav IA corrected after visual review |
 | 2026-08-13 | Smooth scrolling (`motion-safe:scroll-smooth`) and initial-hash scroll (`HashScroll`) added to the landing page |
 | 2026-08-14 | **Phase 6 built** — Clerk auth pages, lazy merchant creation, onboarding form with live subdomain check and Paystack subaccount creation, placeholder dashboard. Closes 3.11 and 3.12. Established that Prisma writes embedded composites wholesale but not per-field. **Signed-in path not yet exercised (6.12)** |
+| 2026-08-14 | **Phase 7 built** except image upload (7.7–7.9, blocked on R2 credentials) — product CRUD, variant management via `arrayFilters`, inline stock recount, low-stock aggregation, dashboard shell with product list/create/detail. Cross-merchant isolation proven with a two-merchant database test (7.11) |
+| 2026-08-14 | **Phase 7 complete** — owner supplied R2 credentials; client and upload wired and verified live (5/5 checks). Raised the Server Action body limit to 6mb. `r2.dev` public URL remains a pre-launch decision |
+| 2026-08-14 | Photo picker gained per-photo removal (rebuilding the `FileList` via `DataTransfer`) and clears itself after a successful upload; cap set to 5 per product, enforced client and server side |
+| 2026-08-14 | **DEV-5** approved and built — `ProductVariant.imageUrls` references the product's photos so the storefront gallery can follow the selected option. Discovered that `prisma db push` drops the manual embedded indexes; `db:push` now chains `db:indexes` so they cannot be lost silently |
+| 2026-08-14 | Variant rows show their first picked photo; deleting a photo used by an option now names the affected options and warns before the R2 object is destroyed |
+| 2026-08-14 | **6.12 and 7.12 closed** — owner ran the full signed-in path: sign-up, onboarding, live Paystack subaccount, product with R2 photos, variant photo references. Also documented the stale-Prisma-client trap that made variant photos appear not to save |

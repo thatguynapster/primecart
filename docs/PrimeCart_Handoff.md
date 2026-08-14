@@ -328,14 +328,18 @@ model Product {
 }
 
 type ProductVariant {
-  id                String  @default(cuid())
+  id                String   @default(cuid())
   name              String
   sku               String?
   price             Float
-  stock             Int     @default(0)
-  lowStockThreshold Int     @default(5)
+  stock             Int      @default(0)
+  lowStockThreshold Int      @default(5)
   attributes        Json
-  isActive          Boolean @default(true)
+  isActive          Boolean  @default(true)
+  // References into the parent Product.images — not uploads of its own.
+  // Lets the storefront gallery follow the selected option. Empty means the
+  // option shows all of the product's photos.
+  imageUrls         String[]
 }
 
 // ============================================
@@ -461,7 +465,11 @@ db.Merchant.createIndex({ "storefront.customDomain": 1 }, { sparse: true });
 
 **The subdomain index must be `sparse` as well as `unique`.** A `Merchant` record is created at first Clerk sign-in, before the storefront is configured, so `storefront` is briefly absent. A non-sparse unique index treats every missing value as `null`, so the second merchant to sign up without a storefront collides with the first and onboarding breaks for every user after the first. `sparse` exempts documents missing the field while still enforcing uniqueness among those that have it.
 
-These are applied by `prisma/indexes.mjs` (`npm run db:indexes`), which is idempotent and must be run once per environment after `prisma db push`.
+These are applied by `prisma/indexes.mjs` (`npm run db:indexes`), which is idempotent.
+
+> **⚠️ `prisma db push` deletes these indexes every time it runs.** Prisma syncs indexes to what the schema declares, and it cannot declare indexes on embedded fields — so it treats them as extraneous and drops them. Losing the unique index means two merchants can claim the same subdomain, with nothing to complain until a storefront resolves to the wrong shop.
+>
+> **Always run `npm run db:indexes` immediately after `npm run db:push`**, in every environment.
 
 ---
 
@@ -817,6 +825,7 @@ Amendments agreed with the project owner on 2026-08-13, after the initial handov
 | Added `Order(status, paymentStatus, reservedUntil)` and `Merchant(subscriptionStatus, trialExpiresAt)` indexes | Both cron jobs query on exactly these fields and would otherwise do full collection scans            |
 | Merchant headers are set as request headers via `NextResponse.rewrite(..., { request: { headers } })`     | Response headers cannot be read by Server Components and would send the merchant id to the browser   |
 | Subdomain resolution written fresh rather than ported                                                    | `bak/middleware.ts` contains none — the document's premise that it exists does not hold              |
+| `ProductVariant.imageUrls` added — variants reference the product's photos                               | Storefront gallery follows the selected option. Photos stay owned by the product, so uploads are not duplicated and the per-product photo cap still means something. Scope addition, approved 2026-08-14 |
 | `storefront.isActive: false` serves a "temporarily unavailable" page, not a 404                          | A lapsed store is not a nonexistent store                                                            |
 | `expireAbandonedOrders` clears `reservedUntil`, and its embedded-array read must be proven by a test     | The original sample left `reservedUntil` set, and the embedded-array read was never verified against Prisma v6.19 |
 | `PAYSTACK_PLAN_CODE` moved to an environment variable                                                    | Test-mode plan now, live plan at deploy — a config change, not a code change                          |
