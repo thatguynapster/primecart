@@ -4,6 +4,90 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ---------------------------------------------------------------------------
+   Nocturne — the merchant dashboard's design system.
+   Source of truth: docs/design_handoff_dashboard/_ds/nocturne-…/styles.css
+
+   Namespaced `nk-` on purpose. The ramp names in the token sheet (neutral-800,
+   accent-500) collide with Tailwind's own scales, and the marketing site and
+   storefront are light-themed and use those — redefining them globally would
+   repaint both. These live alongside instead: `bg-nk-surface`,
+   `border-nk-neutral-800`, `text-nk-accent-300`.
+   --------------------------------------------------------------------------- */
+@theme {
+  --color-nk-bg: #161826;
+  --color-nk-surface: #232532;
+  --color-nk-text: #e9e9ed;
+  --color-nk-accent: #9184d9;
+
+  --color-nk-neutral-100: #f3f5fe;
+  --color-nk-neutral-200: #e4e7f5;
+  --color-nk-neutral-300: #cfd3e5;
+  --color-nk-neutral-400: #b2b6ca;
+  --color-nk-neutral-500: #9397ab;
+  --color-nk-neutral-600: #75798c;
+  --color-nk-neutral-700: #595d6c;
+  --color-nk-neutral-800: #3f424d;
+  --color-nk-neutral-900: #292b31;
+
+  --color-nk-accent-100: #f5f4ff;
+  --color-nk-accent-200: #e7e5fe;
+  --color-nk-accent-300: #d2cefd;
+  --color-nk-accent-400: #b5abfc;
+  --color-nk-accent-500: #968ae0;
+  --color-nk-accent-600: #796cbf;
+  --color-nk-accent-700: #5d5294;
+  --color-nk-accent-800: #423a6a;
+  --color-nk-accent-900: #2b2741;
+
+  --font-nk: var(--font-inter), "Inter", system-ui, sans-serif;
+
+  /* Sizing deliberately uses Tailwind's own scales — `text-xs`…`text-2xl`,
+     `rounded-sm`/`md`/`xl`, and the spacing steps — rather than custom tokens.
+     Only colour is defined here, because Tailwind ships no equivalent palette. */
+
+  /* Elevation. The drawer is the only surface that gets a shadow — everywhere
+     else elevation is a 1px neutral-800 border, and shadows are never stacked. */
+  --shadow-nk-lg: 0 0 0 1px #9397ab, 0 16px 40px rgb(0 0 0 / 0.65);
+
+  /* Skeletons slide a lighter band across the surface fill. */
+  --animate-nk-shimmer: nk-shimmer 1.15s linear infinite;
+  --animate-nk-pulse: nk-pulse 2s infinite;
+  --animate-nk-in: nk-in 0.35s ease both;
+
+  @keyframes nk-shimmer {
+    0% {
+      background-position: -320px 0;
+    }
+    100% {
+      background-position: 320px 0;
+    }
+  }
+
+  @keyframes nk-pulse {
+    0% {
+      box-shadow: 0 0 0 0 color-mix(in srgb, #968ae0 55%, transparent);
+    }
+    70% {
+      box-shadow: 0 0 0 8px transparent;
+    }
+    100% {
+      box-shadow: 0 0 0 0 transparent;
+    }
+  }
+
+  @keyframes nk-in {
+    from {
+      opacity: 0;
+      transform: translateY(-5px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

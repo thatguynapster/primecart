@@ -14,6 +14,9 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Old pre-rebuild codebase, kept for reference only — never compiled or linted.
     "bak/**",
+    // Design handoff bundles (prototype runtime, design-system JS). Reference
+    // material that ships with the specs, not application code.
+    "docs/**",
   ]),
 ]);
 

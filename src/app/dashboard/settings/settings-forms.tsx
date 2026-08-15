@@ -18,7 +18,7 @@ function Saving({ label }: { label: string }) {
     <button
       type="submit"
       disabled={pending}
-      className="rounded-full bg-neutral-900 px-5 py-2.5 text-[13.5px] font-medium text-white transition-colors hover:bg-neutral-700 disabled:cursor-not-allowed disabled:bg-neutral-400"
+      className="rounded-md border border-nk-accent bg-transparent px-5 py-2.5 text-sm font-medium text-nk-accent transition-colors hover:bg-nk-accent/12 disabled:cursor-not-allowed disabled:opacity-45"
     >
       {pending ? "Saving…" : label}
     </button>
@@ -27,7 +27,7 @@ function Saving({ label }: { label: string }) {
 
 function Saved({ at }: { at?: number }) {
   if (!at) return null;
-  return <span className="text-[13px] text-neutral-500">Saved.</span>;
+  return <span className="text-sm text-nk-neutral-500">Saved.</span>;
 }
 
 // ---------------------------------------------------------------------------
@@ -53,9 +53,9 @@ export function ShopDetailsForm({
   return (
     <form
       action={formAction}
-      className="space-y-5 rounded-2xl border border-neutral-200 bg-white p-6 sm:p-8"
+      className="space-y-5 rounded-md border border-nk-neutral-800 bg-nk-surface p-6 sm:p-8"
     >
-      <h2 className="font-display text-[16px] font-bold tracking-tight">
+      <h2 className="text-base font-medium tracking-tight">
         Shop details
       </h2>
 
@@ -99,9 +99,9 @@ export function ShopDetailsForm({
             name="primaryColor"
             type="color"
             defaultValue={primaryColor}
-            className="h-11 w-16 cursor-pointer rounded-lg border border-neutral-300 bg-white p-1"
+            className="h-11 w-16 cursor-pointer rounded-sm border border-nk-neutral-800 bg-transparent p-1"
           />
-          <p className="text-[13px] text-neutral-500">
+          <p className="text-sm text-nk-neutral-500">
             Used for buttons and the cart badge on your shop.
           </p>
         </div>
@@ -109,11 +109,11 @@ export function ShopDetailsForm({
 
       {/* The address is permanent — customers may already have the link. */}
       <div>
-        <p className="text-[14px] font-medium text-neutral-900">Shop address</p>
-        <p className="mt-2 rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-2.5 font-mono text-[14px] text-neutral-500">
+        <p className="text-sm font-medium text-nk-text">Shop address</p>
+        <p className="mt-2 rounded-md border border-nk-neutral-800 bg-nk-neutral-900 px-4 py-2.5 font-mono text-sm text-nk-neutral-500">
           {shopUrl}
         </p>
-        <p className="mt-1.5 text-[13px] text-neutral-500">
+        <p className="mt-1.5 text-sm text-nk-neutral-500">
           This cannot be changed — customers may already have the link.
         </p>
       </div>
@@ -145,15 +145,15 @@ export function LogoForm({
   const inputId = useId();
 
   return (
-    <section className="rounded-2xl border border-neutral-200 bg-white p-6 sm:p-8">
-      <h2 className="font-display text-[16px] font-bold tracking-tight">Logo</h2>
-      <p className="mt-2 text-[14px] leading-relaxed text-neutral-600">
+    <section className="rounded-md border border-nk-neutral-800 bg-nk-surface p-6 sm:p-8">
+      <h2 className="text-base font-medium tracking-tight">Logo</h2>
+      <p className="mt-2 text-sm leading-relaxed text-nk-neutral-400">
         Shown at the top of your shop. A square image works best. Without one,
         your shop shows the first letter of its name.
       </p>
 
       <div className="mt-5 flex items-center gap-4">
-        <div className="grid size-16 shrink-0 place-items-center overflow-hidden rounded-xl border border-neutral-200 bg-neutral-50">
+        <div className="grid size-16 shrink-0 place-items-center overflow-hidden rounded-md border border-nk-neutral-800 bg-nk-neutral-900">
           {logoUrl ? (
             <Image
               src={logoUrl}
@@ -163,7 +163,7 @@ export function LogoForm({
               className="size-16 object-cover"
             />
           ) : (
-            <span className="text-[20px] font-bold text-neutral-400">
+            <span className="text-xl font-medium text-nk-neutral-600">
               {businessName.charAt(0).toUpperCase()}
             </span>
           )}
@@ -181,7 +181,7 @@ export function LogoForm({
                 setRemoving(false);
               }
             }}
-            className="text-[13px] text-neutral-500 underline underline-offset-4 hover:text-neutral-900 disabled:opacity-50"
+            className="text-sm text-nk-neutral-500 underline underline-offset-4 hover:text-nk-text disabled:opacity-50"
           >
             {removing ? "Removing…" : "Remove logo"}
           </button>
@@ -189,7 +189,7 @@ export function LogoForm({
       </div>
 
       {!configured ? (
-        <p className="mt-5 rounded-xl border border-dashed border-neutral-300 p-5 text-[14px] text-neutral-500">
+        <p className="mt-5 rounded-md border border-dashed border-nk-neutral-800 p-5 text-sm text-nk-neutral-500">
           Image storage is not connected yet.
         </p>
       ) : (
@@ -204,7 +204,7 @@ export function LogoForm({
           <div className="flex flex-wrap items-center gap-3">
             <label
               htmlFor={inputId}
-              className="cursor-pointer rounded-xl border border-neutral-300 bg-white px-4 py-2.5 text-[13.5px] font-medium transition-colors hover:border-neutral-400"
+              className="cursor-pointer rounded-md border border-nk-neutral-800 bg-transparent px-4 py-2.5 text-sm font-medium transition-colors hover:bg-nk-text/7"
             >
               Choose logo
             </label>
@@ -213,7 +213,7 @@ export function LogoForm({
               name="logo"
               type="file"
               accept="image/jpeg,image/png,image/webp"
-              className="text-[13px] text-neutral-500 file:hidden"
+              className="text-sm text-nk-neutral-500 file:hidden"
             />
             <Saving label="Upload" />
             <Saved at={state.savedAt} />

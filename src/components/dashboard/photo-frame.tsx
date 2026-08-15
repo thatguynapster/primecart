@@ -84,14 +84,14 @@ export function PhotoFrame({
       aria-modal="true"
       aria-label="Photo preview"
       onClick={onClose}
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-neutral-950/85 p-4 backdrop-blur-sm sm:p-8"
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-nk-bg/90 p-4 backdrop-blur-sm sm:p-8"
     >
       <button
         ref={closeRef}
         type="button"
         onClick={onClose}
         aria-label="Close preview"
-        className="absolute top-4 right-4 rounded-full bg-white/10 px-3 py-1.5 text-[13px] font-medium text-white transition-colors hover:bg-white/20 sm:top-6 sm:right-6"
+        className="absolute top-4 right-4 rounded-full bg-nk-surface/10 px-3 py-1.5 text-sm font-medium text-nk-text transition-colors hover:bg-nk-surface/20 sm:top-6 sm:right-6"
       >
         Close
       </button>
@@ -119,16 +119,16 @@ export function PhotoFrame({
               type="button"
               onClick={() => step(-1)}
               aria-label="Previous photo"
-              className="rounded-full bg-white/10 px-3 py-1.5 text-[13px] text-white transition-colors hover:bg-white/20"
+              className="rounded-full bg-nk-surface/10 px-3 py-1.5 text-sm text-nk-text transition-colors hover:bg-nk-surface/20"
             >
               ←
             </button>
           )}
 
-          <p className="text-center text-[13px] text-neutral-300">
+          <p className="text-center text-sm text-nk-neutral-300">
             {photo.caption}
             {photos.length > 1 && (
-              <span className="ml-2 text-neutral-500">
+              <span className="ml-2 text-nk-neutral-500">
                 {index + 1} of {photos.length}
               </span>
             )}
@@ -139,7 +139,7 @@ export function PhotoFrame({
               type="button"
               onClick={() => step(1)}
               aria-label="Next photo"
-              className="rounded-full bg-white/10 px-3 py-1.5 text-[13px] text-white transition-colors hover:bg-white/20"
+              className="rounded-full bg-nk-surface/10 px-3 py-1.5 text-sm text-nk-text transition-colors hover:bg-nk-surface/20"
             >
               →
             </button>

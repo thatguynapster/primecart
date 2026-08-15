@@ -26,7 +26,7 @@ function Saving({ label = "Save" }: { label?: string }) {
     <button
       type="submit"
       disabled={pending}
-      className="rounded-full bg-neutral-900 px-5 py-2.5 text-[13.5px] font-medium text-white transition-colors hover:bg-neutral-700 disabled:cursor-not-allowed disabled:bg-neutral-400"
+      className="rounded-md border border-nk-accent bg-transparent px-5 py-2.5 text-sm font-medium text-nk-accent transition-colors hover:bg-nk-accent/12 disabled:cursor-not-allowed disabled:opacity-45"
     >
       {pending ? "Saving…" : label}
     </button>
@@ -54,7 +54,7 @@ function DetailsForm({
   return (
     <form
       action={formAction}
-      className="space-y-5 rounded-2xl border border-neutral-200 bg-white p-6 sm:p-8"
+      className="space-y-5 rounded-md border border-nk-neutral-800 bg-nk-surface p-6 sm:p-8"
     >
       <input type="hidden" name="productId" value={product.id} />
       <FormError message={state.error} />
@@ -136,12 +136,12 @@ function StockCell({
       <button
         type="button"
         onClick={() => setEditing(true)}
-        className="flex items-center gap-2 rounded-lg px-2 py-1 font-mono text-[13.5px] tabular-nums transition-colors hover:bg-neutral-100"
+        className="flex items-center gap-2 rounded-sm px-2 py-1 font-mono text-sm tabular-nums transition-colors hover:bg-nk-neutral-800"
         title="Click to recount"
       >
         {variant.stock}
         {low && (
-          <span className="rounded-full border border-neutral-300 px-1.5 py-0.5 font-sans text-[10px] font-medium text-neutral-600">
+          <span className="rounded-full border border-nk-neutral-800 px-1.5 py-0.5 font-sans text-xs font-medium text-nk-neutral-400">
             Low
           </span>
         )}
@@ -164,13 +164,13 @@ function StockCell({
             setEditing(false);
           }
         }}
-        className="w-16 rounded-lg border border-neutral-900 px-2 py-1 text-right font-mono text-[13.5px] tabular-nums outline-none"
+        className="w-16 rounded-sm border border-nk-accent px-2 py-1 text-right font-mono text-sm tabular-nums outline-none"
       />
       <button
         type="button"
         onClick={() => void save()}
         disabled={saving}
-        className="rounded-lg bg-neutral-900 px-2 py-1 text-[12px] font-medium text-white disabled:bg-neutral-400"
+        className="rounded-sm border border-nk-accent px-2 py-1 text-xs font-medium text-nk-accent disabled:opacity-45"
       >
         {saving ? "…" : "Set"}
       </button>
@@ -199,7 +199,7 @@ function EditVariantForm({
   );
 
   return (
-    <form action={formAction} className="space-y-5 bg-neutral-50 p-5 sm:p-6">
+    <form action={formAction} className="space-y-5 bg-nk-neutral-900 p-5 sm:p-6">
       <input type="hidden" name="productId" value={productId} />
       <input type="hidden" name="variantId" value={variant.id} />
       <FormError message={state.error} />
@@ -207,7 +207,7 @@ function EditVariantForm({
       <VariantFields fieldErrors={state.fieldErrors} variant={variant} />
 
       <div>
-        <p className="text-[14px] font-medium text-neutral-900">
+        <p className="text-sm font-medium text-nk-text">
           Photos for this option
         </p>
         <div className="mt-2">
@@ -223,7 +223,7 @@ function EditVariantForm({
         <button
           type="button"
           onClick={onDone}
-          className="text-[13.5px] text-neutral-500 hover:text-neutral-900"
+          className="text-sm text-nk-neutral-500 hover:text-nk-text"
         >
           Close
         </button>
@@ -249,7 +249,7 @@ function VariantThumb({
 
   if (!src) {
     return (
-      <span className="size-11 shrink-0 rounded-lg border border-dashed border-neutral-300" />
+      <span className="size-11 shrink-0 rounded-sm border border-dashed border-nk-neutral-800" />
     );
   }
 
@@ -259,7 +259,7 @@ function VariantThumb({
       alt=""
       width={44}
       height={44}
-      className="size-11 shrink-0 rounded-lg border border-neutral-200 object-cover"
+      className="size-11 shrink-0 rounded-sm border border-nk-neutral-800 object-cover"
     />
   );
 }
@@ -286,20 +286,20 @@ function VariantRow({
   }
 
   return (
-    <div className={variant.isActive ? "" : "bg-neutral-50/60"}>
+    <div className={variant.isActive ? "" : "bg-nk-neutral-900/60"}>
       <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
         <div className="flex min-w-0 items-center gap-3">
           <VariantThumb variant={variant} productImages={productImages} />
           <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <p className="truncate text-[14px] font-medium">{variant.name}</p>
+            <p className="truncate text-sm font-medium">{variant.name}</p>
             {!variant.isActive && (
-              <span className="rounded-full border border-neutral-300 px-2 py-0.5 text-[10px] font-medium tracking-wide text-neutral-500 uppercase">
+              <span className="rounded-full border border-nk-neutral-800 px-2 py-0.5 text-xs font-medium tracking-wide text-nk-neutral-500 uppercase">
                 Archived
               </span>
             )}
           </div>
-          <p className="mt-0.5 text-[12.5px] text-neutral-500">
+          <p className="mt-0.5 text-xs text-nk-neutral-500">
             {formatGhs(variant.price)}
             {variant.sku ? ` · ${variant.sku}` : ""}
             {` · warns at ${variant.lowStockThreshold}`}
@@ -312,7 +312,7 @@ function VariantRow({
           <button
             type="button"
             onClick={() => setOpen((value) => !value)}
-            className="text-[13px] text-neutral-500 underline underline-offset-4 hover:text-neutral-900"
+            className="text-sm text-nk-neutral-500 underline underline-offset-4 hover:text-nk-text"
           >
             {open ? "Close" : "Edit"}
           </button>
@@ -320,7 +320,7 @@ function VariantRow({
             type="button"
             onClick={() => void toggleArchived()}
             disabled={busy}
-            className="text-[13px] text-neutral-500 underline underline-offset-4 hover:text-neutral-900 disabled:opacity-50"
+            className="text-sm text-nk-neutral-500 underline underline-offset-4 hover:text-nk-text disabled:opacity-50"
           >
             {variant.isActive ? "Archive" : "Restore"}
           </button>
@@ -351,7 +351,7 @@ function AddVariantForm({ productId }: { productId: string }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="rounded-full border border-neutral-300 bg-white px-5 py-2.5 text-[13.5px] font-medium transition-colors hover:border-neutral-400"
+        className="rounded-full border border-nk-neutral-800 bg-transparent px-5 py-2.5 text-sm font-medium transition-colors hover:bg-nk-text/7"
       >
         Add another option
       </button>
@@ -361,10 +361,10 @@ function AddVariantForm({ productId }: { productId: string }) {
   return (
     <form
       action={formAction}
-      className="space-y-5 rounded-2xl border border-neutral-200 bg-white p-6 sm:p-8"
+      className="space-y-5 rounded-md border border-nk-neutral-800 bg-nk-surface p-6 sm:p-8"
     >
       <input type="hidden" name="productId" value={productId} />
-      <h3 className="font-display text-[16px] font-bold tracking-tight">
+      <h3 className="text-base font-medium tracking-tight">
         New option
       </h3>
       <FormError message={state.error} />
@@ -376,7 +376,7 @@ function AddVariantForm({ productId }: { productId: string }) {
         <button
           type="button"
           onClick={() => setOpen(false)}
-          className="text-[13.5px] text-neutral-500 hover:text-neutral-900"
+          className="text-sm text-nk-neutral-500 hover:text-nk-text"
         >
           Cancel
         </button>
@@ -412,16 +412,16 @@ export function ProductEditor({
       <section>
         <div className="flex items-end justify-between gap-4">
           <div>
-            <h2 className="font-display text-lg font-bold tracking-tight">
+            <h2 className="text-lg font-medium tracking-tight">
               Options and stock
             </h2>
-            <p className="mt-1 text-[13.5px] text-neutral-600">
+            <p className="mt-1 text-sm text-nk-neutral-400">
               Tap a stock number to recount it.
             </p>
           </div>
         </div>
 
-        <div className="mt-4 divide-y divide-neutral-100 overflow-hidden rounded-2xl border border-neutral-200 bg-white">
+        <div className="mt-4 divide-y divide-nk-neutral-800 overflow-hidden rounded-md border border-nk-neutral-800 bg-nk-surface">
           {product.variants.map((variant) => (
             <VariantRow
               key={variant.id}
@@ -437,11 +437,11 @@ export function ProductEditor({
         </div>
       </section>
 
-      <section className="rounded-2xl border border-neutral-200 bg-white p-6 sm:p-8">
-        <h2 className="font-display text-[16px] font-bold tracking-tight">
+      <section className="rounded-md border border-nk-neutral-800 bg-nk-surface p-6 sm:p-8">
+        <h2 className="text-base font-medium tracking-tight">
           {product.isActive ? "Archive this product" : "Restore this product"}
         </h2>
-        <p className="mt-2 text-[14px] leading-relaxed text-neutral-600">
+        <p className="mt-2 text-sm leading-relaxed text-nk-neutral-400">
           {product.isActive
             ? "It disappears from your shop straight away. Past orders keep their details, and you can restore it any time."
             : "It goes back on your shop with the same options and stock."}
@@ -450,7 +450,7 @@ export function ProductEditor({
           type="button"
           onClick={() => void toggleArchived()}
           disabled={archiving}
-          className="mt-5 rounded-full border border-neutral-300 px-5 py-2.5 text-[13.5px] font-medium transition-colors hover:border-neutral-400 disabled:opacity-50"
+          className="mt-5 rounded-full border border-nk-neutral-800 px-5 py-2.5 text-sm font-medium transition-colors hover:bg-nk-text/7 disabled:opacity-50"
         >
           {archiving
             ? "Working…"

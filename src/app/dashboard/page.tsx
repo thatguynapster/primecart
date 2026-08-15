@@ -1,122 +1,247 @@
 import Link from "next/link";
 
+import { TopBar } from "@/components/dashboard/nocturne/top-bar";
+import {
+  Avatar,
+  Bar,
+  Card,
+  CardHeading,
+  Kicker,
+  initialsOf,
+} from "@/components/dashboard/nocturne/ui";
 import { getRootDomain } from "@/lib/domain";
+import { formatGhs } from "@/lib/format";
+import {
+  getBestSellers,
+  getLiveFeed,
+  getOverviewKpis,
+  getSalesSeries,
+} from "@/lib/dashboard/queries";
 import { requireMerchant } from "@/lib/merchant/current";
-import { daysUntil, formatGhs } from "@/lib/format";
-import { listLowStockVariants, listProducts } from "@/lib/products/queries";
+import { listLowStockVariants } from "@/lib/products/queries";
 
-export const metadata = {
-  title: "Dashboard — PrimeCart",
-};
+export const metadata = { title: "Overview — PrimeCart" };
 
-/**
- * Overview. Orders, customers and full reporting arrive in Phases 10–12; for
- * now it answers the two questions a merchant has on opening the app — is my
- * shop live, and is anything about to run out.
- */
-export default async function DashboardPage() {
+function greeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 18) return "Good afternoon";
+  return "Good evening";
+}
+
+function relativeTime(iso: string): string {
+  const minutes = Math.round((Date.now() - new Date(iso).getTime()) / 60_000);
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.round(hours / 24)}d ago`;
+}
+
+export default async function OverviewPage() {
   const merchant = await requireMerchant();
   const storefront = merchant.storefront!;
 
-  const [products, lowStock] = await Promise.all([
-    listProducts(merchant.id, { activeOnly: true }),
+  const [kpis, series, best, lowStock, feed] = await Promise.all([
+    getOverviewKpis(merchant.id),
+    getSalesSeries(merchant.id),
+    getBestSellers(merchant.id),
     listLowStockVariants(merchant.id),
+    getLiveFeed(merchant.id),
   ]);
 
-  const stockValue = products.reduce(
-    (total, product) =>
-      total +
-      product.variants
-        .filter((variant) => variant.isActive)
-        .reduce((sum, variant) => sum + variant.price * variant.stock, 0),
-    0
-  );
+  const firstName = merchant.name.split(/\s+/)[0];
+  const seriesMax = Math.max(...series.map((day) => day.value), 1);
+  const seriesTotal = series.reduce((sum, day) => sum + day.value, 0);
+  const bestMax = Math.max(...best.map((item) => item.sold), 1);
 
-  const trialDaysLeft = daysUntil(merchant.trialExpiresAt);
+  const cards = [
+    {
+      label: "Revenue 30 days",
+      value: formatGhs(kpis.revenue),
+      delta: `${kpis.orders} paid ${kpis.orders === 1 ? "order" : "orders"}`,
+      attention: false,
+    },
+    {
+      label: "Orders",
+      value: String(kpis.orders),
+      delta: "Last 30 days",
+      attention: false,
+    },
+    {
+      label: "Average order",
+      value: formatGhs(kpis.averageOrder),
+      delta: kpis.orders > 0 ? "Across paid orders" : "No paid orders yet",
+      attention: false,
+    },
+    {
+      label: "Stock value",
+      value: formatGhs(kpis.stockValue),
+      delta:
+        kpis.lowStockCount > 0
+          ? `${kpis.lowStockCount} running low`
+          : "Nothing running low",
+      attention: kpis.lowStockCount > 0,
+    },
+  ];
 
   return (
-    <main className="mx-auto max-w-5xl px-5 py-10 sm:px-8 sm:py-14">
-      <p className="text-[12.5px] font-medium tracking-[0.14em] text-neutral-400 uppercase">
-        {storefront.businessName}
-      </p>
-      <h1 className="font-display mt-3 text-3xl font-extrabold tracking-[-0.03em] sm:text-[2.25rem]">
-        Your shop is live.
-      </h1>
+    <>
+      <TopBar
+        title={`${greeting()}, ${firstName}`}
+        subtitle={`${storefront.businessName} · ${storefront.subdomain}.${getRootDomain()}`}
+      />
 
-      <div className="mt-8 grid gap-4 sm:grid-cols-3">
-        <div className="rounded-2xl border border-neutral-200 bg-white p-6">
-          <p className="text-[12px] font-medium tracking-[0.12em] text-neutral-400 uppercase">
-            Products
-          </p>
-          <p className="font-display mt-2 text-2xl font-bold tracking-tight">
-            {products.length}
-          </p>
+      <div className="flex flex-col gap-4 px-6 pt-5 pb-10">
+        {/* KPI row */}
+        <div className="grid gap-3.5 sm:grid-cols-2 xl:grid-cols-4">
+          {cards.map((card) => (
+            <Card key={card.label} className="flex flex-col gap-1.5 px-4 py-3.5">
+              <Kicker className="text-nk-neutral-500">{card.label}</Kicker>
+              <span className="text-2xl leading-none font-medium tracking-tight">
+                {card.value}
+              </span>
+              <span
+                className={`text-xs ${card.attention ? "text-nk-accent-300" : "text-nk-neutral-400"}`}
+              >
+                {card.delta}
+              </span>
+            </Card>
+          ))}
         </div>
 
-        <div className="rounded-2xl border border-neutral-200 bg-white p-6">
-          <p className="text-[12px] font-medium tracking-[0.12em] text-neutral-400 uppercase">
-            Stock value
-          </p>
-          <p className="font-display mt-2 text-2xl font-bold tracking-tight">
-            {formatGhs(stockValue)}
-          </p>
+        {/* Chart + live feed */}
+        <div className="grid items-start gap-3.5 lg:grid-cols-[1.6fr_1fr]">
+          <Card className="px-5 py-4.5">
+            <div className="mb-4.5 flex items-baseline justify-between">
+              <CardHeading>Sales, last 14 days</CardHeading>
+              <span className="text-xs text-nk-neutral-500">
+                {formatGhs(seriesTotal)} total
+              </span>
+            </div>
+
+            <div className="flex h-50 items-end gap-2">
+              {series.map((day, index) => (
+                <div
+                  key={index}
+                  className="flex h-full flex-1 flex-col items-center justify-end gap-1.75"
+                >
+                  <div
+                    style={{ height: (day.value / seriesMax) * 180 }}
+                    className={`w-full rounded-sm ${
+                      index === series.length - 1
+                        ? "bg-nk-accent-500"
+                        : "bg-nk-accent-800"
+                    }`}
+                  />
+                  <span className="text-xs text-nk-neutral-600">
+                    {day.label}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          <Card className="px-5 py-4.5">
+            <div className="mb-3.5 flex items-center gap-2.5">
+              <span className="animate-nk-pulse size-1.75 rounded-full bg-nk-accent" />
+              <CardHeading>Live orders</CardHeading>
+              <span className="ml-auto text-xs text-nk-neutral-600">
+                Storefront
+              </span>
+            </div>
+
+            {feed.length === 0 ? (
+              <p className="py-6 text-sm text-nk-neutral-600">
+                Storefront orders appear here the moment they are placed.
+              </p>
+            ) : (
+              <div className="flex flex-col">
+                {feed.map((order) => (
+                  <div
+                    key={order.id}
+                    className="animate-nk-in flex items-center gap-2.5 border-t border-nk-neutral-800 py-2.25"
+                  >
+                    <Avatar initials={initialsOf(order.customer)} tone="accent" />
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm">{order.item}</div>
+                      <div className="text-xs text-nk-neutral-600">
+                        {order.customer} · {relativeTime(order.createdAt)}
+                      </div>
+                    </div>
+                    <span className="text-sm font-medium">
+                      {formatGhs(order.total)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
         </div>
 
-        <div className="rounded-2xl border border-neutral-200 bg-white p-6">
-          <p className="text-[12px] font-medium tracking-[0.12em] text-neutral-400 uppercase">
-            Free trial
-          </p>
-          <p className="font-display mt-2 text-2xl font-bold tracking-tight">
-            {trialDaysLeft} days left
-          </p>
+        {/* Best sellers + low stock */}
+        <div className="grid gap-3.5 lg:grid-cols-2">
+          <Card className="px-5 py-4.5">
+            <div className="mb-3">
+              <CardHeading>Best sellers</CardHeading>
+            </div>
+
+            {best.length === 0 ? (
+              <p className="py-4 text-sm text-nk-neutral-600">
+                Nothing sold yet.
+              </p>
+            ) : (
+              best.map((item) => (
+                <div key={item.name} className="flex items-center gap-3 py-1.75">
+                  <span className="w-37.5 truncate text-sm text-nk-neutral-300">
+                    {item.name}
+                  </span>
+                  <Bar value={item.sold / bestMax} />
+                  <span className="w-19.5 text-right text-xs text-nk-neutral-500">
+                    {item.sold} sold
+                  </span>
+                </div>
+              ))
+            )}
+          </Card>
+
+          <Card className="px-5 py-4.5">
+            <div className="mb-3 flex items-baseline justify-between">
+              <CardHeading>Low stock</CardHeading>
+              <Link
+                href="/dashboard/products"
+                className="text-xs text-nk-accent-300 hover:text-nk-accent-200"
+              >
+                Restock list →
+              </Link>
+            </div>
+
+            {lowStock.length === 0 ? (
+              <p className="py-4 text-sm text-nk-neutral-600">
+                Nothing is below its low-stock level.
+              </p>
+            ) : (
+              lowStock.slice(0, 5).map((item) => (
+                <Link
+                  key={`${item.productId}-${item.variantId}`}
+                  href={`/dashboard/products/${item.productId}`}
+                  className="flex items-center gap-2.5 border-t border-nk-neutral-800 py-2 transition-colors hover:bg-nk-neutral-800/35"
+                >
+                  <span className="flex-1 truncate text-sm">
+                    {item.productName}
+                  </span>
+                  <span className="text-xs text-nk-neutral-600">
+                    {item.variantName}
+                  </span>
+                  <span className="rounded-sm bg-nk-accent-800 px-2.5 py-0.75 text-xs text-nk-accent-100">
+                    {item.stock} left
+                  </span>
+                </Link>
+              ))
+            )}
+          </Card>
         </div>
       </div>
-
-      {/* Low stock first: it is the only thing here that needs acting on. */}
-      <section className="mt-10">
-        <h2 className="font-display text-lg font-bold tracking-tight">
-          Running low
-        </h2>
-
-        {lowStock.length === 0 ? (
-          <p className="mt-3 rounded-2xl border border-dashed border-neutral-300 p-6 text-[14px] text-neutral-500">
-            Nothing is below its low-stock level.
-          </p>
-        ) : (
-          <div className="mt-3 divide-y divide-neutral-100 overflow-hidden rounded-2xl border border-neutral-200 bg-white">
-            {lowStock.map((item) => (
-              <Link
-                key={`${item.productId}-${item.variantId}`}
-                href={`/dashboard/products/${item.productId}`}
-                className="flex items-center justify-between gap-4 px-5 py-4 transition-colors hover:bg-neutral-50"
-              >
-                <div className="min-w-0">
-                  <p className="truncate text-[14px] font-medium">
-                    {item.productName}
-                  </p>
-                  <p className="text-[12.5px] text-neutral-500">
-                    {item.variantName}
-                    {item.sku ? ` · ${item.sku}` : ""}
-                  </p>
-                </div>
-                <div className="shrink-0 text-right">
-                  <p className="font-mono text-[14px] tabular-nums">
-                    {item.stock} left
-                  </p>
-                  <p className="text-[12px] text-neutral-400">
-                    alerts at {item.lowStockThreshold}
-                  </p>
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
-      </section>
-
-      <p className="mt-10 rounded-2xl border border-dashed border-neutral-300 p-6 text-[14px] text-neutral-500">
-        Orders, customers and reports arrive in the next phases. Your shop link
-        is <span className="font-mono">{storefront.subdomain}.{getRootDomain()}</span>.
-      </p>
-    </main>
+    </>
   );
 }

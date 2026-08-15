@@ -106,8 +106,8 @@ export function PhotoPicker({
           htmlFor={inputId}
           className={
             full
-              ? "cursor-not-allowed rounded-xl border border-neutral-200 bg-neutral-100 px-4 py-2.5 text-[13.5px] font-medium text-neutral-400"
-              : "cursor-pointer rounded-xl border border-neutral-300 bg-white px-4 py-2.5 text-[13.5px] font-medium transition-colors hover:border-neutral-400"
+              ? "cursor-not-allowed rounded-md border border-nk-neutral-800 bg-nk-neutral-800 px-4 py-2.5 text-sm font-medium text-nk-neutral-600"
+              : "cursor-pointer rounded-md border border-nk-neutral-800 bg-transparent px-4 py-2.5 text-sm font-medium transition-colors hover:bg-nk-text/7"
           }
         >
           {label}
@@ -121,16 +121,16 @@ export function PhotoPicker({
           multiple
           disabled={full}
           onChange={handleChange}
-          className="text-[13px] text-neutral-500 file:hidden"
+          className="text-sm text-nk-neutral-500 file:hidden"
         />
         {picked.length > 0 && (
-          <span className="text-[13px] text-neutral-500">
+          <span className="text-sm text-nk-neutral-500">
             {picked.length} selected
           </span>
         )}
       </div>
 
-      {notice && <p className="mt-2 text-[13px] text-red-600">{notice}</p>}
+      {notice && <p className="mt-2 text-sm text-nk-accent-300">{notice}</p>}
 
       {picked.length > 0 && (
         <>
@@ -138,7 +138,7 @@ export function PhotoPicker({
             {picked.map((item, index) => (
               <div
                 key={item.url}
-                className="relative aspect-square overflow-hidden rounded-xl border border-dashed border-neutral-300 bg-neutral-50"
+                className="relative aspect-square overflow-hidden rounded-md border border-dashed border-nk-neutral-800 bg-nk-neutral-900"
               >
                 <button
                   type="button"
@@ -160,19 +160,19 @@ export function PhotoPicker({
                   type="button"
                   onClick={() => remove(index)}
                   aria-label={`Remove ${item.file.name}`}
-                  className="absolute top-1.5 right-1.5 grid size-6 place-items-center rounded-full bg-white/95 text-[13px] leading-none text-neutral-700 shadow-sm transition-colors hover:text-neutral-900"
+                  className="absolute top-1.5 right-1.5 grid size-6 place-items-center rounded-full bg-nk-surface/95 text-sm leading-none text-nk-neutral-300 shadow-sm transition-colors hover:text-nk-text"
                 >
                   ×
                 </button>
 
-                <span className="pointer-events-none absolute inset-x-0 bottom-0 truncate bg-neutral-950/60 px-2 py-1 text-left text-[10px] text-white">
+                <span className="pointer-events-none absolute inset-x-0 bottom-0 truncate bg-nk-bg/90 px-2 py-1 text-left text-xs text-nk-text">
                   {item.file.name}
                 </span>
               </div>
             ))}
           </div>
 
-          <p className="mt-2 text-[13px] text-neutral-500">
+          <p className="mt-2 text-sm text-nk-neutral-500">
             Not uploaded yet — tap a photo to see it full size.
           </p>
         </>

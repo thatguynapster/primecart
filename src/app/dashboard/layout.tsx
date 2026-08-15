@@ -1,20 +1,20 @@
-import Image from "next/image";
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { UserButton } from "@clerk/nextjs";
 
-import { getRootDomain } from "@/lib/domain";
-import {
-  hasCompletedOnboarding,
-  requireMerchant,
-} from "@/lib/merchant/current";
+import { SideRail } from "@/components/dashboard/nocturne/side-rail";
+import { daysUntil } from "@/lib/format";
+import { countOrdersNeedingAction } from "@/lib/dashboard/queries";
+import { hasCompletedOnboarding, requireMerchant } from "@/lib/merchant/current";
 
-const NAV = [
-  { href: "/dashboard", label: "Overview" },
-  { href: "/dashboard/products", label: "Products" },
-  { href: "/dashboard/settings", label: "Shop settings" },
-];
-
+/**
+ * Merchant shell — Nocturne.
+ *
+ * Two columns: sticky side rail, then the section. The rail is a client
+ * component because it owns the collapsed preference; everything it needs from
+ * the server is passed in, so no data fetching crosses the boundary.
+ *
+ * `font-nk` scopes Inter to the dashboard. The marketing site and storefront
+ * keep Archivo/Geist and their light palette.
+ */
 export default async function DashboardLayout({
   children,
 }: LayoutProps<"/dashboard">) {
@@ -26,54 +26,22 @@ export default async function DashboardLayout({
     redirect("/onboarding");
   }
 
-  const shopUrl = `${merchant.storefront!.subdomain}.${getRootDomain()}`;
+  const ordersNeedingAction = await countOrdersNeedingAction(merchant.id);
+  const trialDaysLeft = daysUntil(merchant.trialExpiresAt);
 
   return (
-    <div className="min-h-full bg-[#F5F5F4] text-neutral-900">
-      <header className="border-b border-neutral-200/70 bg-white">
-        <div className="mx-auto flex h-16 max-w-5xl items-center justify-between gap-4 px-5 sm:px-8">
-          <div className="flex min-w-0 items-center gap-6">
-            <Link href="/dashboard" className="flex items-center gap-2.5">
-              <Image
-                src="/logo.png"
-                alt=""
-                width={24}
-                height={24}
-                className="rounded-[5px]"
-              />
-              <span className="font-display text-[16px] font-bold tracking-tight">
-                PrimeCart
-              </span>
-            </Link>
+    // `scheme-dark` is what makes native controls match the theme — file
+    // inputs, colour pickers, scrollbars and focus rings are drawn by the
+    // browser, not by our classes, and default to the light OS palette
+    // otherwise. No amount of Tailwind on the elements themselves fixes it.
+    <div className="font-nk scheme-dark flex min-h-full bg-nk-bg text-nk-text">
+      <SideRail
+        ordersNeedingAction={ordersNeedingAction}
+        trialDaysLeft={trialDaysLeft}
+        showTrialCard={merchant.subscriptionStatus === "TRIAL"}
+      />
 
-            <nav className="flex items-center gap-1">
-              {NAV.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="rounded-full px-3 py-1.5 text-[13.5px] text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900"
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </nav>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <a
-              href={`https://${shopUrl}`}
-              target="_blank"
-              rel="noreferrer"
-              className="hidden font-mono text-[12.5px] text-neutral-500 hover:text-neutral-900 sm:block"
-            >
-              {shopUrl}
-            </a>
-            <UserButton />
-          </div>
-        </div>
-      </header>
-
-      {children}
+      <main className="flex min-w-0 flex-1 flex-col">{children}</main>
     </div>
   );
 }

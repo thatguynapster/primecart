@@ -14,10 +14,10 @@ export default async function SettingsPage() {
 
   return (
     <main className="mx-auto max-w-2xl px-5 py-10 sm:px-8 sm:py-14">
-      <h1 className="font-display text-3xl font-extrabold tracking-[-0.03em]">
+      <h1 className="text-3xl font-medium tracking-tighter">
         Shop settings
       </h1>
-      <p className="mt-2 text-[14px] text-neutral-600">
+      <p className="mt-2 text-sm text-nk-neutral-400">
         How your shop looks to customers.
       </p>
 
@@ -36,7 +36,7 @@ export default async function SettingsPage() {
         />
       </div>
 
-      <p className="mt-6 text-[13px] text-neutral-500">
+      <p className="mt-6 text-sm text-nk-neutral-500">
         Changes appear on your shop within a few minutes.
       </p>
     </main>

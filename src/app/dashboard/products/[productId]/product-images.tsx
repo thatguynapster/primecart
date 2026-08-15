@@ -20,7 +20,7 @@ function UploadButton() {
     <button
       type="submit"
       disabled={pending}
-      className="rounded-full bg-neutral-900 px-5 py-2.5 text-[13.5px] font-medium text-white transition-colors hover:bg-neutral-700 disabled:cursor-not-allowed disabled:bg-neutral-400"
+      className="rounded-md border border-nk-accent bg-transparent px-5 py-2.5 text-sm font-medium text-nk-accent transition-colors hover:bg-nk-accent/12 disabled:cursor-not-allowed disabled:opacity-45"
     >
       {pending ? "Uploading…" : "Upload"}
     </button>
@@ -55,7 +55,7 @@ function ImageTile({
   }
 
   return (
-    <div className="relative aspect-square overflow-hidden rounded-xl border border-neutral-200 bg-neutral-50">
+    <div className="relative aspect-square overflow-hidden rounded-md border border-nk-neutral-800 bg-nk-neutral-900">
       {/* The tile itself is the preview control; Remove sits above it. */}
       <button
         type="button"
@@ -73,13 +73,13 @@ function ImageTile({
       </button>
 
       {isFirst && (
-        <span className="pointer-events-none absolute top-2 left-2 rounded-full bg-neutral-900/85 px-2 py-0.5 text-[10px] font-medium text-white">
+        <span className="pointer-events-none absolute top-2 left-2 rounded-md border border-nk-accent bg-transparent/85 px-2 py-0.5 text-xs font-medium text-nk-accent">
           Main
         </span>
       )}
 
       {usedBy.length > 0 && !confirming && (
-        <span className="pointer-events-none absolute bottom-2 left-2 rounded-full bg-white/95 px-2 py-0.5 text-[10px] font-medium text-neutral-600 shadow-sm">
+        <span className="pointer-events-none absolute bottom-2 left-2 rounded-full bg-nk-surface/95 px-2 py-0.5 text-xs font-medium text-nk-neutral-400 shadow-sm">
           {usedBy.length === 1 ? usedBy[0] : `${usedBy.length} options`}
         </span>
       )}
@@ -87,8 +87,8 @@ function ImageTile({
       {confirming ? (
         // Deleting the object is irreversible, so the consequence is spelled
         // out on the tile rather than in a dialog that interrupts the page.
-        <div className="absolute inset-0 flex flex-col justify-between bg-neutral-950/85 p-2.5 text-white">
-          <p className="text-[11px] leading-snug">
+        <div className="absolute inset-0 flex flex-col justify-between bg-nk-bg/90 p-2.5 text-nk-text">
+          <p className="text-xs leading-snug">
             Used by{" "}
             <span className="font-medium">{usedBy.join(", ")}</span>. Removing
             it leaves {usedBy.length === 1 ? "that option" : "those options"}{" "}
@@ -99,7 +99,7 @@ function ImageTile({
               type="button"
               onClick={() => void remove()}
               disabled={removing}
-              className="flex-1 rounded-full bg-white px-2 py-1 text-[11px] font-medium text-neutral-900 disabled:opacity-60"
+              className="flex-1 rounded-full bg-nk-surface px-2 py-1 text-xs font-medium text-nk-text disabled:opacity-60"
             >
               {removing ? "…" : "Remove"}
             </button>
@@ -107,7 +107,7 @@ function ImageTile({
               type="button"
               onClick={() => setConfirming(false)}
               disabled={removing}
-              className="rounded-full bg-white/15 px-2.5 py-1 text-[11px] font-medium"
+              className="rounded-full bg-nk-surface/15 px-2.5 py-1 text-xs font-medium"
             >
               Keep
             </button>
@@ -118,7 +118,7 @@ function ImageTile({
           type="button"
           disabled={removing}
           onClick={() => (usedBy.length > 0 ? setConfirming(true) : remove())}
-          className="absolute right-2 bottom-2 rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-medium text-neutral-700 shadow-sm transition-colors hover:text-neutral-900 disabled:opacity-50"
+          className="absolute right-2 bottom-2 rounded-full bg-nk-surface/95 px-2.5 py-1 text-xs font-medium text-nk-neutral-300 shadow-sm transition-colors hover:text-nk-text disabled:opacity-50"
         >
           {removing ? "…" : "Remove"}
         </button>
@@ -149,17 +149,17 @@ export function ProductImages({
   const remaining = MAX_IMAGES_PER_PRODUCT - images.length;
 
   return (
-    <section className="rounded-2xl border border-neutral-200 bg-white p-6 sm:p-8">
-      <h2 className="font-display text-[16px] font-bold tracking-tight">
+    <section className="rounded-md border border-nk-neutral-800 bg-nk-surface p-6 sm:p-8">
+      <h2 className="text-base font-medium tracking-tight">
         Photos
       </h2>
-      <p className="mt-2 text-[14px] leading-relaxed text-neutral-600">
+      <p className="mt-2 text-sm leading-relaxed text-nk-neutral-400">
         The first photo is the one customers see in your shop listing. Up to{" "}
         {MAX_IMAGES_PER_PRODUCT} per product, 5MB each.
       </p>
 
       {!configured ? (
-        <p className="mt-5 rounded-xl border border-dashed border-neutral-300 p-5 text-[14px] text-neutral-500">
+        <p className="mt-5 rounded-md border border-dashed border-nk-neutral-800 p-5 text-sm text-nk-neutral-500">
           Image storage is not connected yet.
         </p>
       ) : (
@@ -195,7 +195,7 @@ export function ProductImages({
               <UploadButton />
             </form>
           ) : (
-            <p className="mt-5 text-[13px] text-neutral-500">
+            <p className="mt-5 text-sm text-nk-neutral-500">
               You have the maximum of {MAX_IMAGES_PER_PRODUCT} photos. Remove
               one to add another.
             </p>

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
-import { Archivo, Geist, Geist_Mono } from "next/font/google";
+import { Archivo, Geist, Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
 
 // Body and UI. Bound to --font-sans, which globals.css expects.
@@ -23,6 +23,14 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// The merchant dashboard's face. Nocturne specifies Inter 400/500/600, with
+// headings never heavier than 500.
+const inter = Inter({
+  variable: "--font-inter",
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+});
+
 export const metadata: Metadata = {
   title: "PrimeCart — stock, orders and your own shop link",
   description:
@@ -36,7 +44,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <ClerkProvider signInUrl="/sign-in" signUpUrl="/sign-up">
       <html
         lang="en"
-        className={`${geistSans.variable} ${archivo.variable} ${geistMono.variable} h-full antialiased motion-safe:scroll-smooth`}
+        className={`${geistSans.variable} ${archivo.variable} ${geistMono.variable} ${inter.variable} h-full antialiased motion-safe:scroll-smooth`}
       >
         <body className="min-h-full flex flex-col">{children}</body>
       </html>

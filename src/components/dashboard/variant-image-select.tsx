@@ -26,7 +26,7 @@ export function VariantImageSelect({
 
   if (productImages.length === 0) {
     return (
-      <p className="text-[13px] text-neutral-500">
+      <p className="text-sm text-nk-neutral-500">
         Add photos to this product first, then you can pick which ones belong to
         each option.
       </p>
@@ -59,8 +59,8 @@ export function VariantImageSelect({
               aria-pressed={isChosen}
               className={
                 isChosen
-                  ? "relative aspect-square overflow-hidden rounded-lg ring-2 ring-neutral-900"
-                  : "relative aspect-square overflow-hidden rounded-lg opacity-60 ring-1 ring-neutral-200 transition-opacity hover:opacity-100"
+                  ? "relative aspect-square overflow-hidden rounded-sm ring-2 ring-nk-accent"
+                  : "relative aspect-square overflow-hidden rounded-sm opacity-60 ring-1 ring-nk-neutral-800 transition-opacity hover:opacity-100"
               }
             >
               <Image
@@ -71,7 +71,7 @@ export function VariantImageSelect({
                 className="object-cover"
               />
               {isChosen && (
-                <span className="absolute top-1 right-1 grid size-4 place-items-center rounded-full bg-neutral-900 text-[9px] leading-none text-white">
+                <span className="absolute top-1 right-1 grid size-4 place-items-center rounded-md border border-nk-accent bg-transparent text-xs leading-none text-nk-accent">
                   ✓
                 </span>
               )}
@@ -80,7 +80,7 @@ export function VariantImageSelect({
         })}
       </div>
 
-      <p className="mt-2 text-[13px] text-neutral-500">
+      <p className="mt-2 text-sm text-nk-neutral-500">
         {chosen.length === 0
           ? "None picked — this option shows all the product's photos."
           : `${chosen.length} of ${productImages.length} picked.`}

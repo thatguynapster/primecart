@@ -16,7 +16,7 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="rounded-full bg-neutral-900 px-6 py-2.5 text-[13.5px] font-medium text-white transition-colors hover:bg-neutral-700 disabled:cursor-not-allowed disabled:bg-neutral-400"
+      className="rounded-md border border-nk-accent bg-transparent px-6 py-2.5 text-sm font-medium text-nk-accent transition-colors hover:bg-nk-accent/12 disabled:cursor-not-allowed disabled:opacity-45"
     >
       {pending ? "Saving…" : "Save product"}
     </button>
@@ -41,7 +41,7 @@ export function NewProductForm({
     <form action={formAction} className="space-y-8">
       <FormError message={state.error} />
 
-      <div className="space-y-5 rounded-2xl border border-neutral-200 bg-white p-6 sm:p-8">
+      <div className="space-y-5 rounded-md border border-nk-neutral-800 bg-nk-surface p-6 sm:p-8">
         <Field label="Product name" htmlFor={ids.name} error={fieldErrors.name}>
           <input
             id={ids.name}
@@ -82,9 +82,9 @@ export function NewProductForm({
 
         {imagesEnabled && (
           <div>
-            <p className="text-[14px] font-medium text-neutral-900">
+            <p className="text-sm font-medium text-nk-text">
               Photos
-              <span className="ml-1.5 font-normal text-neutral-400">
+              <span className="ml-1.5 font-normal text-nk-neutral-600">
                 Optional — up to {MAX_IMAGES_PER_PRODUCT}, 5MB each
               </span>
             </p>
@@ -92,22 +92,22 @@ export function NewProductForm({
               <PhotoPicker maxSelectable={MAX_IMAGES_PER_PRODUCT} />
             </div>
             {fieldErrors.images && (
-              <p className="mt-1.5 text-[13px] text-red-600">
+              <p className="mt-1.5 text-sm text-nk-accent-300">
                 {fieldErrors.images}
               </p>
             )}
-            <p className="mt-2 text-[13px] text-neutral-500">
+            <p className="mt-2 text-sm text-nk-neutral-500">
               The first photo is the one customers see in your shop listing.
             </p>
           </div>
         )}
       </div>
 
-      <div className="rounded-2xl border border-neutral-200 bg-white p-6 sm:p-8">
-        <h2 className="font-display text-[17px] font-bold tracking-tight">
+      <div className="rounded-md border border-nk-neutral-800 bg-nk-surface p-6 sm:p-8">
+        <h2 className="text-lg font-medium tracking-tight">
           First option
         </h2>
-        <p className="mt-2 mb-6 text-[14px] leading-relaxed text-neutral-600">
+        <p className="mt-2 mb-6 text-sm leading-relaxed text-nk-neutral-400">
           Every product needs at least one option — a size, a colour, or just
           the product itself. Each option keeps its own price and stock count.
           You can add more after saving.
@@ -120,7 +120,7 @@ export function NewProductForm({
         <SubmitButton />
         <Link
           href="/dashboard/products"
-          className="text-[13.5px] text-neutral-500 hover:text-neutral-900"
+          className="text-sm text-nk-neutral-500 hover:text-nk-text"
         >
           Cancel
         </Link>

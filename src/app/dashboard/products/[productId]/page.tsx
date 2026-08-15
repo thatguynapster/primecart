@@ -34,17 +34,17 @@ export default async function ProductDetailPage({
     <main className="mx-auto max-w-3xl px-5 py-10 sm:px-8 sm:py-14">
       <Link
         href="/dashboard/products"
-        className="text-[13.5px] text-neutral-500 hover:text-neutral-900"
+        className="text-sm text-nk-neutral-500 hover:text-nk-text"
       >
         ← Products
       </Link>
 
       <div className="mt-4 flex flex-wrap items-center gap-3">
-        <h1 className="font-display text-3xl font-extrabold tracking-[-0.03em]">
+        <h1 className="text-3xl font-medium tracking-tighter">
           {product.name}
         </h1>
         {!product.isActive && (
-          <span className="rounded-full border border-neutral-300 px-2.5 py-1 text-[11px] font-medium tracking-wide text-neutral-500 uppercase">
+          <span className="rounded-full border border-nk-neutral-800 px-2.5 py-1 text-xs font-medium tracking-wide text-nk-neutral-500 uppercase">
             Archived
           </span>
         )}
