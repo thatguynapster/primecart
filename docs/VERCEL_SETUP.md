@@ -44,6 +44,16 @@ Add these in **Settings → Environment Variables**, for the Production environm
 
 **MongoDB Atlas:** allow access from Vercel. Atlas blocks by IP by default and Vercel's functions do not have fixed IPs, so either allow `0.0.0.0/0` (relying on credentials for security) or configure Atlas Private Endpoints. Without this the deploy builds fine and then fails at runtime on every database call.
 
+> **Production uses its own database (`primecart`); the dev deployment uses `primecart-dev`.** Each deployment's `DATABASE_URL` points at its own, which is what keeps test merchants and test orders out of the live shop.
+>
+> A fresh database has no collections and — importantly — **none of the manual embedded indexes**. Run this once against production before anyone signs up:
+>
+> ```bash
+> npm run db:push      # pushes the schema, then restores the embedded indexes
+> ```
+>
+> `prisma db push` deletes the `storefront.subdomain` unique index every time it runs, which is why `db:push` chains `db:indexes`. Skipping this on a new database means two merchants can claim the same subdomain, with nothing to complain until a storefront resolves to the wrong shop.
+
 ## 3. Domains
 
 In **Settings → Domains**:
@@ -93,6 +103,60 @@ With the root set to `dev.primecart.app`, `acme.dev.primecart.app` yields `acme`
 If Vercel's **Deployment Protection** is enabled, it will sit in front of storefronts and require a Vercel login — customers would be unable to reach any shop. Confirm it is off for Production, or that `primecart.app` and `*.primecart.app` are exempt.
 
 ---
+
+## 8. cron-job.org — the two scheduled jobs
+
+Vercel Cron needs a Pro plan, so the handover specifies cron-job.org instead. Because it calls over the public internet, both endpoints check a bearer token — without it, anyone who learns the URL can trigger mass order expiry.
+
+> ⚠️ **`CRON_SECRET` must be ASCII.** HTTP header values are not UTF-8. A secret containing a non-ASCII character (`£`, `–`, `é`) survives inside Node but is mangled by any latin1↔utf8 reinterpretation on the wire, so the comparison fails and the endpoint returns 401 **every time, silently**. The visible symptom is not an error — it is abandoned orders never expiring and reserved stock never coming back.
+>
+> Generate a safe one:
+>
+> ```bash
+> node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
+> ```
+>
+> `base64url` output is `A–Z a–z 0–9 _ -` only. Put the same value in `.env`, in Vercel's environment variables, and in the cron-job.org header.
+
+### Creating a job
+
+1. Sign in at [cron-job.org](https://cron-job.org) → **Cronjobs** → **Create cronjob**.
+2. **Title** — "PrimeCart · expire abandoned orders".
+3. **URL** — `https://primecart.app/api/cron/expire-orders`
+4. **Execution schedule** — choose *Every 5 minutes*, or the custom option with minutes `0,5,10,…,55` and every hour, day, month and weekday. (The API models this as minute arrays; the dashboard offers the interval directly.)
+5. Open **Advanced** → **Headers**. Add one:
+
+   | Key | Value |
+   | --- | --- |
+   | `Authorization` | `Bearer <your CRON_SECRET>` |
+
+   The word `Bearer`, one space, then the secret — this is compared literally against `Bearer ${process.env.CRON_SECRET}`.
+6. **Request method** — `GET`.
+7. Save, then use **Test run**. Expect **200**. A **401** means the header does not match; a **404** means the route is not deployed yet.
+
+### The second job (Phase 13)
+
+Same procedure, different URL and schedule:
+
+- **Title** — "PrimeCart · expire trials"
+- **URL** — `https://primecart.app/api/cron/expire-trials`
+- **Schedule** — once daily
+- **Same** `Authorization` header
+
+### Notes
+
+- **A job acts on whichever database its host is wired to.** Each deployment has its own:
+
+  | Host | Database |
+  | --- | --- |
+  | `primecart.app` | `primecart` — real merchants and real orders |
+  | `dev.primecart.app` | `primecart-dev` — test data |
+
+  So the host in the URL decides which orders get expired and whose stock moves. These jobs are not read-only checks: they cancel orders and put stock back.
+
+  **The live jobs point at `primecart.app`.** A second pair aimed at `dev.primecart.app` is optional and safe — useful for exercising the expiry flow against test data before trusting it in production. Just never point two jobs at the same host, or both will try to expire the same orders at once.
+- cron-job.org retries and emails on repeated failure — leave that on. A silently dead expiry job leaks stock.
+- Neither endpoint exists yet: `/api/cron/expire-orders` arrives in Phase 9, `/api/cron/expire-trials` in Phase 13. Create the jobs after those deploy, or the test run will 404.
 
 ## Troubleshooting
 

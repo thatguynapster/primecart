@@ -410,6 +410,40 @@ That covers 7.11 with evidence rather than inspection: a second merchant can nei
 - **A replaced logo is deleted only after the new one is stored**, so a failed upload never leaves the shop with no logo at all.
 - `deleteProductImage` was renamed `deleteImage` — it now serves logos too.
 
+## Phase 8b — Dashboard redesign (Nocturne)
+
+Out-of-sequence work, requested 2026-08-15. A **presentation-layer** redesign of the merchant dashboard against a supplied design system. Source: [`design_handoff_dashboard/`](./design_handoff_dashboard/) — `README.md` (the brief), `PrimeCart Dashboard.dc.html` (the reference prototype), `_ds/nocturne-…/styles.css` (the token sheet).
+
+No data model, server action, Prisma write or Clerk wiring changed. The only additions to the data layer are read queries for sections that previously had none.
+
+| #    | Task                                                                                                  | Status | Done |
+| ---- | ----------------------------------------------------------------------------------------------------- | ------ | ---- |
+| 8b.1 | Port Nocturne colour tokens, Inter, elevation and the three keyframes into the Tailwind theme          | [x] namespaced `nk-` | 2026-08-15 |
+| 8b.2 | Shell: collapsible side rail (216/64px, persisted), sticky top bar with per-section titles             | [x] Phosphor icons, Clerk `UserButton` | 2026-08-15 |
+| 8b.3 | Overview: KPI row, 14-day sales chart, live feed, best sellers, low stock                              | [x]    | 2026-08-15 |
+| 8b.4 | Orders: saved views, table, status pills                                                               | [x] views are linkable via the query string | 2026-08-15 |
+| 8b.5 | Products: filter chips + card grid with stock bars                                                     | [x]    | 2026-08-15 |
+| 8b.6 | Customers: table with orders, spend, last order                                                        | [x]    | 2026-08-15 |
+| 8b.7 | Analytics: KPI row, 12-month revenue, channel split, stock value by category                           | [x]    | 2026-08-15 |
+| 8b.8 | Reporting queries as MongoDB aggregation pipelines, `merchantId` first                                 | [x] `src/lib/dashboard/queries.ts` | 2026-08-15 |
+| 8b.9 | Skeleton treatment as real Suspense boundaries (`loading.tsx`), not timers                             | [x] overview only | 2026-08-15 |
+| 8b.10 | Bring the undesigned dashboard surfaces onto the tokens — product create/edit, settings, shared form components | [x]    | 2026-08-15 |
+| 8b.11 | `color-scheme: dark` on the shell so native controls match                                             | [x] `scheme-dark` | 2026-08-15 |
+| 8b.12 | Sizing on stock Tailwind utilities — no custom size tokens, minimal arbitrary values                   | [x]    | 2026-08-15 |
+| 8b.13 | Order detail drawer, orders infinite scroll, CSV import/export                                         | [ ] deferred — see note | |
+| 8b.14 | **Visual review by the owner** across all five sections                                                | [ ]    | |
+
+**Phase 8b notes**
+
+- **Tokens are namespaced `nk-`.** The token sheet's ramp names (`neutral-800`, `accent-500`) collide with Tailwind's own scales, which the light-themed marketing site and storefront use throughout — defining them globally would have repainted both. Verified after building that `.text-neutral-900` still resolves to Tailwind's value.
+- **Only colour is themed.** Sizing uses stock Tailwind (`text-xs`…`text-2xl`, `rounded-sm`/`md`/`xl`, spacing steps). An earlier pass introduced `--text-nk-*` and `--radius-nk-*` tokens; those were removed on instruction. **Trade-off:** Nocturne's type scale sits between Tailwind's steps — 10.5, 11.5, 12.5 and 13.5px now collapse into `text-xs`/`text-sm`, so the handoff's separation of uppercase labels from timestamps from body text is flatter than specified. Reversible by reintroducing tokens if the density ever looks wrong.
+- **Five arbitrary values remain**, each with no stock equivalent: the `1.6fr 1fr` chart grid, `transition-[width]`, the inset box-shadow for the active nav mark, `60vh/70vh` on the photo frame, and `bg-[size:320px_100%]` for the shimmer.
+- **`scheme-dark` is what fixes native controls.** Colour pickers, file inputs and scrollbars are painted by the browser, not by our classes, and default to the OS light palette regardless of what Tailwind is applied to the element. This is invisible to a class-name grep — the reason it was missed on the first pass.
+- **The rail preference is an external store**, not `useState` + `useEffect`. React 19 rejects setting state inside an effect, and the effect version also flashes the expanded rail for a frame before correcting.
+- **Orders, Customers and most of Analytics render empty** until Phase 9 creates orders. The queries are written and scoped; the empty states are what shows.
+- **8b.13 deferred deliberately.** The order detail drawer is best built as `/dashboard/orders/[id]` with an intercepting route (the README suggests this), and infinite scroll needs a cursor-paginated action — both are more useful once orders exist. CSV import/export is not in the handover's MVP scope at all.
+- **Undesigned surfaces:** the product create/edit form and settings now follow the tokens and density but have no designed screen. Their layout is interpretation, not specification — ask for designs before treating them as final.
+
 ## Phase 9 — Checkout & Paystack
 
 | #    | Task                                                                                                                     | Status | Done |
@@ -490,10 +524,11 @@ Built against **test-mode** plan `PLN_2b0d04ozbt798kj`. A live plan code is crea
 
 ## Open Decisions
 
-Deferred by the project owner — revisit before the phase that depends on it.
+Deferred by the project owner — revisit before the phase that depends on it. Neither blocks current work.
 
 | ID   | Question                                                                                                                                                                                                                                          | Decide before |
 | ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
+| D-15 | **Extra storefront branding fields** — banner image, curated page ground, curated font choice, plus a possible `whatsappNumber`. Proposal parked in **[`STOREFRONT_BRANDING.md`](./STOREFRONT_BRANDING.md)** with rationale and implementation notes. Raised because shops currently have only three branding levers and risk all looking alike; deferred until the remaining phases are built. Nothing depends on it. | after Phase 13 |
 | D-14 | **Should `/billing` be reachable signed-out?** It currently requires sign-in, which is correct for a payment page — Phase 13 charges a specific merchant's card, so a session is needed, and an anonymous visitor has no subscription to reactivate. The alternative is to split it: a public "your trial has ended" explainer with a sign-in button, plus a protected payment page behind it. Purely a product/UX choice; both are straightforward to build. Current behaviour is safe to leave until then. | Phase 13      |
 
 All other decisions raised against the handover document are resolved — see below.
@@ -561,3 +596,5 @@ All other decisions raised against the handover document are resolved — see be
 | 2026-08-14 | **6.12 and 7.12 closed** — owner ran the full signed-in path: sign-up, onboarding, live Paystack subaccount, product with R2 photos, variant photo references. Also documented the stale-Prisma-client trap that made variant photos appear not to save |
 | 2026-08-15 | **Phase 8 built** — storefront layout with merchant branding, product listing, detail page with option-aware gallery, Zustand cart persisted per shop, public products API, guest checkout form. Verified against the live `gadgethub` shop. Logo upload (8.9) is the one gap, blocking 8.2 |
 | 2026-08-15 | **8.9 done** — `/dashboard/settings` for shop name, description, colour and logo. Branding writes go per-field through `$runCommandRaw` so they cannot clobber `isActive`. Closes 8.2; Phase 8 complete bar an end-to-end run (8.10) |
+| 2026-08-15 | **Phase 8b — dashboard redesigned to Nocturne.** Tokens ported (colour only, `nk-` namespaced), shell and five sections rebuilt, reporting aggregations added, all dashboard surfaces moved onto the palette. Sizing kept on stock Tailwind per instruction. Presentation only — no server action, Prisma write or Clerk wiring changed |
+| 2026-08-15 | D-15 raised and parked: extra storefront branding fields, written up in `STOREFRONT_BRANDING.md` for after Phase 13 |
