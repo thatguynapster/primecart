@@ -46,6 +46,11 @@ export type StorefrontMerchant = {
   id: string;
   subdomain: string;
   isActive: boolean;
+  /** Branding, so a storefront page renders from one cached lookup. */
+  businessName: string;
+  logoUrl: string | null;
+  primaryColor: string;
+  description: string | null;
 };
 
 const storefrontCache = new Map<string, CacheEntry<StorefrontMerchant | null>>();
@@ -67,6 +72,10 @@ export async function getMerchantBySubdomain(
         id: merchant.id,
         subdomain: merchant.storefront.subdomain,
         isActive: merchant.storefront.isActive,
+        businessName: merchant.storefront.businessName,
+        logoUrl: merchant.storefront.logoUrl,
+        primaryColor: merchant.storefront.primaryColor,
+        description: merchant.storefront.description,
       }
     : null;
 

@@ -367,14 +367,48 @@ That covers 7.11 with evidence rather than inspection: a second merchant can nei
 
 | #   | Task                                                                                              | Status | Done |
 | --- | --------------------------------------------------------------------------------------------------- | ------ | ---- |
-| 8.1 | Subdomain-resolved storefront layout, single default theme, mobile-first                          | [ ]    |      |
-| 8.2 | Merchant branding applied: logo, business name, primary colour                                    | [ ]    |      |
-| 8.3 | Public product listing page                                                                       | [ ]    |      |
-| 8.4 | Public product detail page with variant selection                                                 | [ ]    |      |
-| 8.5 | Cart (Zustand, client state)                                                                      | [ ]    |      |
-| 8.6 | Public storefront product API route (API Route, not Server Action)                                | [ ]    |      |
-| 8.7 | Guest checkout form incl. `ShippingAddress` fields                                                | [ ]    |      |
-| 8.8 | `storefront.isActive: false` → "store temporarily unavailable" page, distinct from the 404 shown for an unknown subdomain (D-9) | [ ]    |      |
+| 8.1 | Subdomain-resolved storefront layout, single default theme, mobile-first                          | [x] header, footer, brand shell | 2026-08-15 |
+| 8.2 | Merchant branding applied: logo, business name, primary colour                                    | [x] logo, name, colour | 2026-08-15 |
+| 8.3 | Public product listing page                                                                       | [x] search, categories, sold-out state | 2026-08-15 |
+| 8.4 | Public product detail page with variant selection                                                 | [x] gallery follows the option (DEV-5) | 2026-08-15 |
+| 8.5 | Cart (Zustand, client state)                                                                      | [x] persisted per subdomain | 2026-08-15 |
+| 8.6 | Public storefront product API route (API Route, not Server Action)                                | [x] `<shop>/api/products` — see note on placement | 2026-08-15 |
+| 8.7 | Guest checkout form incl. `ShippingAddress` fields                                                | [x] form only; submission is Phase 9 | 2026-08-15 |
+| 8.8 | `storefront.isActive: false` → "store temporarily unavailable" page, distinct from the 404 shown for an unknown subdomain (D-9) | [x] built in Phase 3, still in place | 2026-08-15 |
+| 8.9 | **Storefront settings page** — edit business name, description, colour, and upload a logo         | [x] `/dashboard/settings` | 2026-08-15 |
+| 8.10 | **End-to-end run by the merchant** — change shop name/colour, upload a logo, confirm the shop reflects it | [ ] | |
+
+**Phase 8 notes**
+
+- **The API route lives *inside* the `[subdomain]` segment**, at `src/app/store/[subdomain]/api/products/route.ts`. The proxy rewrites every path on a shop's host to `/store/<shop>/…`, so a route defined at `/app/api/products` would have been rewritten to a path that does not exist. Nesting it means the browser calls a clean relative `/api/products` and the subdomain arrives as a route param.
+- **The cart is persisted per subdomain** (`primecart-cart:<shop>`). One browser may visit several PrimeCart shops, and carts must not bleed between them.
+- **The cart re-checks itself on load.** Lines live in localStorage and can be days old, so the cart fetches the live catalogue and flags anything whose price changed, whose stock is now short, or that has vanished. A shopper should discover that at the cart, not after paying. None of it is trusted — Phase 9 re-reads price and stock server-side when the order is created.
+- **Add-to-cart is capped by what is already in the cart**, so a shopper cannot assemble a cart promising more units than the shop holds.
+- **Brand colour is applied through CSS variables** (`--brand`, `--on-brand`) set on the layout wrapper, because Tailwind class names are generated at build time and cannot vary per merchant. The foreground is computed from the colour's luminance — a merchant who picks pale yellow gets dark text rather than an unreadable white-on-white button.
+- **Hydration:** cart contents are invisible to the server, so anything derived from them is withheld until after hydration via `useIsClient()` (`useSyncExternalStore` with a distinct server snapshot). The usual `useState` + `useEffect` version of this is rejected by React 19's cascading-render rule.
+
+**Verified against the live shop** (`gadgethub`, real merchant data):
+
+| Check | Result |
+| --- | --- |
+| Storefront home lists the product | ✅ |
+| Business name and branded footer | ✅ |
+| Product detail | ✅ 200, name, option, add-to-cart |
+| **Gallery uses the option's referenced photo** | ✅ DEV-5 working end to end |
+| Unknown product id | ✅ 404 |
+| Unknown subdomain | ✅ 404 |
+| `/api/products` | ✅ returns catalogue, exposes no `merchantId` |
+| Cart page | ✅ renders |
+
+**Testing note:** Node's `fetch` silently drops a `Host` header — it is on the forbidden list — so subdomain requests written that way hit the root domain instead and land on sign-in. Storefront checks must use `curl -H "Host: …"`.
+
+**Settings page notes (8.9)**
+
+- **Branding is written field-by-field via `$runCommandRaw`, not as a whole composite.** Prisma can only replace `storefront` wholesale, which would mean read-modify-write — and that risks clobbering `isActive`. Phase 13 flips that field when a subscription lapses, so a merchant saving their shop name at the wrong moment could switch their own storefront back on. Setting individual paths (`storefront.businessName`, …) touches only the named fields.
+- **Both writers invalidate the storefront cache**, or a rename would take up to five minutes to appear (task 3.11's rule, applied here).
+- **The subdomain is shown but not editable.** It is a public address customers may already have saved, and changing it would silently break every link the merchant has sent out. Changing shop addresses is not in MVP scope.
+- **A replaced logo is deleted only after the new one is stored**, so a failed upload never leaves the shop with no logo at all.
+- `deleteProductImage` was renamed `deleteImage` — it now serves logos too.
 
 ## Phase 9 — Checkout & Paystack
 
@@ -525,3 +559,5 @@ All other decisions raised against the handover document are resolved — see be
 | 2026-08-14 | **DEV-5** approved and built — `ProductVariant.imageUrls` references the product's photos so the storefront gallery can follow the selected option. Discovered that `prisma db push` drops the manual embedded indexes; `db:push` now chains `db:indexes` so they cannot be lost silently |
 | 2026-08-14 | Variant rows show their first picked photo; deleting a photo used by an option now names the affected options and warns before the R2 object is destroyed |
 | 2026-08-14 | **6.12 and 7.12 closed** — owner ran the full signed-in path: sign-up, onboarding, live Paystack subaccount, product with R2 photos, variant photo references. Also documented the stale-Prisma-client trap that made variant photos appear not to save |
+| 2026-08-15 | **Phase 8 built** — storefront layout with merchant branding, product listing, detail page with option-aware gallery, Zustand cart persisted per shop, public products API, guest checkout form. Verified against the live `gadgethub` shop. Logo upload (8.9) is the one gap, blocking 8.2 |
+| 2026-08-15 | **8.9 done** — `/dashboard/settings` for shop name, description, colour and logo. Branding writes go per-field through `$runCommandRaw` so they cannot clobber `isActive`. Closes 8.2; Phase 8 complete bar an end-to-end run (8.10) |

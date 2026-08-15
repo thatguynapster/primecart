@@ -117,13 +117,45 @@ export async function uploadProductImage(params: {
 }
 
 /**
- * Deletes an image by its public URL.
+ * Uploads a merchant's shop logo and returns its public URL.
  *
- * Best-effort: the merchant's intent is to remove the image from their
- * product, and that is a database change. A failure to delete the object
- * leaves an orphan in the bucket, which is not worth failing the request over.
+ * Kept in its own key namespace (`logos/…`) rather than alongside product
+ * photos: a logo belongs to the merchant, not to any product, and separating
+ * them keeps the bucket readable.
  */
-export async function deleteProductImage(url: string): Promise<void> {
+export async function uploadMerchantLogo(params: {
+  merchantId: string;
+  file: File;
+}): Promise<string> {
+  const { merchantId, file } = params;
+
+  const invalid = validateImageFile(file);
+  if (invalid) throw new ImageUploadError(invalid);
+
+  const extension = ALLOWED_TYPES[file.type];
+  const key = `logos/${merchantId}/${randomUUID()}.${extension}`;
+
+  await client().send(
+    new PutObjectCommand({
+      Bucket: required("R2_BUCKET_NAME"),
+      Key: key,
+      Body: Buffer.from(await file.arrayBuffer()),
+      ContentType: file.type,
+      CacheControl: "public, max-age=31536000, immutable",
+    })
+  );
+
+  return publicUrlFor(key);
+}
+
+/**
+ * Deletes an object by its public URL. Used for product photos and logos.
+ *
+ * Best-effort: the merchant's intent is to remove the image from their shop,
+ * and that is a database change. A failure to delete the object leaves an
+ * orphan in the bucket, which is not worth failing the request over.
+ */
+export async function deleteImage(url: string): Promise<void> {
   const base = required("R2_PUBLIC_URL").replace(/\/$/, "");
   if (!url.startsWith(`${base}/`)) return;
 

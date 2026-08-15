@@ -9,18 +9,10 @@ import { MAX_IMAGES_PER_PRODUCT } from "@/lib/products/limits";
 import { getProduct } from "@/lib/products/queries";
 import {
   ImageUploadError,
-  deleteProductImage,
+  deleteImage,
   uploadProductImage,
   validateImageFile,
 } from "@/lib/r2";
-
-
-/** Files from a multi-file input, ignoring the empty entry an unused input sends. */
-function imageFilesFrom(formData: FormData): File[] {
-  return formData
-    .getAll("images")
-    .filter((entry): entry is File => entry instanceof File && entry.size > 0);
-}
 import {
   addVariant,
   buildVariant,
@@ -30,6 +22,13 @@ import {
   setVariantStock,
   updateVariant,
 } from "@/lib/products/variants";
+
+/** Files from a multi-file input, ignoring the empty entry an unused input sends. */
+function imageFilesFrom(formData: FormData): File[] {
+  return formData
+    .getAll("images")
+    .filter((entry): entry is File => entry instanceof File && entry.size > 0);
+}
 
 /**
  * Product and variant mutations.
@@ -183,7 +182,7 @@ export async function createProduct(
       // The product is already saved, so the merchant is sent to it either way
       // rather than losing everything they typed. Anything uploaded before the
       // failure is removed, and they can add photos again from the product page.
-      await Promise.all(urls.map(deleteProductImage));
+      await Promise.all(urls.map(deleteImage));
     }
   }
 
@@ -269,7 +268,7 @@ export async function uploadProductImages(
   } catch (error) {
     // Roll back anything already uploaded, so a partial failure does not leave
     // objects in the bucket that no product references.
-    await Promise.all(urls.map(deleteProductImage));
+    await Promise.all(urls.map(deleteImage));
 
     if (error instanceof ImageUploadError) return { error: error.message };
     return { error: "Could not upload that image. Try again." };
@@ -281,7 +280,7 @@ export async function uploadProductImages(
   });
 
   if (count === 0) {
-    await Promise.all(urls.map(deleteProductImage));
+    await Promise.all(urls.map(deleteImage));
     return { error: "That product no longer exists." };
   }
 
@@ -312,7 +311,7 @@ export async function removeProductImage(
   // left showing a broken image on the storefront.
   await removeImageFromAllVariants(merchant.id, productId, url);
 
-  await deleteProductImage(url);
+  await deleteImage(url);
 
   revalidatePath(`/dashboard/products/${productId}`);
   revalidatePath("/dashboard/products");

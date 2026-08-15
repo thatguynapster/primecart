@@ -12,6 +12,7 @@ import {
 const NAV = [
   { href: "/dashboard", label: "Overview" },
   { href: "/dashboard/products", label: "Products" },
+  { href: "/dashboard/settings", label: "Shop settings" },
 ];
 
 export default async function DashboardLayout({
