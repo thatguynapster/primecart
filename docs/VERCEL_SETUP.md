@@ -158,6 +158,30 @@ Same procedure, different URL and schedule:
 - cron-job.org retries and emails on repeated failure — leave that on. A silently dead expiry job leaks stock.
 - Neither endpoint exists yet: `/api/cron/expire-orders` arrives in Phase 9, `/api/cron/expire-trials` in Phase 13. Create the jobs after those deploy, or the test run will 404.
 
+## 9. Paystack webhook URL — required, not automatic
+
+> ⚠️ **Found missing during the pre-deploy smoke test (2026-08-16).** Nothing in this project's own code registers a webhook URL with Paystack — that is a one-time setting made by hand in the Paystack Dashboard, per Paystack's own account, and it does not exist until someone sets it. Without it, **no payment or subscription event ever reaches `/api/webhooks/paystack`**, no matter how correct that route's own code is. This was confirmed live: a real order paid successfully on `dev.primecart.app` and a real subscription was paid for, and neither one confirmed — Paystack's servers had nowhere configured to tell PrimeCart it happened. Manually replaying the same signed payload against the live endpoint confirmed both instantly, which is what proved the *code* was fine and the *registration* was the gap.
+
+### Setting it
+
+1. Sign in to the Paystack Dashboard for the account this project uses.
+2. **Settings → API Keys & Webhooks.**
+3. Under **Webhook URL**, set:
+
+   | Environment | URL |
+   | --- | --- |
+   | Test mode | `https://dev.primecart.app/api/webhooks/paystack` |
+   | Live mode | `https://primecart.app/api/webhooks/paystack` |
+
+   Paystack's Test/Live toggle (top-right of the dashboard) switches which webhook URL you are editing — set both, one at a time.
+4. Save. No further action needed — `verifySignature()` in the route already validates every delivery against `PAYSTACK_SECRET_KEY`, so this is the only missing piece.
+
+### Verifying it worked
+
+Place one real test-mode order through the actual storefront (`<merchant>.dev.primecart.app`) using Paystack's on-screen "Success" test card, then check the order in `/dashboard/orders` — it should move from **Pending/Unpaid** to **Confirmed/Paid** within a few seconds on its own, with no manual intervention. If it sits at Pending for more than about a minute, the webhook URL is still not registered (or is pointed at the wrong host — the URL's own domain decides which deployment's route receives it, same as the cron jobs above).
+
+**Do this before relying on cron-job.org's registration or any other setup step** — a merchant's storefront and dashboard both look and behave completely normally without it right up until the moment a real customer pays and nothing happens.
+
 ## Troubleshooting
 
 **"Failed to check whether a proxy is in front of this domain."**

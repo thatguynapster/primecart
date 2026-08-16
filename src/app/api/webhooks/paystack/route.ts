@@ -306,6 +306,18 @@ async function handleSubscriptionLapsed(data: NonNullable<PaystackEvent["data"]>
 }
 
 export async function POST(request: Request) {
+  // Logged before any validation, deliberately — this is the one line that
+  // answers "did Paystack actually hit this URL at all" from Vercel's
+  // function logs, independent of whether the request goes on to pass
+  // signature verification. Added 2026-08-16 after the pre-deploy smoke test
+  // found dev.primecart.app had no webhook URL registered with Paystack at
+  // all: every payment succeeded on Paystack's side and nothing ever arrived
+  // here, which looked identical to "the code is broken" from the dashboard
+  // until it was diagnosed. This line is what would have shown that
+  // immediately — no request row, at any log level, means "not registered
+  // or not reaching this host," not "reached and failed."
+  console.log(`Paystack webhook: request received at ${new Date().toISOString()}`);
+
   const secret = process.env.PAYSTACK_SECRET_KEY;
   if (!secret) {
     console.error("PAYSTACK_SECRET_KEY is not set — webhook cannot be verified.");
@@ -314,11 +326,13 @@ export async function POST(request: Request) {
 
   const signature = request.headers.get("x-paystack-signature");
   if (!signature) {
+    console.error("Paystack webhook: request had no x-paystack-signature header — rejecting.");
     return NextResponse.json({ error: "Missing signature" }, { status: 401 });
   }
 
   const rawBody = await request.text();
   if (!verifySignature(rawBody, signature, secret)) {
+    console.error("Paystack webhook: signature did not verify — rejecting.");
     return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
   }
 
@@ -326,8 +340,15 @@ export async function POST(request: Request) {
   try {
     event = JSON.parse(rawBody);
   } catch {
+    console.error("Paystack webhook: signature verified but body is not valid JSON — rejecting.");
     return NextResponse.json({ error: "Malformed payload" }, { status: 400 });
   }
+
+  console.log(
+    `Paystack webhook: verified event "${event.event}"` +
+      (event.data?.reference ? `, reference ${event.data.reference}` : "") +
+      (event.data?.subscription_code ? `, subscription ${event.data.subscription_code}` : "")
+  );
 
   // A plan-linked charge (subscription payment) is never a storefront order —
   // `subscription.create` below is what actually activates it. Dispatching
