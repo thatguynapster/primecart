@@ -2,7 +2,6 @@ import Link from "next/link";
 
 import { TopBar } from "@/components/dashboard/nocturne/top-bar";
 import {
-  ButtonSecondary,
   Card,
   EmptyState,
   btnPrimary,
@@ -90,9 +89,6 @@ export default async function OrdersPage({
               </Link>
             );
           })}
-
-          <div className="flex-1" />
-          <ButtonSecondary>Export CSV</ButtonSecondary>
         </div>
 
         {rows.length === 0 ? (

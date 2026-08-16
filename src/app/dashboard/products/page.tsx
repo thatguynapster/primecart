@@ -3,7 +3,6 @@ import Link from "next/link";
 
 import { TopBar } from "@/components/dashboard/nocturne/top-bar";
 import {
-  ButtonSecondary,
   Card,
   EmptyState,
   btnPrimary,
@@ -79,7 +78,6 @@ export default async function ProductsPage({
           })}
 
           <div className="flex-1" />
-          <ButtonSecondary>Import CSV</ButtonSecondary>
           <Link href="/dashboard/products/new" className={btnPrimary()}>
             Add product
           </Link>
