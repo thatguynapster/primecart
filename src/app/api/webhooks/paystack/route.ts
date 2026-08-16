@@ -1,6 +1,8 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
+import type { Order } from "@prisma/client";
 
+import { notifyNeedsReview, notifyNewOrder } from "@/lib/notifications/events";
 import { OversellError, reserveStock, restoreStock } from "@/lib/orders/stock";
 import { prisma } from "@/lib/prisma";
 
@@ -37,6 +39,16 @@ type PaystackEvent = {
   };
 };
 
+/** Best-effort merchant email lookup — never lets a lookup failure block settlement. */
+async function merchantEmail(merchantId: string): Promise<string | null> {
+  const merchant = await prisma.merchant.findUnique({ where: { id: merchantId } });
+  return merchant?.email ?? null;
+}
+
+function customerNameOf(order: Order): string {
+  return order.shippingAddress?.name ?? "Guest";
+}
+
 /**
  * A payment confirmed while its order was still PENDING — the ordinary case.
  * The `where` clause is the whole guard: idempotent against a redelivered
@@ -44,11 +56,25 @@ type PaystackEvent = {
  * claiming the same order in the same instant (`status: "PENDING"`). If that
  * race is lost, `count` is 0 and the caller re-reads and re-dispatches.
  */
-async function settleFromPending(orderId: string): Promise<boolean> {
+async function settleFromPending(order: Order): Promise<boolean> {
   const claimed = await prisma.order.updateMany({
-    where: { id: orderId, status: "PENDING", paymentStatus: "UNPAID" },
+    where: { id: order.id, status: "PENDING", paymentStatus: "UNPAID" },
     data: { paymentStatus: "PAID", status: "CONFIRMED", reservedUntil: null },
   });
+
+  if (claimed.count > 0) {
+    const email = await merchantEmail(order.merchantId);
+    if (email) {
+      await notifyNewOrder({
+        merchantEmail: email,
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        customerName: customerNameOf(order),
+        total: order.total,
+      });
+    }
+  }
+
   return claimed.count > 0;
 }
 
@@ -64,35 +90,47 @@ async function settleFromPending(orderId: string): Promise<boolean> {
  * expired. If the stock is gone (sold to someone else in the interim), the
  * payment is recorded (`paymentStatus: PAID`) but `status` is deliberately
  * left at `EXPIRED` rather than advanced — the money must never be lost track
- * of, but the order must not silently claim stock that does not exist. A
- * merchant-facing "paid but not confirmed" view for this state is Phase 10
- * work; today this is only visible via the order's own two fields and this
- * log line.
+ * of, but the order must not silently claim stock that does not exist. That
+ * state is surfaced dashboard-side by task 10.8's "Needs review" view, and
+ * here by notifyNeedsReview — an operator should not have to be staring at
+ * the dashboard to find out a payment needs attention.
  */
-async function settleFromExpired(orderId: string, merchantId: string, lineItems: {
-  productId: string;
-  variantId: string;
-  quantity: number;
-}[]): Promise<void> {
+async function settleFromExpired(order: Order): Promise<void> {
+  const lineItems = order.lineItems.map((item) => ({
+    productId: item.productId,
+    variantId: item.variantId,
+    quantity: item.quantity,
+  }));
+
   try {
-    await reserveStock(merchantId, lineItems);
+    await reserveStock(order.merchantId, lineItems);
   } catch (error) {
     if (!(error instanceof OversellError)) throw error;
 
     console.error(
-      `Order ${orderId}: payment confirmed after its reservation expired, ` +
+      `Order ${order.id}: payment confirmed after its reservation expired, ` +
         `and the stock is no longer available (${error.message}). Payment is ` +
         `recorded; the order needs manual review to fulfil or refund.`
     );
     await prisma.order.updateMany({
-      where: { id: orderId, paymentStatus: "UNPAID" },
+      where: { id: order.id, paymentStatus: "UNPAID" },
       data: { paymentStatus: "PAID" }, // status intentionally stays EXPIRED
     });
+
+    const email = await merchantEmail(order.merchantId);
+    if (email) {
+      await notifyNeedsReview({
+        merchantEmail: email,
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        reason: "its reservation had already expired and the stock is no longer available. The order needs manual review to fulfil or refund.",
+      });
+    }
     return;
   }
 
   const claimed = await prisma.order.updateMany({
-    where: { id: orderId, status: "EXPIRED", paymentStatus: "UNPAID" },
+    where: { id: order.id, status: "EXPIRED", paymentStatus: "UNPAID" },
     data: { status: "CONFIRMED", paymentStatus: "PAID", reservedUntil: null },
   });
 
@@ -101,8 +139,20 @@ async function settleFromExpired(orderId: string, merchantId: string, lineItems:
     // write (another delivery of the same webhook racing this one). The
     // reservation this call just made has no order to attach to any more —
     // release it rather than leak a hold nobody will ever clear.
-    await restoreStock(merchantId, lineItems).catch((rollbackError: unknown) => {
-      console.error(`Order ${orderId}: failed to release a stray late-payment reservation:`, rollbackError);
+    await restoreStock(order.merchantId, lineItems).catch((rollbackError: unknown) => {
+      console.error(`Order ${order.id}: failed to release a stray late-payment reservation:`, rollbackError);
+    });
+    return;
+  }
+
+  const email = await merchantEmail(order.merchantId);
+  if (email) {
+    await notifyNewOrder({
+      merchantEmail: email,
+      orderId: order.id,
+      orderNumber: order.orderNumber,
+      customerName: customerNameOf(order),
+      total: order.total,
     });
   }
 }
@@ -135,7 +185,7 @@ async function confirmPaidOrder(reference: string, amountPesewas?: number) {
   }
 
   if (order.status === "PENDING") {
-    if (await settleFromPending(order.id)) return;
+    if (await settleFromPending(order)) return;
 
     // Lost a race with the expiry cron between the read above and the write —
     // re-check what the order actually is now rather than give up.
@@ -144,14 +194,8 @@ async function confirmPaidOrder(reference: string, amountPesewas?: number) {
     return confirmPaidOrder(reference, amountPesewas); // one re-dispatch, on fresh state
   }
 
-  const lineItems = order.lineItems.map((item) => ({
-    productId: item.productId,
-    variantId: item.variantId,
-    quantity: item.quantity,
-  }));
-
   if (order.status === "EXPIRED") {
-    return settleFromExpired(order.id, order.merchantId, lineItems);
+    return settleFromExpired(order);
   }
 
   // CANCELLED, or any other status reached with paymentStatus still UNPAID —
@@ -167,6 +211,16 @@ async function confirmPaidOrder(reference: string, amountPesewas?: number) {
     where: { id: order.id, paymentStatus: "UNPAID" },
     data: { paymentStatus: "PAID" },
   });
+
+  const email = await merchantEmail(order.merchantId);
+  if (email) {
+    await notifyNeedsReview({
+      merchantEmail: email,
+      orderId: order.id,
+      orderNumber: order.orderNumber,
+      reason: `it arrived while the order's status was ${order.status.toLowerCase()}, which shouldn't normally happen. Please check it.`,
+    });
+  }
 }
 
 export async function POST(request: Request) {

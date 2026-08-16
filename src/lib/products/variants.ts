@@ -134,7 +134,17 @@ export async function setVariantStock(
     collection: "Product",
     merchantId,
     filter: { _id: oid(productId), "variants.id": variantId },
-    update: { $set: { "variants.$[v].stock": Math.max(0, stock) } },
+    // A merchant's own recount always clears the low-stock dedupe flag — they
+    // just told us the true count, so whatever crossing prompted the last
+    // alert (if any) is superseded. The next *sale* that leaves stock at or
+    // below the threshold can alert again (see docs/NOTIFICATIONS.md); this
+    // function never sends a notification itself.
+    update: {
+      $set: {
+        "variants.$[v].stock": Math.max(0, stock),
+        "variants.$[v].lowStockAlertedAt": null,
+      },
+    },
     arrayFilters: [{ "v.id": variantId }],
   });
 }

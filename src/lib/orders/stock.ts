@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { oid, runEmbeddedUpdate } from "@/lib/db/embedded";
+import { notifyLowStock } from "@/lib/notifications/events";
 
 /**
  * Stock reservation for orders.
@@ -69,9 +70,30 @@ export async function reserveStock(
     }
   }
 
+  // Collected while reserving, sent only after every line succeeds — an
+  // order that fails partway through rolls its stock back, and a low-stock
+  // email for stock that was never actually taken would be a false alarm.
+  const lowStockAlerts: {
+    productId: string;
+    productName: string;
+    variantName: string;
+    newStock: number;
+    lowStockThreshold: number;
+  }[] = [];
+
   const reserved: StockLine[] = [];
   try {
     for (const line of lines) {
+      const product = productById.get(line.productId)!;
+      const variant = product.variants.find((v) => v.id === line.variantId)!;
+      const newStock = variant.stock - line.quantity;
+
+      // Once-per-crossing dedupe (docs/NOTIFICATIONS.md): only alert the
+      // first time a sale leaves stock at or below the threshold, not on
+      // every subsequent sale until it's restocked (variants.ts's
+      // setVariantStock, or restoreStock below, clear the flag).
+      const crossing = newStock <= variant.lowStockThreshold && !variant.lowStockAlertedAt;
+
       await runEmbeddedUpdate({
         collection: "Product",
         merchantId,
@@ -81,10 +103,29 @@ export async function reserveStock(
             $elemMatch: { id: line.variantId, stock: { $gte: line.quantity } },
           },
         },
-        update: { $inc: { "variants.$[v].stock": -line.quantity } },
+        // $runCommandRaw needs MongoDB extended JSON for dates — a plain
+        // JS Date serialises through Prisma.InputJsonValue as an ISO
+        // *string*, which then fails to read back through Prisma Client
+        // ("Failed to convert ... to DateTime"). Verified live.
+        update: crossing
+          ? {
+              $inc: { "variants.$[v].stock": -line.quantity },
+              $set: { "variants.$[v].lowStockAlertedAt": { $date: new Date().toISOString() } },
+            }
+          : { $inc: { "variants.$[v].stock": -line.quantity } },
         arrayFilters: [{ "v.id": line.variantId }],
       });
       reserved.push(line);
+
+      if (crossing) {
+        lowStockAlerts.push({
+          productId: product.id,
+          productName: product.name,
+          variantName: variant.name,
+          newStock,
+          lowStockThreshold: variant.lowStockThreshold,
+        });
+      }
     }
   } catch {
     await restoreStock(merchantId, reserved).catch((rollbackError: unknown) => {
@@ -100,22 +141,66 @@ export async function reserveStock(
       "That item just sold out. Please review your cart and try again."
     );
   }
+
+  if (lowStockAlerts.length > 0) {
+    const merchant = await prisma.merchant.findUnique({ where: { id: merchantId } });
+    if (merchant) {
+      await Promise.all(
+        lowStockAlerts.map((alert) =>
+          notifyLowStock({
+            merchantEmail: merchant.email,
+            productId: alert.productId,
+            productName: alert.productName,
+            variantName: alert.variantName,
+            stock: alert.newStock,
+            lowStockThreshold: alert.lowStockThreshold,
+          })
+        )
+      );
+    }
+  }
 }
 
 /**
  * Puts reserved stock back. Used by `reserveStock`'s own rollback and by
- * order expiry — never called with negative quantities.
+ * order cancellation/expiry — never called with negative quantities.
+ *
+ * Also clears the low-stock dedupe flag once stock rises back above its
+ * threshold, so a later sale that dips it again can alert. Reads current
+ * stock first (same shape as reserveStock's phase 1) purely to make that
+ * decision — a stale read only affects when the flag resets, never money or
+ * inventory correctness.
  */
 export async function restoreStock(
   merchantId: string,
   lines: StockLine[]
 ): Promise<void> {
+  if (lines.length === 0) return;
+
+  const productIds = [...new Set(lines.map((line) => line.productId))];
+  const products = await prisma.product.findMany({
+    where: { merchantId, id: { in: productIds } },
+  });
+  const productById = new Map(products.map((product) => [product.id, product]));
+
   for (const line of lines) {
+    const variant = productById
+      .get(line.productId)
+      ?.variants.find((v) => v.id === line.variantId);
+    const backAboveThreshold =
+      variant !== undefined &&
+      variant.stock + line.quantity > variant.lowStockThreshold;
+
     await runEmbeddedUpdate({
       collection: "Product",
       merchantId,
       filter: { _id: oid(line.productId), "variants.id": line.variantId },
-      update: { $inc: { "variants.$[v].stock": line.quantity } },
+      update: backAboveThreshold
+        ? {
+            $inc: { "variants.$[v].stock": line.quantity },
+            $set: { "variants.$[v].lowStockAlertedAt": null },
+          }
+        : { $inc: { "variants.$[v].stock": line.quantity } },
       arrayFilters: [{ "v.id": line.variantId }],
     });
   }

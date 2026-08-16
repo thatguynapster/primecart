@@ -54,3 +54,10 @@ export function getStorefrontOrigin(subdomain: string): string {
 	const isLocal = configured.split(":")[0] === "localhost";
 	return `${isLocal ? "http" : "https"}://${subdomain}.${configured}`;
 }
+
+/** Root-domain origin — where the dashboard lives. Same rules as above, no subdomain. */
+export function getDashboardOrigin(): string {
+	const configured = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? "primecart.app";
+	const isLocal = configured.split(":")[0] === "localhost";
+	return `${isLocal ? "http" : "https"}://${configured}`;
+}

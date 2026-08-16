@@ -111,6 +111,12 @@ type ProductVariant {
   //
   // Empty is meaningful: the option shows all of the product's photos.
   imageUrls         String[]
+
+  // Set when a low-stock notification has been sent for the current dip below
+  // lowStockThreshold; cleared when stock rises back above it. Dedupe marker
+  // only — a merchant recounting their own stock never sets or reads this,
+  // only reserveStock/restoreStock touch it (see docs/NOTIFICATIONS.md).
+  lowStockAlertedAt DateTime?
 }
 
 // ============================================
