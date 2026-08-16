@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { TopBar } from "@/components/dashboard/nocturne/top-bar";
 import {
   Avatar,
@@ -5,7 +7,7 @@ import {
   EmptyState,
   initialsOf,
 } from "@/components/dashboard/nocturne/ui";
-import { formatGhs } from "@/lib/format";
+import { formatGhs, formatRelativeDate } from "@/lib/format";
 import { listCustomers } from "@/lib/dashboard/queries";
 import { requireMerchant } from "@/lib/merchant/current";
 
@@ -55,12 +57,17 @@ export default async function CustomersPage() {
                 {customers.map((customer) => (
                   <tr
                     key={customer.id}
-                    className="border-t border-nk-neutral-800"
+                    className="relative border-t border-nk-neutral-800 transition-colors hover:bg-nk-neutral-800/35"
                   >
                     <td className="px-4 py-2.5">
                       <div className="flex items-center gap-2.5">
                         <Avatar initials={initialsOf(customer.name)} />
-                        <span>{customer.name}</span>
+                        <Link
+                          href={`/dashboard/customers/${customer.id}`}
+                          className="text-nk-accent-300 after:absolute after:inset-0 hover:underline"
+                        >
+                          {customer.name}
+                        </Link>
                       </div>
                     </td>
                     <td className="px-4 py-2.5 text-nk-neutral-500">
@@ -70,12 +77,16 @@ export default async function CustomersPage() {
                     <td className="px-4 py-2.5 text-right font-medium">
                       {formatGhs(customer.spent)}
                     </td>
-                    <td className="px-4 py-2.5 text-right text-nk-neutral-600">
+                    <td
+                      className="px-4 py-2.5 text-right text-nk-neutral-600"
+                      title={
+                        customer.lastOrder
+                          ? new Date(customer.lastOrder).toLocaleString("en-GH")
+                          : undefined
+                      }
+                    >
                       {customer.lastOrder
-                        ? new Date(customer.lastOrder).toLocaleDateString(
-                            "en-GH",
-                            { day: "numeric", month: "short" }
-                          )
+                        ? formatRelativeDate(customer.lastOrder)
                         : "—"}
                     </td>
                   </tr>

@@ -7,7 +7,7 @@ import {
   EmptyState,
   btnPrimary,
 } from "@/components/dashboard/nocturne/ui";
-import { formatGhs } from "@/lib/format";
+import { formatGhs, formatRelativeDate } from "@/lib/format";
 import { listOrders, type SavedView } from "@/lib/dashboard/queries";
 import { requireMerchant } from "@/lib/merchant/current";
 
@@ -181,11 +181,11 @@ export default async function OrdersPage({
                       <td className="px-4 py-2.75 text-right font-medium">
                         {formatGhs(order.total)}
                       </td>
-                      <td className="px-4 py-2.75 text-right text-nk-neutral-600">
-                        {new Date(order.createdAt).toLocaleDateString("en-GH", {
-                          day: "numeric",
-                          month: "short",
-                        })}
+                      <td
+                        className="px-4 py-2.75 text-right text-nk-neutral-600"
+                        title={new Date(order.createdAt).toLocaleString("en-GH")}
+                      >
+                        {formatRelativeDate(order.createdAt)}
                       </td>
                     </tr>
                   ))}

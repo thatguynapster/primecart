@@ -10,7 +10,7 @@ import {
   initialsOf,
 } from "@/components/dashboard/nocturne/ui";
 import { getRootDomain } from "@/lib/domain";
-import { formatGhs } from "@/lib/format";
+import { formatGhs, formatRelativeDate } from "@/lib/format";
 import {
   getBestSellers,
   getLiveFeed,
@@ -27,15 +27,6 @@ function greeting(): string {
   if (hour < 12) return "Good morning";
   if (hour < 18) return "Good afternoon";
   return "Good evening";
-}
-
-function relativeTime(iso: string): string {
-  const minutes = Math.round((Date.now() - new Date(iso).getTime()) / 60_000);
-  if (minutes < 1) return "just now";
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.round(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  return `${Math.round(hours / 24)}d ago`;
 }
 
 export default async function OverviewPage() {
@@ -166,7 +157,7 @@ export default async function OverviewPage() {
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-sm">{order.item}</div>
                       <div className="text-xs text-nk-neutral-600">
-                        {order.customer} · {relativeTime(order.createdAt)}
+                        {order.customer} · {formatRelativeDate(order.createdAt)}
                       </div>
                     </div>
                     <span className="text-sm font-medium">

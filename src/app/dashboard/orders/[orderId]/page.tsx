@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { Card } from "@/components/dashboard/nocturne/ui";
-import { formatGhs } from "@/lib/format";
+import { formatGhs, formatRelativeDate } from "@/lib/format";
 import { requireMerchant } from "@/lib/merchant/current";
 import { getOrder } from "@/lib/orders/queries";
 import { OrderActions } from "./order-actions";
@@ -61,11 +61,9 @@ export default async function OrderDetailPage({
       </div>
       <p className="mt-1 text-sm text-nk-neutral-500">
         Placed{" "}
-        {new Date(order.createdAt).toLocaleDateString("en-GH", {
-          day: "numeric",
-          month: "short",
-          year: "numeric",
-        })}{" "}
+        <span title={new Date(order.createdAt).toLocaleString("en-GH")}>
+          {formatRelativeDate(order.createdAt)}
+        </span>{" "}
         · {titleCase(order.source)}
       </p>
 

@@ -385,21 +385,25 @@ export async function listCustomers(
   }>("Customer", [
     { $match: { merchantId: oid(merchantId) } },
     {
+      // `orders` and `lastOrder` count every order this customer has placed,
+      // paid or not — matching getCustomerOrders() on the detail page, which
+      // has no reason to hide an unpaid or still-pending order from a
+      // merchant looking at someone's history. Only `spent` is paid-only,
+      // since an unpaid order isn't revenue. Previously the whole pipeline
+      // was paid-only, so a customer with only unpaid orders showed 0 orders
+      // and no last-order date here while the detail page showed both.
       $lookup: {
         from: "Order",
         let: { customerId: "$_id" },
         pipeline: [
-          {
-            $match: {
-              $expr: { $eq: ["$customerId", "$$customerId"] },
-              paymentStatus: "PAID",
-            },
-          },
+          { $match: { $expr: { $eq: ["$customerId", "$$customerId"] } } },
           {
             $group: {
               _id: null,
               orders: { $sum: 1 },
-              spent: { $sum: "$total" },
+              spent: {
+                $sum: { $cond: [{ $eq: ["$paymentStatus", "PAID"] }, "$total", 0] },
+              },
               lastOrder: { $max: "$createdAt" },
             },
           },
