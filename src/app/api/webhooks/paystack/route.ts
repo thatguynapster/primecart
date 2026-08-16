@@ -38,7 +38,10 @@ type PaystackEvent = {
   data?: {
     reference?: string;
     status?: string;
-    amount?: number;
+    // Typed loosely on purpose: JSON.parse gives no runtime guarantee this
+    // matches the number the docs and the transaction-verify API imply.
+    // Coerced with Number() at the one place it's compared (confirmPaidOrder).
+    amount?: number | string;
     // Present (a plan code) only on a charge that funded a subscription —
     // absent on ordinary storefront-order charges. The discriminator between
     // the two kinds of charge.success this endpoint receives.
@@ -176,7 +179,7 @@ async function settleFromExpired(order: Order): Promise<void> {
  * caller might be holding stale — the whole point of this function is to
  * handle the case where that status changed underneath the payment.
  */
-async function confirmPaidOrder(reference: string, amountPesewas?: number) {
+async function confirmPaidOrder(reference: string, amountPesewas?: number | string) {
   const order = await prisma.order.findFirst({ where: { paymentRef: reference } });
   if (!order) {
     console.error(`Paystack webhook: no order for reference ${reference}`);
@@ -186,11 +189,18 @@ async function confirmPaidOrder(reference: string, amountPesewas?: number) {
 
   if (amountPesewas !== undefined) {
     const expected = Math.round(order.total * 100);
-    if (expected !== amountPesewas) {
+    // Number() rather than a strict ===: verified live that a genuine Paystack
+    // webhook delivery can carry `amount` as a numeric string even though the
+    // transaction-verify REST API returns the same field as a number for the
+    // identical transaction — a real production bug found via the pre-deploy
+    // smoke test, not a hypothetical. A strict number comparison silently
+    // treated every real payment as a mismatch and never confirmed the order.
+    const actual = Number(amountPesewas);
+    if (expected !== actual) {
       // Flag for a human rather than confirm a payment for the wrong amount.
       console.error(
         `Paystack webhook: amount mismatch for order ${order.id}. ` +
-          `Expected ${expected}, got ${amountPesewas}.`
+          `Expected ${expected}, got ${amountPesewas} (typeof ${typeof amountPesewas}).`
       );
       return;
     }
