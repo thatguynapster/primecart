@@ -359,6 +359,13 @@ export async function POST(request: Request) {
       (event.data?.reference ? `, reference ${event.data.reference}` : "") +
       (event.data?.subscription_code ? `, subscription ${event.data.subscription_code}` : "")
   );
+  // TEMPORARY — removed once the smoke test's silent-non-confirmation is
+  // diagnosed. A real charge.success delivery verifies and logs above, but
+  // the matching order never gets marked paid; every guard that would
+  // explain that with a console.error is silent too. Dumping the raw event
+  // shape is the only way left to see what actually differs from the
+  // assumed PaystackEvent shape.
+  console.log(`Paystack webhook: raw event data = ${JSON.stringify(event.data)}`);
 
   // A plan-linked charge (subscription payment) is never a storefront order —
   // `subscription.create` below is what actually activates it. Dispatching
