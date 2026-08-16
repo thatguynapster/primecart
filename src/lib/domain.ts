@@ -40,3 +40,17 @@ export function getSubdomain(host: string | null | undefined): string | null {
 
 	return subdomain;
 }
+
+/**
+ * Full origin for a specific merchant's storefront — `https://kofi.primecart.app`.
+ *
+ * Used for links a real browser must follow (Paystack's `callback_url`), so it
+ * keeps the port `NEXT_PUBLIC_ROOT_DOMAIN` carries in development
+ * (`localhost:3000`) — `getRootDomain()` strips that deliberately for hostname
+ * comparison, which would produce an unreachable URL here.
+ */
+export function getStorefrontOrigin(subdomain: string): string {
+	const configured = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? "primecart.app";
+	const isLocal = configured.split(":")[0] === "localhost";
+	return `${isLocal ? "http" : "https"}://${subdomain}.${configured}`;
+}

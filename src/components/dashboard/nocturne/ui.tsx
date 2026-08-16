@@ -114,7 +114,7 @@ export function Kicker({
 export function Skeleton({ className = "" }: { className?: string }) {
   return (
     <div
-      className={`animate-nk-shimmer rounded-md bg-linear-to-r from-nk-surface from-0% via-nk-neutral-800 via-45% to-nk-surface to-85% bg-[size:320px_100%] ${className}`}
+      className={`animate-nk-shimmer rounded-md bg-linear-to-r from-nk-surface from-0% via-nk-neutral-800 via-45% to-nk-surface to-85% bg-size-[320px_100%] ${className}`}
     />
   );
 }
@@ -156,11 +156,10 @@ export function Avatar({
   return (
     <span
       style={{ width: size, height: size }}
-      className={`grid flex-none place-items-center rounded-full border text-xs ${
-        tone === "accent"
+      className={`grid flex-none place-items-center rounded-full border text-xs ${tone === "accent"
           ? "border-nk-accent-700 text-nk-accent-300"
           : "border-nk-neutral-700 text-nk-neutral-300"
-      }`}
+        }`}
     >
       {initials}
     </span>

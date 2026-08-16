@@ -448,23 +448,69 @@ No data model, server action, Prisma write or Clerk wiring changed. The only add
 
 | #    | Task                                                                                                                     | Status | Done |
 | ---- | ------------------------------------------------------------------------------------------------------------------------ | ------ | ---- |
-| 9.1  | Oversell check: `variant.stock >= quantity` for **every** line item before reserving; reject the whole order otherwise ("Sorry, only X units available.") — never partially fulfil | [ ]    |      |
-| 9.2  | Create Order first — `paymentStatus: UNPAID`, `status: PENDING`, `reservedUntil: now + 30min`, snapshot line items       | [ ]    |      |
-| 9.3  | `decrementVariantStock` via `$runCommandRaw` — hard decrement as reservation at creation                                 | [ ]    |      |
-| 9.4  | `restoreVariantStock` (opposite `$inc`)                                                                                  | [ ]    |      |
-| 9.5  | Paystack transaction initialize — `reference = PCART-${order.id}`, `subaccount`, `transaction_charge: Math.round(totalInPesewas * 0.03)` (the only place the 3% is applied), `bearer: "account"`, metadata | [ ]    |      |
-| 9.6  | Write `paymentRef` back to the Order immediately after initialization                                                    | [ ]    |      |
-| 9.7  | Redirect customer to Paystack checkout URL                                                                               | [ ]    |      |
-| 9.8  | Return/callback page shows order status only — no status mutation here                                                   | [ ]    |      |
-| 9.9  | `POST /api/webhooks/paystack` with `x-paystack-signature` HMAC verification                                              | [ ]    |      |
-| 9.10 | On `charge.success`: find Order by `paymentRef` → `paymentStatus: PAID`, `status: CONFIRMED`, clear `reservedUntil`; no additional stock op | [ ]    |      |
-| 9.11 | `expireAbandonedOrders` — restore stock per line item, set `status: EXPIRED` (DEV-2), **and clear `reservedUntil`** (D-11) | [ ]    |      |
-| 9.12 | `GET /api/cron/expire-orders` route                                                                                      | [ ]    |      |
-| 9.13 | Endpoint auth: reject unless `Authorization: Bearer ${process.env.CRON_SECRET}` — 401 otherwise                          | [ ]    |      |
-| 9.14 | Generate `CRON_SECRET` and set it in env — the key is present in `.env` but empty                                        | [ ]    |      |
-| 9.15 | *(Owner)* Register cron-job.org job: `https://primecart.app/api/cron/expire-orders`, every 5 min (`*/5 * * * *`), Authorization header — **not** Vercel Cron (Pro-plan only) | [ ]    |      |
-| 9.16 | Confirm the 3% transaction fee applies to storefront orders only, never to manual orders                                 | [ ]    |      |
-| 9.17 | Re-confirm inside the finished expiry job that `order.lineItems` is fully populated. Already proven in isolation against the real DB in Phase 2 (D-11) | [ ]    |      |
+| 9.1  | Oversell check: `variant.stock >= quantity` for **every** line item before reserving; reject the whole order otherwise ("Sorry, only X units available.") — never partially fulfil | [x] two-phase check + atomic guard — see note | 2026-08-16 |
+| 9.2  | Create Order first — `paymentStatus: UNPAID`, `status: PENDING`, `reservedUntil: now + 30min`, snapshot line items       | [x]    | 2026-08-16 |
+| 9.3  | `decrementVariantStock` via `$runCommandRaw` — hard decrement as reservation at creation                                 | [x] `reserveStock`, atomic `$gte`-guarded `$inc` | 2026-08-16 |
+| 9.4  | `restoreVariantStock` (opposite `$inc`)                                                                                  | [x] `restoreStock`                               | 2026-08-16 |
+| 9.5  | Paystack transaction initialize — `reference = PCART-${order.id}`, `subaccount`, `transaction_charge: Math.round(totalInPesewas * 0.03)` (the only place the 3% is applied), `bearer: "account"`, metadata | [x] verified live against Paystack test mode | 2026-08-16 |
+| 9.6  | Write `paymentRef` back to the Order immediately after initialization                                                    | [x]    | 2026-08-16 |
+| 9.7  | Redirect customer to Paystack checkout URL                                                                               | [x] client navigates on `redirectUrl`, cart cleared first | 2026-08-16 |
+| 9.8  | Return/callback page shows order status only — no status mutation here                                                   | [x] `/store/[subdomain]/orders/[orderId]`, read-only | 2026-08-16 |
+| 9.9  | `POST /api/webhooks/paystack` with `x-paystack-signature` HMAC verification                                              | [x] HMAC-SHA512, `timingSafeEqual` — verified live | 2026-08-16 |
+| 9.10 | On `charge.success`: find Order by `paymentRef` → `paymentStatus: PAID`, `status: CONFIRMED`, clear `reservedUntil`; no additional stock op | [x] idempotent, amount-checked — see note | 2026-08-16 |
+| 9.11 | `expireAbandonedOrders` — restore stock per line item, set `status: EXPIRED` (DEV-2), **and clear `reservedUntil`** (D-11) | [x] atomic claim-before-restore — see note | 2026-08-16 |
+| 9.12 | `GET /api/cron/expire-orders` route                                                                                      | [x]    | 2026-08-16 |
+| 9.13 | Endpoint auth: reject unless `Authorization: Bearer ${process.env.CRON_SECRET}` — 401 otherwise                          | [x] shared `checkCronAuth`, reused by Phase 13 | 2026-08-16 |
+| 9.14 | Generate `CRON_SECRET` and set it in env — the key is present in `.env` but empty                                        | [x] regenerated header-safe after the `£` issue — see D-note below | 2026-08-16 |
+| 9.15 | *(Owner)* Register cron-job.org job: `https://primecart.app/api/cron/expire-orders`, every 5 min (`*/5 * * * *`), Authorization header — **not** Vercel Cron (Pro-plan only) | [ ] steps in `VERCEL_SETUP.md` §8 | |
+| 9.16 | Confirm the 3% transaction fee applies to storefront orders only, never to manual orders                                 | [x] structural, not just observed — see note | 2026-08-16 |
+| 9.17 | Re-confirm inside the finished expiry job that `order.lineItems` is fully populated. Already proven in isolation against the real DB in Phase 2 (D-11) | [x] re-proven inside the real `expireOrder`, live | 2026-08-16 |
+| 9.18 | Order status page: `/orders/[orderId]`, guest-facing, scoped to `merchantId`                                            | [x] not a separate handover task, but required by 9.7/9.8 | 2026-08-16 |
+| 9.19 | Auto-create/match Customer at checkout (pulled forward from Phase 11's 11.1)                                             | [x] `findOrCreateCustomer`, matched on phone then email | 2026-08-16 |
+| 9.20 | **End-to-end run by the owner** — a real checkout through to a completed Paystack test payment                          | [ ] not yet done — see note | |
+
+**Phase 9 notes**
+
+- **Oversell protection is two-phase, not a single check.** MongoDB writes through `$runCommandRaw` do not participate in Prisma's interactive transactions, so there is no single atomic step that can check *and* decrement several documents at once. Phase 1 reads the requested products and rejects with the handover's exact wording if a line is short — correct and cheap for the common case (a stale cart). Phase 2 still reserves each line through an atomic, conditional `$inc` (`stock >= quantity` inside the filter itself), because two checkouts can both pass phase 1 for the last unit. If a later line loses that race, every line already reserved by the same call is put back before throwing — verified directly: a 2-line reservation where the second line oversells rolls the first line back to its original stock.
+- **`expireOrder` claims before it restores, not after — this is a real race, not a theoretical one.** The status flip (`PENDING → EXPIRED`) happens first, and its own `where: { status: "PENDING" }` is the concurrency guard: only one caller's flip can ever match. Two overlapping cron runs racing the same order would otherwise both pass a naive "is it still pending" read and both restore the same stock. Verified live: calling `expireOrder` twice on the same order restores stock exactly once.
+- **A failed Paystack `initialize` call is treated as an expiry, not a cancellation.** DEV-2 defines `EXPIRED` for a reservation that will not be fulfilled and reserves `CANCELLED` for the merchant's own deliberate action. A checkout where Paystack could not be reached fits the first meaning — the reservation was never going to be paid — so `checkout()` calls the same `expireOrder()` the cron uses, immediately, rather than leaving a half-alive order for the cron to find 30 minutes later. This is an implementation judgement call within the existing enum, not a new decision.
+- **The webhook checks the paid amount against the order total** and refuses to confirm on a mismatch, logging for a human rather than marking an order paid for the wrong sum. Verified live with a deliberately wrong `amount`.
+- **Idempotency is the `where` clause, not an `if` before it.** Both the webhook's confirm and the cron's expiry rely on a conditional `updateMany` (`paymentStatus: "UNPAID"` / `status: "PENDING"`) as the only guard against double-processing — a redelivered webhook or a re-run sweep matches zero documents on the second pass. Verified live: a redelivered `charge.success` for an already-paid order is a 200 no-op, not an error.
+- **9.16 is structural, not just observed.** `transaction_charge` is computed inside `initializeTransaction()` in `src/lib/paystack.ts`, and that function is called from exactly one place: storefront checkout. Phase 10's manual orders will not import it — there is nothing to accidentally wire up.
+- **Customer auto-creation (Phase 11's 11.1) was pulled into this phase.** `Order.customerId` is set at creation and the handover requires customers to be "auto-created from orders" — retrofitting that after checkout existed would mean revisiting this same code. `findOrCreateCustomer` matches on phone first (WhatsApp is how these merchants already reach customers; email is often skipped on a quick order) then email, and is written to be reused by Phase 10's manual order entry so both channels build the same customer history. Verified live: a second order from the same phone number matches the existing customer rather than creating a duplicate.
+- **`CRON_SECRET` was regenerated.** The first value contained `£`, a non-ASCII character that HTTP headers cannot carry safely — see the earlier finding in the change log. The current value was verified ASCII-only and header-safe, and the live cron test above used it successfully end to end.
+- **Order confirmation security relies on the same model most guest checkouts use:** an unguessable id (MongoDB ObjectId) plus the correct subdomain. No separate guest-order token was introduced — not asked for by the handover, and this is the standard pattern.
+
+**Verified live** (fixtures created and deleted; one pre-existing real order on `gadgethub`, `PC-260815-C2U9`, was correctly expired by the cron test since its 30-minute window had already passed — not touched by any fixture, a genuine abandoned reservation the system was supposed to clean up):
+
+| Check | Result |
+| --- | --- |
+| Stock reservation, oversell rejection, rollback, restore, double-expiry guard | ✅ 15/15 (isolated) |
+| Full `checkout()` incl. a real Paystack test-mode `authorization_url` | ✅ 21/21 |
+| Cron auth (no header / wrong secret / correct secret) and real expiry effect | ✅ |
+| Webhook signature (missing / wrong / tampered-body-same-signature all 401) | ✅ |
+| Webhook confirm, idempotent redelivery, amount-mismatch safety, unknown-reference ack | ✅ |
+
+**Not yet done: 9.15 and 9.20.** 9.15 is yours — the cron-job.org registration, with exact steps already in `VERCEL_SETUP.md` §8. 9.20 is a real end-to-end run: place an order on the live storefront, pay it with a Paystack test card, and confirm the webhook lands and the order shows CONFIRMED. Worth doing before Phase 10 builds the merchant-facing order list on top of this.
+
+### Post-review fix: late payment on an already-expired order (2026-08-16)
+
+Raised by the project owner after the phase was marked complete: what happens if Paystack confirms a payment *after* the order's 30-minute reservation has already been swept by the cron? This was not hypothetical — Paystack retries webhook delivery for up to 72 hours, and the cron runs every 5 minutes, so any payment that clears even a few minutes late hits this path in ordinary operation, not just in an unusual deploy-timing scenario.
+
+**Root cause, proven live before fixing:** `expireOrder` only ever sets `status`; it never touches `paymentStatus`. So an expired order sits at `status: EXPIRED, paymentStatus: UNPAID`. The webhook's only guard was `if (order.paymentStatus !== "UNPAID") return` — it never checked `status`, so a late webhook flipped an expired order straight to `CONFIRMED`/`PAID` even when its stock had already been released and resold to someone else. Reproduced with a script: expired an order, sold its freed stock to a second reservation, then delivered a late webhook — the order silently became `CONFIRMED` while owing stock that no longer existed.
+
+**Policy decision (owner, 2026-08-16):** auto-recover if the stock is still available; if not, flag rather than oversell. Two other options were offered — always require manual review, or always auto-confirm and accept the oversell risk — and rejected.
+
+**Fix:** the webhook now re-checks the order's actual current status before acting, with two new branches beyond the ordinary `PENDING → CONFIRMED` path:
+
+- **`EXPIRED`, stock still available** (the common case — most late webhooks are only minutes behind): re-reserves the stock through the exact same `reserveStock` oversell-safe path a normal checkout uses, then advances the order to `CONFIRMED`/`PAID` exactly as if it had never expired. No merchant action needed.
+- **`EXPIRED`, stock no longer available**: `paymentStatus` is set to `PAID` — the money is never lost track of — but `status` is deliberately left at `EXPIRED` rather than advanced, so the order does not claim stock it does not have. Logged loudly for manual review (refund or source more stock).
+- **Any other unexpected status** (e.g. `CANCELLED`, once Phase 10 allows merchants to cancel — cannot happen yet): payment is flagged the same way, without touching stock or status — a cancelled order was a deliberate merchant decision, not a lapsed reservation, so auto-reserving behind them would be wrong.
+- **A second, smaller race closed in the same pass:** the ordinary `PENDING → CONFIRMED` update now also requires `status: "PENDING"` in its `where` clause, not just `paymentStatus: "UNPAID"`. If the expiry cron claims the order in the same instant a webhook is confirming it, the loser of that race re-reads the order's fresh state and re-dispatches, rather than silently doing nothing.
+
+**Verified live, 17/17**, across three scenarios: stock-still-available recovery (including that a redelivered webhook afterward is still a safe no-op), stock-gone flagging (order stays `EXPIRED`, payment still recorded, stock not double-claimed), and confirmation that the ordinary on-time path is unaffected.
+
+**Carries a requirement into Phase 10, noted for that phase:** `status: EXPIRED` with `paymentStatus: PAID` is now a real, reachable state with no dashboard visibility yet — a merchant has no way to see it today except querying the database directly. The orders list needs to surface this combination distinctly (a "paid but not confirmed — needs your attention" filter or badge), or a late-recovered oversell could go unnoticed indefinitely.
 
 ## Phase 10 — Order Management
 
@@ -475,8 +521,9 @@ No data model, server action, Prisma write or Clerk wiring changed. The only add
 | 10.3 | Manual order creation for walk-in / WhatsApp sales — `source: MANUAL`         | [ ]    |      |
 | 10.4 | Status transitions PENDING → CONFIRMED → PROCESSING → SHIPPED → DELIVERED → CANCELLED | [ ]    |      |
 | 10.5 | Mark as paid / mark as fulfilled actions                                      | [ ]    |      |
-| 10.6 | `orderNumber` generation                                                      | [ ]    |      |
+| 10.6 | `orderNumber` generation                                                      | [x] built in Phase 9 — `generateOrderNumber()` | 2026-08-16 |
 | 10.7 | `EXPIRED` is system-set only — not a status a merchant can pick manually      | [ ]    |      |
+| 10.8 | **Surface `status: EXPIRED` + `paymentStatus: PAID` distinctly** — a late-recovered payment that could not be fulfilled. No visibility exists yet outside the database; see Phase 9's post-review fix note | [ ]    |      |
 
 ## Phase 11 — Customer Records
 
@@ -598,3 +645,5 @@ All other decisions raised against the handover document are resolved — see be
 | 2026-08-15 | **8.9 done** — `/dashboard/settings` for shop name, description, colour and logo. Branding writes go per-field through `$runCommandRaw` so they cannot clobber `isActive`. Closes 8.2; Phase 8 complete bar an end-to-end run (8.10) |
 | 2026-08-15 | **Phase 8b — dashboard redesigned to Nocturne.** Tokens ported (colour only, `nk-` namespaced), shell and five sections rebuilt, reporting aggregations added, all dashboard surfaces moved onto the palette. Sizing kept on stock Tailwind per instruction. Presentation only — no server action, Prisma write or Clerk wiring changed |
 | 2026-08-15 | D-15 raised and parked: extra storefront branding fields, written up in `STOREFRONT_BRANDING.md` for after Phase 13 |
+| 2026-08-16 | **Phase 9 built and verified live** — stock reservation (two-phase oversell check, atomic per-line `$inc`, all-or-nothing rollback), order creation, Paystack initialize/webhook/expiry cron, guest order-status page, customer auto-creation pulled forward from Phase 11. 56 live checks across four temporary test scripts, all passing, all fixtures cleaned up. Found and fixed a real double-restore race in order expiry (claim-then-restore ordering) before it could ship. 9.15 (cron-job.org registration) and 9.20 (a real paid end-to-end run) are the two items left, both yours |
+| 2026-08-16 | **Post-review fix:** owner asked what happens when a Paystack payment confirms after an order has already been expired by the cron. Proved a real bug live (order silently confirmed while owing stock already resold to someone else). Owner chose "auto-recover if stock allows, else flag" over two other offered policies. Rewrote the webhook's confirmation logic with three settlement paths plus a closed race between the webhook and the cron; verified live, 17/17. Added task 10.8 — the resulting `EXPIRED`+`PAID` state has no dashboard visibility yet |

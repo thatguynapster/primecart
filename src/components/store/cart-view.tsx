@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useId, useState } from "react";
 
+import { checkout } from "@/app/store/[subdomain]/cart/actions";
 import { formatGhs } from "@/lib/format";
 import { cartTotal, useCartStore } from "@/lib/storefront/cart";
 import { useIsClient } from "@/lib/use-is-client";
@@ -20,16 +21,21 @@ const inputClass =
  *
  * Cart lines are localStorage and can be days old, so on mount the current
  * catalogue is fetched and every line reconciled against it. A shopper should
- * find out that something sold out here, not after paying.
+ * find out that something sold out here, not after paying. That reconciliation
+ * is purely informational, though — the `checkout` action re-derives price and
+ * stock from the database again regardless, so nothing here is trusted.
  */
 export function CartView({ subdomain }: { subdomain: string }) {
   const useStore = useCartStore(subdomain);
   const lines = useStore((state) => state.lines);
   const setQuantity = useStore((state) => state.setQuantity);
   const remove = useStore((state) => state.remove);
+  const clear = useStore((state) => state.clear);
 
   const isClient = useIsClient();
   const [live, setLive] = useState<StockMap | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const ids = {
     name: useId(),
@@ -70,6 +76,51 @@ export function CartView({ subdomain }: { subdomain: string }) {
     };
   }, []);
 
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setFormError(null);
+    setSubmitting(true);
+
+    const data = new FormData(event.currentTarget);
+
+    try {
+      const result = await checkout(subdomain, {
+        lines: lines.map((line) => ({
+          productId: line.productId,
+          variantId: line.variantId,
+          quantity: line.quantity,
+        })),
+        name: String(data.get("name") ?? ""),
+        email: String(data.get("email") ?? ""),
+        phone: String(data.get("phone") ?? ""),
+        address: String(data.get("address") ?? ""),
+        city: String(data.get("city") ?? ""),
+        region: String(data.get("region") ?? "") || undefined,
+        notes: String(data.get("notes") ?? "") || undefined,
+      });
+
+      if (!result.ok) {
+        setFormError(result.error);
+        setSubmitting(false);
+        return;
+      }
+
+      // Stock for this cart is now reserved against a real order — clearing
+      // it here stops a shopper who abandons Paystack and comes back from
+      // resubmitting the same items as a second, separate reservation.
+      clear();
+      // A method call, not a property assignment: the React Compiler's
+      // immutability check flags `window.location.href = …` as mutating a
+      // value defined outside the component. `assign()` navigates identically
+      // (and, like a normal link click, adds a history entry — appropriate
+      // here since the shopper may use Back from Paystack).
+      window.location.assign(result.redirectUrl);
+    } catch {
+      setFormError("Something went wrong. Please try again.");
+      setSubmitting(false);
+    }
+  }
+
   if (!isClient) {
     return <p className="text-[14px] text-neutral-500">Loading your cart…</p>;
   }
@@ -95,6 +146,7 @@ export function CartView({ subdomain }: { subdomain: string }) {
     if (!current) return live !== null; // vanished from the catalogue
     return current.stock < line.quantity || current.price !== line.price;
   });
+  const canSubmit = problems.length === 0 && !submitting;
 
   return (
     <div className="grid gap-10 lg:grid-cols-[1.3fr_1fr]">
@@ -204,7 +256,7 @@ export function CartView({ subdomain }: { subdomain: string }) {
             </span>
           </div>
 
-          <form className="mt-6 space-y-4">
+          <form onSubmit={handleSubmit} className="mt-6 space-y-4">
             <div>
               <label htmlFor={ids.name} className="text-[13px] font-medium">
                 Your name
@@ -283,13 +335,19 @@ export function CartView({ subdomain }: { subdomain: string }) {
               />
             </div>
 
+            {formError && (
+              <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-[13.5px] text-red-700">
+                {formError}
+              </p>
+            )}
+
             <button
               type="submit"
-              disabled
+              disabled={!canSubmit}
               className="w-full rounded-xl px-6 py-3 text-[14px] font-medium disabled:opacity-60"
               style={{ background: "var(--brand)", color: "var(--on-brand)" }}
             >
-              Pay {formatGhs(total)}
+              {submitting ? "Starting payment…" : `Pay ${formatGhs(total)}`}
             </button>
 
             {problems.length > 0 && (
@@ -299,7 +357,8 @@ export function CartView({ subdomain }: { subdomain: string }) {
             )}
 
             <p className="text-center text-[12px] text-neutral-500">
-              Payment is wired up next — this form is not live yet.
+              You will pay securely on Paystack. Nothing is charged until you
+              confirm there.
             </p>
           </form>
         </div>

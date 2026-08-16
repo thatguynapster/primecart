@@ -126,3 +126,61 @@ export async function createSubaccount(params: {
 
   return body.data;
 }
+
+// ---------------------------------------------------------------------------
+// Transactions
+// ---------------------------------------------------------------------------
+
+/** PrimeCart's cut of a storefront sale. Manual orders never call this module. */
+export const STOREFRONT_FEE_RATE = 0.03;
+
+type InitializeTransactionParams = {
+  /** Where the receipt/Paystack notifications go — the guest's own email. */
+  email: string;
+  amountInPesewas: number;
+  subaccount: string;
+  /** Must contain only `-`, `.`, `=` and alphanumerics — Paystack's own rule. */
+  reference: string;
+  /** Where Paystack sends the customer's browser back to after paying. */
+  callbackUrl: string;
+  metadata: Record<string, unknown>;
+};
+
+type InitializeTransactionResult = {
+  authorization_url: string;
+  access_code: string;
+  reference: string;
+};
+
+/**
+ * Starts a storefront checkout payment.
+ *
+ * The 3% is computed here, once — `transaction_charge` — and only here.
+ * `createSubaccount` above sets `percentage_charge: 0` for exactly this
+ * reason: applying a cut in both places stacks them, taking ~6% from the
+ * merchant instead of 3% (D-6 in the project's decision log).
+ */
+export async function initializeTransaction(
+  params: InitializeTransactionParams
+): Promise<InitializeTransactionResult> {
+  const body = await paystackFetch<InitializeTransactionResult>(
+    "/transaction/initialize",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        email: params.email,
+        amount: params.amountInPesewas,
+        subaccount: params.subaccount,
+        transaction_charge: Math.round(
+          params.amountInPesewas * STOREFRONT_FEE_RATE
+        ),
+        bearer: "account",
+        reference: params.reference,
+        callback_url: params.callbackUrl,
+        metadata: params.metadata,
+      }),
+    }
+  );
+
+  return body.data;
+}
