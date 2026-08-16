@@ -75,8 +75,9 @@ Three changes to the original handover, approved by the project owner on 2026-08
 | `PAYSTACK_SECRET_KEY` / `PAYSTACK_PUBLIC_KEY` | ✅ set (test mode) | Phases 6, 9 |
 | `PAYSTACK_PLAN_CODE` | ✅ set (test plan `PLN_2b0d04ozbt798kj`) | Phase 13 |
 | `NEXT_PUBLIC_ROOT_DOMAIN` | ✅ set to `localhost:3000` for dev — must become `primecart.app` in the Vercel environment | Phases 3, 8 |
-| `CRON_SECRET` | ⬜ empty — generate a long random string, and set the identical value in cron-job.org's Authorization header | Phase 9 (9.13–9.15) |
-| `R2_*` (5 vars) | ⬜ empty — supplied by owner when Phase 7 is reached | Phase 7 (7.7–7.9) |
+| `CRON_SECRET` | ✅ set | Phases 9, 13 (9.15/13.4 still need the owner to register the jobs at cron-job.org) |
+| `R2_*` (5 vars) | ✅ set (owner-supplied in Phase 7) | Phase 7 |
+| `RESEND_API_KEY` / `NOTIFICATIONS_FROM_EMAIL` | ✅ set, sending domain verified — confirmed live 2026-08-16 | Notifications (post-Phase 13 scope) |
 
 All keys are test-mode, which is correct for development. Live Paystack keys and the live plan code are swapped in at deploy (D-2, D-3).
 
@@ -124,8 +125,8 @@ Port `bak/middleware.ts` — the subdomain resolution logic is correct, keep it 
 | 3.8 | Dashboard route guard — `subscriptionStatus: EXPIRED` merchants redirected to `/billing`                                    | [x] logic in place; needs a signed-in EXPIRED merchant to exercise (Phase 13) | 2026-08-13 |
 | 3.9 | Confirm no `middleware.ts` exists anywhere — only one proxy file is supported per project                                    | [x]    | 2026-08-13 |
 | 3.10 | Placeholder rewrite targets so the proxy is testable: `/store/[subdomain]`, `/store-unavailable`, `/billing`               | [x] replaced in Phases 8 and 13 | 2026-08-13 |
-| 3.11 | Call `invalidateStorefront` / `invalidateSubscription` wherever those fields are mutated                                    | [ ] Phases 6 and 13 | |
-| 3.12 | Re-derive `merchantId` from the session and authorize inside every page, route handler and Server Action — never rely on the proxy alone | [ ] Phases 6 onward | |
+| 3.11 | Call `invalidateStorefront` / `invalidateSubscription` wherever those fields are mutated                                    | [x] closed in Phase 6 (see note there); `invalidateSubscription` also called from Phase 13's `activateSubscription`/`expireSubscription`/`expireLapsedTrials` | 2026-08-14 |
+| 3.12 | Re-derive `merchantId` from the session and authorize inside every page, route handler and Server Action — never rely on the proxy alone | [x] closed in Phase 6 (see note there); held throughout every later phase — `requireMerchant()` at the top of every action | 2026-08-14 |
 | 3.13 | `/.well-known/*` treated as public — domain verification and ACME must never hit the auth guard                             | [x] verified 404 not 307 | 2026-08-13 |
 
 **Phase 3 notes — verified behaviour**
