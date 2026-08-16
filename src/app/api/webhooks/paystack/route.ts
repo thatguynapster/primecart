@@ -42,10 +42,15 @@ type PaystackEvent = {
     // matches the number the docs and the transaction-verify API imply.
     // Coerced with Number() at the one place it's compared (confirmPaidOrder).
     amount?: number | string;
-    // Present (a plan code) only on a charge that funded a subscription —
-    // absent on ordinary storefront-order charges. The discriminator between
-    // the two kinds of charge.success this endpoint receives.
-    plan?: string;
+    // An OBJECT on every charge.success delivery, never absent and never a
+    // bare string — verified live via the pre-deploy smoke test, contrary to
+    // the assumption a plain `plan?: string` encoded. On an ordinary
+    // storefront charge it's `{}`; only a subscription-funding charge has
+    // `plan_code` populated inside it. `!event.data.plan` is therefore always
+    // false (`{}` is truthy) — the bug that made this endpoint never call
+    // confirmPaidOrder for a single real delivery. The discriminator has to
+    // be `plan.plan_code`, not the mere presence of the `plan` key.
+    plan?: { plan_code?: string } | null;
     subscription_code?: string;
     customer?: { email?: string };
     // invoice.payment_failed nests the subscription under its own key rather
@@ -359,19 +364,14 @@ export async function POST(request: Request) {
       (event.data?.reference ? `, reference ${event.data.reference}` : "") +
       (event.data?.subscription_code ? `, subscription ${event.data.subscription_code}` : "")
   );
-  // TEMPORARY — removed once the smoke test's silent-non-confirmation is
-  // diagnosed. A real charge.success delivery verifies and logs above, but
-  // the matching order never gets marked paid; every guard that would
-  // explain that with a console.error is silent too. Dumping the raw event
-  // shape is the only way left to see what actually differs from the
-  // assumed PaystackEvent shape.
-  console.log(`Paystack webhook: raw event data = ${JSON.stringify(event.data)}`);
-
   // A plan-linked charge (subscription payment) is never a storefront order —
   // `subscription.create` below is what actually activates it. Dispatching
   // this into confirmPaidOrder would just log "no order for reference" for
   // every subscription payment, since no Order ever has that reference.
-  if (event.event === "charge.success" && event.data?.reference && !event.data.plan) {
+  // `plan` is an object on every charge.success delivery — `{}` on an
+  // ordinary storefront charge — so the check must be on `plan_code`, not on
+  // the presence of `plan` itself.
+  if (event.event === "charge.success" && event.data?.reference && !event.data.plan?.plan_code) {
     await confirmPaidOrder(event.data.reference, event.data.amount);
   }
 
