@@ -214,7 +214,13 @@ export async function getLiveFeed(
 // Orders
 // ---------------------------------------------------------------------------
 
-export type SavedView = "all" | "unpaid" | "fulfil" | "storefront" | "whatsapp";
+export type SavedView =
+  | "all"
+  | "unpaid"
+  | "fulfil"
+  | "storefront"
+  | "whatsapp"
+  | "needs_review";
 
 /** Filter semantics come straight from the handoff. */
 function viewFilter(view: SavedView): Record<string, unknown> {
@@ -227,6 +233,12 @@ function viewFilter(view: SavedView): Record<string, unknown> {
       return { source: "STOREFRONT" };
     case "whatsapp":
       return { source: "WHATSAPP" };
+    // Task 10.8: a late Paystack payment that arrived after its order's
+    // reservation had already expired. Recorded as paid, but never advanced,
+    // since the stock it needs is not guaranteed to still exist — see the
+    // Paystack webhook's settleFromExpired for how an order lands here.
+    case "needs_review":
+      return { status: "EXPIRED", paymentStatus: "PAID" };
     default:
       return {};
   }
@@ -267,6 +279,19 @@ export async function listOrders(
       { $match: match },
       { $sort: { createdAt: -1 } },
       { $limit: limit },
+      // shippingAddress is only set when an order has a delivery address —
+      // a manual sale without one (e.g. a walk-in pickup) still has a
+      // Customer record from findOrCreateCustomer, so that is the fallback
+      // rather than "Guest". Storefront orders always have both, so this
+      // only changes behaviour for manual/WhatsApp orders.
+      {
+        $lookup: {
+          from: "Customer",
+          localField: "customerId",
+          foreignField: "_id",
+          as: "matchedCustomer",
+        },
+      },
       {
         $project: {
           orderNumber: 1,
@@ -275,7 +300,12 @@ export async function listOrders(
           paymentStatus: 1,
           total: 1,
           createdAt: 1,
-          customerName: "$shippingAddress.name",
+          customerName: {
+            $ifNull: [
+              "$shippingAddress.name",
+              { $first: "$matchedCustomer.name" },
+            ],
+          },
         },
       },
     ]),
@@ -300,7 +330,14 @@ export async function listOrders(
   };
 }
 
-/** Orders awaiting action — the rail's badge. */
+/**
+ * Orders awaiting action — the rail's badge.
+ *
+ * Counts orders mid-fulfilment (CONFIRMED/PROCESSING) plus the needs-review
+ * state from task 10.8 — a paid order stuck at EXPIRED is exactly the kind of
+ * thing this badge exists to surface, even though it isn't "to fulfil" in the
+ * ordinary sense.
+ */
 export async function countOrdersNeedingAction(
   merchantId: string
 ): Promise<number> {
@@ -308,7 +345,10 @@ export async function countOrdersNeedingAction(
     {
       $match: {
         merchantId: oid(merchantId),
-        status: { $in: ["CONFIRMED", "PROCESSING"] },
+        $or: [
+          { status: { $in: ["CONFIRMED", "PROCESSING"] } },
+          { status: "EXPIRED", paymentStatus: "PAID" },
+        ],
       },
     },
     { $count: "count" },

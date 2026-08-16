@@ -17,6 +17,7 @@ const VIEWS: { key: SavedView; label: string }[] = [
   { key: "all", label: "All orders" },
   { key: "unpaid", label: "Unpaid" },
   { key: "fulfil", label: "To fulfil" },
+  { key: "needs_review", label: "Needs review" },
   { key: "storefront", label: "Storefront only" },
   { key: "whatsapp", label: "WhatsApp" },
 ];
@@ -24,7 +25,12 @@ const VIEWS: { key: SavedView; label: string }[] = [
 const PAGE_SIZE = 25;
 
 /** Status pill colours come from the handoff's status table. */
-function statusPill(status: string): string {
+function statusPill(status: string, paymentStatus: string): string {
+  // Task 10.8: a paid order stuck at EXPIRED needs a merchant's attention,
+  // not the same dim treatment as an ordinary lapsed reservation.
+  if (status === "EXPIRED" && paymentStatus === "PAID") {
+    return "border-nk-accent-700 text-nk-accent-300";
+  }
   if (status === "DELIVERED") {
     return "border-nk-neutral-700 text-nk-neutral-300";
   }
@@ -32,6 +38,11 @@ function statusPill(status: string): string {
     return "border-nk-neutral-800 text-nk-neutral-500";
   }
   return "border-nk-accent-700 text-nk-accent-300";
+}
+
+function statusLabel(status: string, paymentStatus: string): string {
+  if (status === "EXPIRED" && paymentStatus === "PAID") return "Needs review";
+  return titleCase(status);
 }
 
 function titleCase(value: string): string {
@@ -132,10 +143,16 @@ export default async function OrdersPage({
                   {rows.map((order) => (
                     <tr
                       key={order.id}
-                      className="border-t border-nk-neutral-800 transition-colors hover:bg-nk-neutral-800/35"
+                      className="relative border-t border-nk-neutral-800 transition-colors hover:bg-nk-neutral-800/35"
                     >
-                      <td className="px-4 py-2.75 font-medium">
-                        <Link href={`/dashboard/orders/${order.id}`}>
+                      <td className="px-4 py-2.75 font-medium text-nk-accent-300">
+                        {/* `after:absolute after:inset-0` stretches the hit
+                            target over the whole row, not just this cell —
+                            a table row can't be a Link itself. */}
+                        <Link
+                          href={`/dashboard/orders/${order.id}`}
+                          className="after:absolute after:inset-0 hover:underline"
+                        >
                           {order.orderNumber}
                         </Link>
                       </td>
@@ -147,9 +164,9 @@ export default async function OrdersPage({
                       </td>
                       <td className="px-4 py-2.75">
                         <span
-                          className={`inline-flex rounded-sm border px-2.5 py-0.5 text-xs ${statusPill(order.status)}`}
+                          className={`inline-flex rounded-sm border px-2.5 py-0.5 text-xs ${statusPill(order.status, order.paymentStatus)}`}
                         >
-                          {titleCase(order.status)}
+                          {statusLabel(order.status, order.paymentStatus)}
                         </span>
                       </td>
                       <td
