@@ -184,3 +184,70 @@ export async function initializeTransaction(
 
   return body.data;
 }
+
+// ---------------------------------------------------------------------------
+// Subscriptions (Phase 13) — PrimeCart's own revenue, not a merchant sale
+// ---------------------------------------------------------------------------
+
+type PaystackPlan = {
+  plan_code: string;
+  amount: number;
+  interval: string;
+  currency: string;
+};
+
+/**
+ * Fetches a plan's own details from Paystack — its authoritative amount, in
+ * particular. `/transaction/initialize` rejects a `plan`-linked charge that
+ * has no `amount`, contrary to the docs' implication that it derives one —
+ * verified live against the real test plan. Fetching it here means the
+ * amount charged always matches the plan currently configured, without
+ * hardcoding a price that could drift from what Paystack actually charges.
+ */
+export async function getPlan(planCode: string): Promise<PaystackPlan> {
+  const body = await paystackFetch<PaystackPlan>(`/plan/${planCode}`);
+  return body.data;
+}
+
+type InitializePlanTransactionParams = {
+  /** The merchant's own account email — this charges PrimeCart's subscription fee, not a merchant sale. */
+  email: string;
+  /** Paystack plan code. */
+  planCode: string;
+  reference: string;
+  callbackUrl: string;
+  metadata: Record<string, unknown>;
+};
+
+/**
+ * Starts a PrimeCart subscription payment against the configured plan.
+ *
+ * Deliberately separate from `initializeTransaction`: this has no
+ * `subaccount`/`transaction_charge` — the money is PrimeCart's own revenue,
+ * not a merchant's storefront sale routed through their subaccount. Passing
+ * `plan` here is what makes Paystack fire `subscription.create` on the first
+ * successful charge; the webhook (task 13.8) reacts to that event, never to
+ * this call's return value.
+ */
+export async function initializePlanTransaction(
+  params: InitializePlanTransactionParams
+): Promise<InitializeTransactionResult> {
+  const plan = await getPlan(params.planCode);
+
+  const body = await paystackFetch<InitializeTransactionResult>(
+    "/transaction/initialize",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        email: params.email,
+        amount: plan.amount,
+        plan: params.planCode,
+        reference: params.reference,
+        callback_url: params.callbackUrl,
+        metadata: params.metadata,
+      }),
+    }
+  );
+
+  return body.data;
+}

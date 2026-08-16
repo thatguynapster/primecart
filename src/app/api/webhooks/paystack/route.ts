@@ -5,9 +5,11 @@ import type { Order } from "@prisma/client";
 import { notifyNeedsReview, notifyNewOrder } from "@/lib/notifications/events";
 import { OversellError, reserveStock, restoreStock } from "@/lib/orders/stock";
 import { prisma } from "@/lib/prisma";
+import { activateSubscription, expireSubscription } from "@/lib/subscription";
 
 /**
- * Paystack webhook — confirms storefront payments.
+ * Paystack webhook — confirms storefront payments and, since Phase 13, the
+ * subscription events that gate dashboard access.
  *
  * Signature: Paystack sends `x-paystack-signature`, an HMAC-SHA512 of the raw
  * request body keyed with PAYSTACK_SECRET_KEY, hex-encoded. Verification must
@@ -15,7 +17,8 @@ import { prisma } from "@/lib/prisma";
  * JSON, which could re-serialize differently and silently break every check.
  *
  * Never trust the redirect callback alone; this is the only place an order is
- * actually marked paid.
+ * actually marked paid, and the only place a subscription is actually marked
+ * active.
  */
 
 function verifySignature(rawBody: string, signature: string, secret: string): boolean {
@@ -36,6 +39,15 @@ type PaystackEvent = {
     reference?: string;
     status?: string;
     amount?: number;
+    // Present (a plan code) only on a charge that funded a subscription —
+    // absent on ordinary storefront-order charges. The discriminator between
+    // the two kinds of charge.success this endpoint receives.
+    plan?: string;
+    subscription_code?: string;
+    customer?: { email?: string };
+    // invoice.payment_failed nests the subscription under its own key rather
+    // than at the top level, unlike subscription.create/disable.
+    subscription?: { subscription_code?: string };
   };
 };
 
@@ -223,6 +235,76 @@ async function confirmPaidOrder(reference: string, amountPesewas?: number) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Subscriptions (Phase 13)
+// ---------------------------------------------------------------------------
+
+/**
+ * Subscription events carry the merchant's email (the address the checkout
+ * was initiated with — `startSubscriptionCheckout` always passes the
+ * merchant's own account email) rather than a merchantId, since Paystack's
+ * subscription objects know nothing about PrimeCart's own ids. `email` is
+ * `@unique` on Merchant, so this is an exact match, not a guess.
+ */
+async function findMerchantByEmail(email: string | undefined) {
+  if (!email) return null;
+  return prisma.merchant.findUnique({
+    where: { email },
+    select: { id: true, email: true, storefront: { select: { subdomain: true } } },
+  });
+}
+
+/**
+ * `subscription.create` — task 13.8. Fires once, right after the first
+ * successful plan-linked charge. This is the only place `subscriptionStatus`
+ * moves to ACTIVE and `paystackSubscriptionCode` is stored; nothing reacts to
+ * the underlying `charge.success` itself (see the guard in POST below).
+ */
+async function handleSubscriptionCreated(data: NonNullable<PaystackEvent["data"]>) {
+  const merchant = await findMerchantByEmail(data.customer?.email);
+  if (!merchant) {
+    console.error(`Paystack webhook: subscription.create for unknown email ${data.customer?.email}`);
+    return;
+  }
+  if (!data.subscription_code) {
+    console.error(`Paystack webhook: subscription.create for ${merchant.email} has no subscription_code.`);
+    return;
+  }
+
+  await activateSubscription(merchant, data.subscription_code);
+}
+
+/**
+ * `invoice.payment_failed` (13.9) and `subscription.disable` (13.10) — a
+ * renewal charge failed, or Paystack disabled the subscription outright.
+ * Same effect either way: lock the merchant out until they resubscribe.
+ *
+ * Matched by `paystackSubscriptionCode` first, since that is exact and
+ * stable; email is the fallback for the (defensive, shouldn't happen) case
+ * where the stored code and the event's don't line up.
+ */
+async function handleSubscriptionLapsed(data: NonNullable<PaystackEvent["data"]>) {
+  const subscriptionCode = data.subscription_code ?? data.subscription?.subscription_code;
+
+  const merchant = subscriptionCode
+    ? await prisma.merchant.findFirst({
+        where: { paystackSubscriptionCode: subscriptionCode },
+        select: { id: true, email: true, storefront: { select: { subdomain: true } } },
+      })
+    : null;
+
+  const resolved = merchant ?? (await findMerchantByEmail(data.customer?.email));
+  if (!resolved) {
+    console.error(
+      `Paystack webhook: could not resolve a merchant for a lapsed subscription ` +
+        `(code ${subscriptionCode ?? "none"}, email ${data.customer?.email ?? "none"}).`
+    );
+    return;
+  }
+
+  await expireSubscription(resolved);
+}
+
 export async function POST(request: Request) {
   const secret = process.env.PAYSTACK_SECRET_KEY;
   if (!secret) {
@@ -247,11 +329,26 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Malformed payload" }, { status: 400 });
   }
 
-  if (event.event === "charge.success" && event.data?.reference) {
+  // A plan-linked charge (subscription payment) is never a storefront order —
+  // `subscription.create` below is what actually activates it. Dispatching
+  // this into confirmPaidOrder would just log "no order for reference" for
+  // every subscription payment, since no Order ever has that reference.
+  if (event.event === "charge.success" && event.data?.reference && !event.data.plan) {
     await confirmPaidOrder(event.data.reference, event.data.amount);
   }
 
-  // Every other event is acknowledged without action — nothing else in Phase
-  // 9 needs a reaction, and a non-2xx here just earns a Paystack retry.
+  if (event.event === "subscription.create" && event.data) {
+    await handleSubscriptionCreated(event.data);
+  }
+
+  if (
+    (event.event === "invoice.payment_failed" || event.event === "subscription.disable") &&
+    event.data
+  ) {
+    await handleSubscriptionLapsed(event.data);
+  }
+
+  // Every other event is acknowledged without action — nothing else needs a
+  // reaction, and a non-2xx here just earns a Paystack retry.
   return NextResponse.json({ received: true });
 }

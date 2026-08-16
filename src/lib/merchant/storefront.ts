@@ -55,3 +55,23 @@ export async function setStorefrontLogo(
 
   invalidateStorefront(subdomain);
 }
+
+/**
+ * Switches a storefront on or off — the effect of a subscription lapsing or
+ * reactivating (Phase 13). Same per-field write as the two functions above,
+ * for the same reason: writing the whole `storefront` composite here would
+ * risk a stale read clobbering branding a merchant just saved.
+ */
+export async function setStorefrontActive(
+  merchantId: string,
+  subdomain: string,
+  isActive: boolean
+): Promise<void> {
+  await runEmbeddedUpdate({
+    collection: "Merchant",
+    filter: { _id: oid(merchantId) },
+    update: { $set: { "storefront.isActive": isActive } },
+  });
+
+  invalidateStorefront(subdomain);
+}
