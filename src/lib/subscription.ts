@@ -22,19 +22,27 @@ type MerchantRef = {
 };
 
 /**
- * A subscription payment was confirmed (webhook's `subscription.create`,
- * task 13.8) — or a lapsed merchant just resubscribed, in which case the
- * storefront also needs to be switched back on.
+ * A subscription payment was confirmed — either the webhook's
+ * `subscription.create` (task 13.8, first-ever charge against a plan) or a
+ * plan-linked `charge.success` (every renewal after that, since Paystack
+ * fires `subscription.create` exactly once per subscription object and never
+ * again — verified live: a second real payment against an already-existing
+ * subscription produced only `charge.success`). A lapsed merchant
+ * resubscribing also lands here, so the storefront is switched back on too.
+ *
+ * `subscriptionCode` is optional: a renewal `charge.success` has no code of
+ * its own to report, and must not overwrite the one already stored from the
+ * original `subscription.create`.
  */
 export async function activateSubscription(
   merchant: MerchantRef,
-  subscriptionCode: string
+  subscriptionCode?: string
 ): Promise<void> {
   await prisma.merchant.update({
     where: { id: merchant.id },
     data: {
       subscriptionStatus: "ACTIVE",
-      paystackSubscriptionCode: subscriptionCode,
+      ...(subscriptionCode ? { paystackSubscriptionCode: subscriptionCode } : {}),
     },
   });
   invalidateSubscription(merchant.id);

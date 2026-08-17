@@ -56,6 +56,12 @@ type PaystackEvent = {
     // invoice.payment_failed nests the subscription under its own key rather
     // than at the top level, unlike subscription.create/disable.
     subscription?: { subscription_code?: string };
+    // Set by `startSubscriptionCheckout` at initialize time. The exact,
+    // direct way to resolve which merchant a subscription charge belongs to
+    // — email is only a fallback, for charges Paystack initiates itself
+    // (automatic monthly renewals) that never passed through our own
+    // checkout and so never got this metadata attached.
+    metadata?: { merchantId?: string };
   };
 };
 
@@ -270,15 +276,37 @@ async function findMerchantByEmail(email: string | undefined) {
 }
 
 /**
- * `subscription.create` — task 13.8. Fires once, right after the first
- * successful plan-linked charge. This is the only place `subscriptionStatus`
- * moves to ACTIVE and `paystackSubscriptionCode` is stored; nothing reacts to
- * the underlying `charge.success` itself (see the guard in POST below).
+ * Resolves which merchant a subscription-related event belongs to.
+ * `metadata.merchantId` first — exact, and set by `startSubscriptionCheckout`
+ * on every charge it initiates — falling back to email for charges Paystack
+ * initiates itself (the automatic monthly renewal), which never pass through
+ * our own checkout and so never carry that metadata.
+ */
+async function resolveSubscriptionMerchant(data: NonNullable<PaystackEvent["data"]>) {
+  const merchantId = data.metadata?.merchantId;
+  if (merchantId) {
+    const byId = await prisma.merchant.findUnique({
+      where: { id: merchantId },
+      select: { id: true, email: true, storefront: { select: { subdomain: true } } },
+    });
+    if (byId) return byId;
+  }
+  return findMerchantByEmail(data.customer?.email);
+}
+
+/**
+ * `subscription.create` — task 13.8. Fires exactly once per subscription
+ * object, right after the very first successful plan-linked charge — never
+ * again after that, even on later renewals (verified live: a second real
+ * subscription payment against an already-existing subscription produced
+ * only `charge.success`, no `subscription.create`). Still worth handling on
+ * its own: it's the one event carrying `subscription_code`, so it's what
+ * actually stores that field the first time.
  */
 async function handleSubscriptionCreated(data: NonNullable<PaystackEvent["data"]>) {
-  const merchant = await findMerchantByEmail(data.customer?.email);
+  const merchant = await resolveSubscriptionMerchant(data);
   if (!merchant) {
-    console.error(`Paystack webhook: subscription.create for unknown email ${data.customer?.email}`);
+    console.error(`Paystack webhook: subscription.create for unresolved merchant (email ${data.customer?.email ?? "none"})`);
     return;
   }
   if (!data.subscription_code) {
@@ -287,6 +315,25 @@ async function handleSubscriptionCreated(data: NonNullable<PaystackEvent["data"]
   }
 
   await activateSubscription(merchant, data.subscription_code);
+}
+
+/**
+ * A plan-linked `charge.success` — the reliable, always-fires signal for a
+ * subscription payment, first one and every renewal alike. This is now the
+ * primary place `subscriptionStatus` moves to ACTIVE; `subscription.create`
+ * above only ever adds to it (storing the code on the first charge). No
+ * `subscriptionCode` is passed here — a renewal charge has none of its own
+ * to report, and `activateSubscription` leaves whatever's already stored
+ * untouched when none is given.
+ */
+async function handleSubscriptionCharge(data: NonNullable<PaystackEvent["data"]>) {
+  const merchant = await resolveSubscriptionMerchant(data);
+  if (!merchant) {
+    console.error(`Paystack webhook: plan-linked charge.success for unresolved merchant (email ${data.customer?.email ?? "none"})`);
+    return;
+  }
+
+  await activateSubscription(merchant);
 }
 
 /**
@@ -364,24 +411,16 @@ export async function POST(request: Request) {
       (event.data?.reference ? `, reference ${event.data.reference}` : "") +
       (event.data?.subscription_code ? `, subscription ${event.data.subscription_code}` : "")
   );
-  // TEMPORARY — the owner reported subscription payments still not updating
-  // the merchant record even after the charge.success fix. Dumping every
-  // event's full raw data, not just the ones already expected — the
-  // charge.success bug came from an unverified assumption about a field's
-  // shape, and the working theory here (that Paystack fires
-  // `subscription.create` at all for a plan-linked transaction/initialize
-  // charge) has itself never been confirmed against a real delivery. Remove
-  // once diagnosed.
-  console.log(`Paystack webhook: raw event = ${JSON.stringify(event)}`);
-
   // A plan-linked charge (subscription payment) is never a storefront order —
-  // `subscription.create` below is what actually activates it. Dispatching
-  // this into confirmPaidOrder would just log "no order for reference" for
-  // every subscription payment, since no Order ever has that reference.
   // `plan` is an object on every charge.success delivery — `{}` on an
   // ordinary storefront charge — so the check must be on `plan_code`, not on
-  // the presence of `plan` itself.
-  if (event.event === "charge.success" && event.data?.reference && !event.data.plan?.plan_code) {
+  // the presence of `plan` itself. A plan-linked charge activates the
+  // subscription directly (`handleSubscriptionCharge`) rather than going to
+  // `confirmPaidOrder`, which would just log "no order for reference" since
+  // no Order ever has that reference.
+  if (event.event === "charge.success" && event.data?.plan?.plan_code) {
+    await handleSubscriptionCharge(event.data);
+  } else if (event.event === "charge.success" && event.data?.reference) {
     await confirmPaidOrder(event.data.reference, event.data.amount);
   }
 
