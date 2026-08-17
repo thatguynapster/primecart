@@ -364,6 +364,16 @@ export async function POST(request: Request) {
       (event.data?.reference ? `, reference ${event.data.reference}` : "") +
       (event.data?.subscription_code ? `, subscription ${event.data.subscription_code}` : "")
   );
+  // TEMPORARY — the owner reported subscription payments still not updating
+  // the merchant record even after the charge.success fix. Dumping every
+  // event's full raw data, not just the ones already expected — the
+  // charge.success bug came from an unverified assumption about a field's
+  // shape, and the working theory here (that Paystack fires
+  // `subscription.create` at all for a plan-linked transaction/initialize
+  // charge) has itself never been confirmed against a real delivery. Remove
+  // once diagnosed.
+  console.log(`Paystack webhook: raw event = ${JSON.stringify(event)}`);
+
   // A plan-linked charge (subscription payment) is never a storefront order —
   // `subscription.create` below is what actually activates it. Dispatching
   // this into confirmPaidOrder would just log "no order for reference" for
