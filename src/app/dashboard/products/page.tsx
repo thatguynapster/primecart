@@ -7,6 +7,7 @@ import {
   EmptyState,
   btnPrimary,
 } from "@/components/dashboard/nocturne/ui";
+import { getRootDomain, getStorefrontOrigin } from "@/lib/domain";
 import { formatGhs } from "@/lib/format";
 import { requireMerchant } from "@/lib/merchant/current";
 import { isLowStock, listProducts } from "@/lib/products/queries";
@@ -24,10 +25,18 @@ export default async function ProductsPage({
   searchParams,
 }: PageProps<"/dashboard/products">) {
   const merchant = await requireMerchant();
+  const storefront = merchant.storefront!;
   const params = await searchParams;
 
   const filter = typeof params.filter === "string" ? params.filter : "all";
   const search = typeof params.q === "string" ? params.q : undefined;
+
+  // Carried onto every product link below, so navigating back from a detail
+  // page returns to this exact filter/search instead of the bare list.
+  const listQuery = new URLSearchParams();
+  if (filter !== "all") listQuery.set("filter", filter);
+  if (search) listQuery.set("q", search);
+  const backTo = `/dashboard/products${listQuery.size > 0 ? `?${listQuery}` : ""}`;
 
   // One read, then counted three ways — the filter chips need all the totals
   // regardless of which is active.
@@ -53,6 +62,8 @@ export default async function ProductsPage({
       <TopBar
         title="Products"
         subtitle={`${active.length} active · ${low.length} low on stock`}
+        shopUrl={getStorefrontOrigin(storefront.subdomain)}
+        shopLabel={`${storefront.subdomain}.${getRootDomain()}`}
       />
 
       <div className="flex flex-col gap-3 px-6 pt-5 pb-10">
@@ -129,7 +140,10 @@ export default async function ProductsPage({
               );
 
               return (
-                <Link key={product.id} href={`/dashboard/products/${product.id}`}>
+                <Link
+                  key={product.id}
+                  href={`/dashboard/products/${product.id}?from=${encodeURIComponent(backTo)}`}
+                >
                   <Card className="flex gap-3 p-3.25 transition-colors hover:border-nk-neutral-700">
                     {product.images[0] ? (
                       <Image

@@ -10,9 +10,19 @@ import { ProductImages } from "./product-images";
 
 export default async function ProductDetailPage({
   params,
+  searchParams,
 }: PageProps<"/dashboard/products/[productId]">) {
   const merchant = await requireMerchant();
   const { productId } = await params;
+  const { from } = await searchParams;
+
+  // Only ever follow a `from` that actually points back into this list — a
+  // stray or tampered value falls back to the bare list route rather than
+  // sending the merchant somewhere else.
+  const backHref =
+    typeof from === "string" && from.startsWith("/dashboard/products")
+      ? from
+      : "/dashboard/products";
 
   // Scoped by merchantId, so another merchant's id is indistinguishable from a
   // product that does not exist.
@@ -33,7 +43,7 @@ export default async function ProductDetailPage({
   return (
     <main className="mx-auto max-w-3xl px-5 py-10 sm:px-8 sm:py-14">
       <Link
-        href="/dashboard/products"
+        href={backHref}
         className="text-sm text-nk-neutral-500 hover:text-nk-text"
       >
         ← Products

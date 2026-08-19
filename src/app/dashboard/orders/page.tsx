@@ -6,6 +6,7 @@ import {
   EmptyState,
   btnPrimary,
 } from "@/components/dashboard/nocturne/ui";
+import { getRootDomain, getStorefrontOrigin } from "@/lib/domain";
 import { formatGhs, formatRelativeDate } from "@/lib/format";
 import { listOrders, type SavedView } from "@/lib/dashboard/queries";
 import { requireMerchant } from "@/lib/merchant/current";
@@ -52,6 +53,7 @@ export default async function OrdersPage({
   searchParams,
 }: PageProps<"/dashboard/orders">) {
   const merchant = await requireMerchant();
+  const storefront = merchant.storefront!;
   const params = await searchParams;
 
   // The saved view lives in the query string so a view is linkable.
@@ -60,11 +62,17 @@ export default async function OrdersPage({
 
   const { rows, total } = await listOrders(merchant.id, view, PAGE_SIZE);
 
+  // Carried onto every order link below, so navigating back from a detail
+  // page returns to this exact view instead of always resetting to "All".
+  const backTo = view === "all" ? "/dashboard/orders" : `/dashboard/orders?view=${view}`;
+
   return (
     <>
       <TopBar
         title="Orders"
         subtitle={`${total} ${total === 1 ? "order" : "orders"} in this view`}
+        shopUrl={getStorefrontOrigin(storefront.subdomain)}
+        shopLabel={`${storefront.subdomain}.${getRootDomain()}`}
       />
 
       <div className="flex flex-col gap-3 px-6 pt-5 pb-10">
@@ -146,7 +154,7 @@ export default async function OrdersPage({
                             target over the whole row, not just this cell —
                             a table row can't be a Link itself. */}
                         <Link
-                          href={`/dashboard/orders/${order.id}`}
+                          href={`/dashboard/orders/${order.id}?from=${encodeURIComponent(backTo)}`}
                           className="after:absolute after:inset-0 hover:underline"
                         >
                           {order.orderNumber}

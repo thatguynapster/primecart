@@ -7,6 +7,7 @@ import {
   EmptyState,
   initialsOf,
 } from "@/components/dashboard/nocturne/ui";
+import { getRootDomain, getStorefrontOrigin } from "@/lib/domain";
 import { formatGhs, formatRelativeDate } from "@/lib/format";
 import { listCustomers } from "@/lib/dashboard/queries";
 import { requireMerchant } from "@/lib/merchant/current";
@@ -15,6 +16,7 @@ export const metadata = { title: "Customers — PrimeCart" };
 
 export default async function CustomersPage() {
   const merchant = await requireMerchant();
+  const storefront = merchant.storefront!;
   const customers = await listCustomers(merchant.id);
 
   return (
@@ -22,6 +24,8 @@ export default async function CustomersPage() {
       <TopBar
         title="Customers"
         subtitle={`${customers.length} ${customers.length === 1 ? "person has" : "people have"} bought from you`}
+        shopUrl={getStorefrontOrigin(storefront.subdomain)}
+        shopLabel={`${storefront.subdomain}.${getRootDomain()}`}
       />
 
       <div className="px-6 pt-5 pb-10">

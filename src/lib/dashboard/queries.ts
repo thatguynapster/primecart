@@ -24,6 +24,27 @@ type AggregateResult<T> = {
 	cursor?: { firstBatch?: T[] };
 };
 
+/**
+ * A pooled MongoDB connection that has sat idle can be reset by the network
+ * path (a NAT/router timeout, or Atlas's own idle-connection handling on
+ * shared tiers) between one request and the next. The driver only discovers
+ * this when it tries to use the connection, so the request that draws the
+ * dead connection fails outright — the *next* request gets a fresh one and
+ * succeeds, which is why reloading the page "fixes" it.
+ *
+ * $runCommandRaw sits outside Prisma's typed-query retry path, so this one
+ * chokepoint gets its own: one retry, only for this specific transient
+ * pattern, never for a real query error (bad pipeline, auth, etc.) — those
+ * fail the same way twice, so retrying them would just double the latency
+ * before an inevitable failure.
+ */
+function isResetConnectionError(error: unknown): boolean {
+	if (!(error instanceof Prisma.PrismaClientKnownRequestError)) return false;
+	return /forcibly closed|ECONNRESET|connection reset|os error 10054/i.test(
+		error.message
+	);
+}
+
 async function aggregate<T>(
 	collection: string,
 	pipeline: Prisma.InputJsonValue[]
@@ -34,7 +55,13 @@ async function aggregate<T>(
 		cursor: {}
 	};
 
-	const result = (await prisma.$runCommandRaw(command)) as AggregateResult<T>;
+	let result: AggregateResult<T>;
+	try {
+		result = (await prisma.$runCommandRaw(command)) as AggregateResult<T>;
+	} catch (error) {
+		if (!isResetConnectionError(error)) throw error;
+		result = (await prisma.$runCommandRaw(command)) as AggregateResult<T>;
+	}
 
 	return result.cursor?.firstBatch ?? [];
 }

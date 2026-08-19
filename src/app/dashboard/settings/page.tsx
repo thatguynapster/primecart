@@ -1,7 +1,8 @@
 import Link from "next/link";
 
+import { TopBar } from "@/components/dashboard/nocturne/top-bar";
 import { Card } from "@/components/dashboard/nocturne/ui";
-import { getRootDomain } from "@/lib/domain";
+import { getRootDomain, getStorefrontOrigin } from "@/lib/domain";
 import { daysUntil } from "@/lib/format";
 import { requireMerchant } from "@/lib/merchant/current";
 import { isImageUploadConfigured } from "@/lib/r2";
@@ -17,38 +18,40 @@ export default async function SettingsPage() {
   const storefront = merchant.storefront!;
 
   return (
-    <main className="mx-auto max-w-2xl px-5 py-10 sm:px-8 sm:py-14">
-      <h1 className="text-3xl font-medium tracking-tighter">
-        Shop settings
-      </h1>
-      <p className="mt-2 text-sm text-nk-neutral-400">
-        How your shop looks to customers.
-      </p>
+    <>
+      <TopBar
+        title="Shop settings"
+        subtitle="How your shop looks to customers"
+        shopUrl={getStorefrontOrigin(storefront.subdomain)}
+        shopLabel={`${storefront.subdomain}.${getRootDomain()}`}
+      />
 
-      <div className="mt-8 space-y-6">
-        <LogoForm
-          logoUrl={storefront.logoUrl}
-          businessName={storefront.businessName}
-          configured={isImageUploadConfigured()}
-        />
+      <main className="mx-auto max-w-2xl px-5 py-10 sm:px-8 sm:py-14">
+        <div className="space-y-6">
+          <LogoForm
+            logoUrl={storefront.logoUrl}
+            businessName={storefront.businessName}
+            configured={isImageUploadConfigured()}
+          />
 
-        <ShopDetailsForm
-          businessName={storefront.businessName}
-          description={storefront.description}
-          primaryColor={storefront.primaryColor}
-          shopUrl={`${storefront.subdomain}.${getRootDomain()}`}
-        />
+          <ShopDetailsForm
+            businessName={storefront.businessName}
+            description={storefront.description}
+            primaryColor={storefront.primaryColor}
+            shopUrl={`${storefront.subdomain}.${getRootDomain()}`}
+          />
 
-        <BillingCard
-          status={merchant.subscriptionStatus}
-          trialExpiresAt={merchant.trialExpiresAt}
-        />
-      </div>
+          <BillingCard
+            status={merchant.subscriptionStatus}
+            trialExpiresAt={merchant.trialExpiresAt}
+          />
+        </div>
 
-      <p className="mt-6 text-sm text-nk-neutral-500">
-        Changes appear on your shop within a few minutes.
-      </p>
-    </main>
+        <p className="mt-6 text-sm text-nk-neutral-500">
+          Changes appear on your shop within a few minutes.
+        </p>
+      </main>
+    </>
   );
 }
 

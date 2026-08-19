@@ -5,6 +5,7 @@ import {
   CardHeading,
   Kicker,
 } from "@/components/dashboard/nocturne/ui";
+import { getRootDomain, getStorefrontOrigin } from "@/lib/domain";
 import { formatGhs } from "@/lib/format";
 import {
   getAnalyticsKpis,
@@ -28,6 +29,7 @@ const CHANNEL_FILL: Record<string, string> = {
 
 export default async function AnalyticsPage() {
   const merchant = await requireMerchant();
+  const storefront = merchant.storefront!;
 
   const [kpis, overviewKpis, daily, weekly, monthly, channels, categories, bestSellers] =
     await Promise.all([
@@ -55,7 +57,12 @@ export default async function AnalyticsPage() {
 
   return (
     <>
-      <TopBar title="Analytics" subtitle="Last 12 months" />
+      <TopBar
+        title="Analytics"
+        subtitle="Last 12 months"
+        shopUrl={getStorefrontOrigin(storefront.subdomain)}
+        shopLabel={`${storefront.subdomain}.${getRootDomain()}`}
+      />
 
       <div className="flex flex-col gap-3.5 px-6 pt-5 pb-10">
         <div className="grid gap-3.5 sm:grid-cols-2 xl:grid-cols-5">

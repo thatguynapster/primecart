@@ -9,7 +9,7 @@ import {
   Kicker,
   initialsOf,
 } from "@/components/dashboard/nocturne/ui";
-import { getRootDomain } from "@/lib/domain";
+import { getRootDomain, getStorefrontOrigin } from "@/lib/domain";
 import { formatGhs, formatRelativeDate } from "@/lib/format";
 import {
   getBestSellers,
@@ -81,6 +81,8 @@ export default async function OverviewPage() {
       <TopBar
         title={`${greeting()}, ${firstName}`}
         subtitle={`${storefront.businessName} · ${storefront.subdomain}.${getRootDomain()}`}
+        shopUrl={getStorefrontOrigin(storefront.subdomain)}
+        shopLabel={`${storefront.subdomain}.${getRootDomain()}`}
       />
 
       <div className="flex flex-col gap-4 px-6 pt-5 pb-10">

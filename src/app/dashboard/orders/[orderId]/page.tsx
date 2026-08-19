@@ -15,9 +15,16 @@ export const metadata = { title: "Order — PrimeCart" };
 
 export default async function OrderDetailPage({
   params,
+  searchParams,
 }: PageProps<"/dashboard/orders/[orderId]">) {
   const merchant = await requireMerchant();
   const { orderId } = await params;
+  const { from } = await searchParams;
+
+  const backHref =
+    typeof from === "string" && from.startsWith("/dashboard/orders")
+      ? from
+      : "/dashboard/orders";
 
   const order = await getOrder(merchant.id, orderId);
   if (!order) notFound();
@@ -36,7 +43,7 @@ export default async function OrderDetailPage({
   return (
     <main className="mx-auto max-w-3xl px-5 py-10 sm:px-8 sm:py-14">
       <Link
-        href="/dashboard/orders"
+        href={backHref}
         className="text-sm text-nk-neutral-500 hover:text-nk-text"
       >
         ← Orders
