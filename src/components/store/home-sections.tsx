@@ -47,6 +47,7 @@ function BannerBlock({
             fill
             priority={large}
             sizes="100vw"
+            quality={90}
             className="object-cover"
           />
           {/* Darkens the photo so white text stays readable regardless of

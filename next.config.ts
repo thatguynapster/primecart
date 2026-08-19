@@ -17,6 +17,10 @@ const nextConfig: NextConfig = {
         hostname: "**.r2.dev",
       },
     ],
+    // Next 16 only serves qualities explicitly allow-listed here — the
+    // default is 75. The storefront hero/mid-page banner request 90 (the
+    // largest, most visible images on the page), everything else stays at 75.
+    qualities: [75, 90],
   },
 };
 

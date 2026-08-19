@@ -397,7 +397,7 @@ export function HeroForm({
     <HeroBannerForm
       title="Hero"
       fieldHint="The first thing customers see at the top of your shop. Without a headline, your shop name and description are used instead."
-      imageHint="A wide image works best. Without one, the hero shows as text only."
+      imageHint="A wide image works best — at least 1920px wide, so it stays sharp across the full width of your shop. Without one, the hero shows as text only."
       headline={headline}
       subheading={subheading}
       imageUrl={imageUrl}
@@ -424,7 +424,7 @@ export function BannerForm({
     <HeroBannerForm
       title="Mid-page banner"
       fieldHint="A second banner shown further down your shop. Optional — the section stays hidden until you add a headline or an image, whichever comes first."
-      imageHint="A wide image works best."
+      imageHint="A wide image works best — at least 1920px wide, so it stays sharp across the full width of your shop."
       headline={headline}
       subheading={subheading}
       imageUrl={imageUrl}

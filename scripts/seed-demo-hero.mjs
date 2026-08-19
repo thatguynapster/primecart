@@ -29,7 +29,11 @@ function publicUrlFor(key) {
 }
 
 async function uploadHeroImage(merchantId, seed) {
-  const res = await fetch(`https://picsum.photos/seed/${seed}/1600/700`);
+  // Wide enough to stay sharp on a retina/high-DPI display, where the browser
+  // requests roughly 2x the CSS pixel width — a 1600px source visibly
+  // upscales (blurs) once stretched across a full-bleed ~1500px-wide banner
+  // on a 2x screen.
+  const res = await fetch(`https://picsum.photos/seed/${seed}/2400/1000`);
   if (!res.ok) throw new Error(`picsum fetch failed for seed ${seed}: ${res.status}`);
   const body = Buffer.from(await res.arrayBuffer());
 
