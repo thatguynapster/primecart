@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { TopBar } from "@/components/dashboard/nocturne/top-bar";
+import { getRootDomain, getStorefrontOrigin } from "@/lib/domain";
 import { requireMerchant } from "@/lib/merchant/current";
 import { listProducts } from "@/lib/products/queries";
 import { NewOrderForm } from "./new-order-form";
@@ -8,6 +10,7 @@ export const metadata = { title: "New order — PrimeCart" };
 
 export default async function NewOrderPage() {
   const merchant = await requireMerchant();
+  const storefront = merchant.storefront!;
   const products = await listProducts(merchant.id, { activeOnly: true });
 
   const pickable = products
@@ -26,7 +29,15 @@ export default async function NewOrderPage() {
     .filter((product) => product.variants.length > 0);
 
   return (
-    <main className="mx-auto max-w-2xl px-5 py-10 sm:px-8 sm:py-14">
+    <>
+      <TopBar
+        title="New order"
+        subtitle="For a walk-in or WhatsApp sale"
+        shopUrl={getStorefrontOrigin(storefront.subdomain)}
+        shopLabel={`${storefront.subdomain}.${getRootDomain()}`}
+      />
+
+      <main className="mx-auto max-w-2xl px-5 py-10 sm:px-8 sm:py-14">
       <Link
         href="/dashboard/orders"
         className="text-sm text-nk-neutral-500 hover:text-nk-text"
@@ -45,6 +56,7 @@ export default async function NewOrderPage() {
       <div className="mt-8">
         <NewOrderForm products={pickable} />
       </div>
-    </main>
+      </main>
+    </>
   );
 }

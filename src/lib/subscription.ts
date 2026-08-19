@@ -1,3 +1,4 @@
+import { getSubscription } from "@/lib/paystack";
 import { prisma } from "@/lib/prisma";
 import { invalidateSubscription } from "@/lib/merchant/lookup";
 import { setStorefrontActive } from "@/lib/merchant/storefront";
@@ -19,6 +20,8 @@ import { setStorefrontActive } from "@/lib/merchant/storefront";
 type MerchantRef = {
   id: string;
   storefront: { subdomain: string } | null;
+  /** Only needed so a renewal charge (no code of its own) can still look up next_payment_date. */
+  paystackSubscriptionCode?: string | null;
 };
 
 /**
@@ -50,6 +53,29 @@ export async function activateSubscription(
   if (merchant.storefront) {
     await setStorefrontActive(merchant.id, merchant.storefront.subdomain, true);
   }
+
+  // Best-effort: the merchant's billing card wants an actual renewal date,
+  // but nothing about whether it's fetched successfully should affect
+  // activation itself, which has already fully succeeded above.
+  const codeToQuery = subscriptionCode ?? merchant.paystackSubscriptionCode;
+  if (codeToQuery) {
+    try {
+      const subscription = await getSubscription(codeToQuery);
+      await prisma.merchant.update({
+        where: { id: merchant.id },
+        data: {
+          subscriptionRenewsAt: subscription.next_payment_date
+            ? new Date(subscription.next_payment_date)
+            : null,
+        },
+      });
+    } catch (error) {
+      console.error(
+        `Could not fetch next_payment_date for subscription ${codeToQuery}:`,
+        error
+      );
+    }
+  }
 }
 
 /**
@@ -60,7 +86,7 @@ export async function activateSubscription(
 export async function expireSubscription(merchant: MerchantRef): Promise<void> {
   await prisma.merchant.update({
     where: { id: merchant.id },
-    data: { subscriptionStatus: "EXPIRED" },
+    data: { subscriptionStatus: "EXPIRED", subscriptionRenewsAt: null },
   });
   invalidateSubscription(merchant.id);
 

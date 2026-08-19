@@ -209,6 +209,30 @@ export async function getPlan(planCode: string): Promise<PaystackPlan> {
   return body.data;
 }
 
+export type PaystackSubscription = {
+  status: string;
+  /** ISO date string, or null for a subscription Paystack has already ended. */
+  next_payment_date: string | null;
+};
+
+/**
+ * Fetches a subscription's own state from Paystack — in particular
+ * `next_payment_date`, which nothing in a webhook payload reliably carries
+ * (verified against this project's own webhook history: `subscription.create`
+ * fires once, renewal `charge.success` events carry no subscription-level
+ * fields at all). Called after activation so the merchant-facing renewal date
+ * comes from Paystack directly rather than being computed locally and risking
+ * drift from what Paystack will actually charge.
+ */
+export async function getSubscription(
+  subscriptionCode: string
+): Promise<PaystackSubscription> {
+  const body = await paystackFetch<PaystackSubscription>(
+    `/subscription/${subscriptionCode}`
+  );
+  return body.data;
+}
+
 type InitializePlanTransactionParams = {
   /** The merchant's own account email — this charges PrimeCart's subscription fee, not a merchant sale. */
   email: string;

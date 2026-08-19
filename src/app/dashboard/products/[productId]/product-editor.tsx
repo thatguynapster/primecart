@@ -93,6 +93,19 @@ function DetailsForm({
         </datalist>
       </Field>
 
+      <label className="flex items-center gap-2.5 text-sm">
+        <input
+          type="checkbox"
+          name="isFeatured"
+          defaultChecked={product.isFeatured}
+          className="size-4 rounded-sm border-nk-neutral-700 bg-transparent accent-nk-accent"
+        />
+        Feature on my shop
+        <span className="text-nk-neutral-500">
+          — shows in the Featured Collection section
+        </span>
+      </label>
+
       <Saving label="Save changes" />
     </form>
   );

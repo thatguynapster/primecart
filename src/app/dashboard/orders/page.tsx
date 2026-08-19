@@ -134,7 +134,7 @@ export default async function OrdersPage({
                     ].map((heading, index) => (
                       <th
                         key={heading}
-                        className={`sticky top-0 bg-nk-neutral-900 px-4 py-2.25 text-xs font-medium tracking-widest text-nk-neutral-400 uppercase ${
+                        className={`sticky top-0 z-10 bg-nk-neutral-900 px-4 py-2.25 text-xs font-medium tracking-widest text-nk-neutral-400 uppercase ${
                           index >= 5 ? "text-right" : "text-left"
                         }`}
                       >

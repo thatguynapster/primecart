@@ -48,9 +48,8 @@ export default async function CustomersPage() {
                   ].map((column) => (
                     <th
                       key={column.label}
-                      className={`bg-nk-neutral-900 px-4 py-2.25 text-xs font-medium tracking-widest text-nk-neutral-400 uppercase ${
-                        column.align === "right" ? "text-right" : "text-left"
-                      }`}
+                      className={`bg-nk-neutral-900 px-4 py-2.25 text-xs font-medium tracking-widest text-nk-neutral-400 uppercase ${column.align === "right" ? "text-right" : "text-left"
+                        }`}
                     >
                       {column.label}
                     </th>

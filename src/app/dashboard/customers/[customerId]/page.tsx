@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { TopBar } from "@/components/dashboard/nocturne/top-bar";
 import { Avatar, Card, EmptyState, initialsOf } from "@/components/dashboard/nocturne/ui";
+import { getRootDomain, getStorefrontOrigin } from "@/lib/domain";
 import { formatGhs, formatRelativeDate } from "@/lib/format";
 import { getCustomer, getCustomerOrders } from "@/lib/customers/queries";
 import { requireMerchant } from "@/lib/merchant/current";
@@ -16,6 +18,7 @@ export default async function CustomerDetailPage({
   params,
 }: PageProps<"/dashboard/customers/[customerId]">) {
   const merchant = await requireMerchant();
+  const storefront = merchant.storefront!;
   const { customerId } = await params;
 
   const customer = await getCustomer(merchant.id, customerId);
@@ -27,7 +30,15 @@ export default async function CustomerDetailPage({
   const lastOrder = orders[0] ?? null;
 
   return (
-    <main className="mx-auto max-w-2xl px-5 py-10 sm:px-8 sm:py-14">
+    <>
+      <TopBar
+        title={customer.name}
+        subtitle={`${orders.length} ${orders.length === 1 ? "order" : "orders"} · ${formatGhs(totalSpent)} spent`}
+        shopUrl={getStorefrontOrigin(storefront.subdomain)}
+        shopLabel={`${storefront.subdomain}.${getRootDomain()}`}
+      />
+
+      <main className="mx-auto max-w-2xl px-5 py-10 sm:px-8 sm:py-14">
       <Link
         href="/dashboard/customers"
         className="text-sm text-nk-neutral-500 hover:text-nk-text"
@@ -125,6 +136,7 @@ export default async function CustomerDetailPage({
           </table>
         </Card>
       )}
-    </main>
+      </main>
+    </>
   );
 }

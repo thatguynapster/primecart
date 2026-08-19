@@ -47,6 +47,11 @@ model Merchant {
   trialExpiresAt           DateTime
   subscriptionStatus       SubscriptionStatus @default(TRIAL)
   paystackSubscriptionCode String?
+  // Paystack's authoritative next_payment_date, fetched after activation —
+  // null for TRIAL/EXPIRED/CANCELLED, or for a subscription forced ACTIVE
+  // without ever going through a real Paystack checkout. Powers the Billing
+  // card's renewal-date warning on /dashboard/settings.
+  subscriptionRenewsAt     DateTime?
 
   products  Product[]
   orders    Order[]

@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { TopBar } from "@/components/dashboard/nocturne/top-bar";
 import { Card } from "@/components/dashboard/nocturne/ui";
+import { getRootDomain, getStorefrontOrigin } from "@/lib/domain";
 import { formatGhs, formatRelativeDate } from "@/lib/format";
 import { requireMerchant } from "@/lib/merchant/current";
 import { getOrder } from "@/lib/orders/queries";
@@ -18,6 +20,7 @@ export default async function OrderDetailPage({
   searchParams,
 }: PageProps<"/dashboard/orders/[orderId]">) {
   const merchant = await requireMerchant();
+  const storefront = merchant.storefront!;
   const { orderId } = await params;
   const { from } = await searchParams;
 
@@ -41,7 +44,15 @@ export default async function OrderDetailPage({
   const contactPhone = shipping?.phone ?? order.customer?.phone ?? null;
 
   return (
-    <main className="mx-auto max-w-3xl px-5 py-10 sm:px-8 sm:py-14">
+    <>
+      <TopBar
+        title={order.orderNumber}
+        subtitle={`${titleCase(order.status)} · ${titleCase(order.paymentStatus)}`}
+        shopUrl={getStorefrontOrigin(storefront.subdomain)}
+        shopLabel={`${storefront.subdomain}.${getRootDomain()}`}
+      />
+
+      <main className="mx-auto max-w-3xl px-5 py-10 sm:px-8 sm:py-14">
       <Link
         href={backHref}
         className="text-sm text-nk-neutral-500 hover:text-nk-text"
@@ -168,6 +179,7 @@ export default async function OrderDetailPage({
           <p className="mt-2 text-sm text-nk-neutral-300">{order.notes}</p>
         </Card>
       )}
-    </main>
+      </main>
+    </>
   );
 }

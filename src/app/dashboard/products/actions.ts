@@ -200,6 +200,7 @@ export async function updateProductDetails(
   const name = String(formData.get("name") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
   const category = String(formData.get("category") ?? "").trim();
+  const isFeatured = formData.get("isFeatured") === "on";
 
   if (!name) return { fieldErrors: { name: "Enter a product name." } };
 
@@ -210,6 +211,7 @@ export async function updateProductDetails(
       name,
       description: description || null,
       category: category || null,
+      isFeatured,
     },
   });
 

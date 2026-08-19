@@ -4,10 +4,20 @@ import { revalidatePath } from "next/cache";
 
 import { requireMerchant } from "@/lib/merchant/current";
 import {
+  setStorefrontBannerImage,
+  setStorefrontHeroImage,
   setStorefrontLogo,
+  updateStorefrontBanner,
   updateStorefrontBranding,
+  updateStorefrontHero,
 } from "@/lib/merchant/storefront";
-import { ImageUploadError, deleteImage, uploadMerchantLogo } from "@/lib/r2";
+import {
+  ImageUploadError,
+  deleteImage,
+  uploadMerchantBannerImage,
+  uploadMerchantHeroImage,
+  uploadMerchantLogo,
+} from "@/lib/r2";
 
 export type SettingsState = {
   error?: string;
@@ -99,6 +109,134 @@ export async function removeLogo(): Promise<void> {
 
   await setStorefrontLogo(merchant.id, storefront.subdomain, null);
   await deleteImage(storefront.logoUrl);
+
+  revalidatePath("/dashboard/settings");
+}
+
+// ---------------------------------------------------------------------------
+// Hero (Phase 14)
+// ---------------------------------------------------------------------------
+
+export async function updateHero(
+  _prev: SettingsState,
+  formData: FormData
+): Promise<SettingsState> {
+  const merchant = await requireMerchant();
+  const storefront = merchant.storefront;
+  if (!storefront) return { error: "Finish setting up your shop first." };
+
+  const headline = String(formData.get("headline") ?? "").trim();
+  const subheading = String(formData.get("subheading") ?? "").trim();
+
+  await updateStorefrontHero(merchant.id, storefront.subdomain, {
+    headline: headline || null,
+    subheading: subheading || null,
+  });
+
+  revalidatePath("/dashboard/settings");
+  return { savedAt: Date.now() };
+}
+
+export async function uploadHeroImage(
+  _prev: SettingsState,
+  formData: FormData
+): Promise<SettingsState> {
+  const merchant = await requireMerchant();
+  const storefront = merchant.storefront;
+  if (!storefront) return { error: "Finish setting up your shop first." };
+
+  const file = formData.get("image");
+  if (!(file instanceof File) || file.size === 0) {
+    return { error: "Choose an image first." };
+  }
+
+  let url: string;
+  try {
+    url = await uploadMerchantHeroImage({ merchantId: merchant.id, file });
+  } catch (error) {
+    if (error instanceof ImageUploadError) return { error: error.message };
+    return { error: "Could not upload that image. Try again." };
+  }
+
+  const previous = storefront.heroImageUrl;
+  await setStorefrontHeroImage(merchant.id, storefront.subdomain, url);
+  if (previous) await deleteImage(previous);
+
+  revalidatePath("/dashboard/settings");
+  return { savedAt: Date.now() };
+}
+
+export async function removeHeroImage(): Promise<void> {
+  const merchant = await requireMerchant();
+  const storefront = merchant.storefront;
+  if (!storefront?.heroImageUrl) return;
+
+  await setStorefrontHeroImage(merchant.id, storefront.subdomain, null);
+  await deleteImage(storefront.heroImageUrl);
+
+  revalidatePath("/dashboard/settings");
+}
+
+// ---------------------------------------------------------------------------
+// Mid-page banner (Phase 14)
+// ---------------------------------------------------------------------------
+
+export async function updateBanner(
+  _prev: SettingsState,
+  formData: FormData
+): Promise<SettingsState> {
+  const merchant = await requireMerchant();
+  const storefront = merchant.storefront;
+  if (!storefront) return { error: "Finish setting up your shop first." };
+
+  const headline = String(formData.get("headline") ?? "").trim();
+  const subheading = String(formData.get("subheading") ?? "").trim();
+
+  await updateStorefrontBanner(merchant.id, storefront.subdomain, {
+    headline: headline || null,
+    subheading: subheading || null,
+  });
+
+  revalidatePath("/dashboard/settings");
+  return { savedAt: Date.now() };
+}
+
+export async function uploadBannerImage(
+  _prev: SettingsState,
+  formData: FormData
+): Promise<SettingsState> {
+  const merchant = await requireMerchant();
+  const storefront = merchant.storefront;
+  if (!storefront) return { error: "Finish setting up your shop first." };
+
+  const file = formData.get("image");
+  if (!(file instanceof File) || file.size === 0) {
+    return { error: "Choose an image first." };
+  }
+
+  let url: string;
+  try {
+    url = await uploadMerchantBannerImage({ merchantId: merchant.id, file });
+  } catch (error) {
+    if (error instanceof ImageUploadError) return { error: error.message };
+    return { error: "Could not upload that image. Try again." };
+  }
+
+  const previous = storefront.bannerImageUrl;
+  await setStorefrontBannerImage(merchant.id, storefront.subdomain, url);
+  if (previous) await deleteImage(previous);
+
+  revalidatePath("/dashboard/settings");
+  return { savedAt: Date.now() };
+}
+
+export async function removeBannerImage(): Promise<void> {
+  const merchant = await requireMerchant();
+  const storefront = merchant.storefront;
+  if (!storefront?.bannerImageUrl) return;
+
+  await setStorefrontBannerImage(merchant.id, storefront.subdomain, null);
+  await deleteImage(storefront.bannerImageUrl);
 
   revalidatePath("/dashboard/settings");
 }

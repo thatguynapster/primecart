@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { TopBar } from "@/components/dashboard/nocturne/top-bar";
+import { getRootDomain, getStorefrontOrigin } from "@/lib/domain";
 import { requireMerchant } from "@/lib/merchant/current";
 import { getProduct, listCategories } from "@/lib/products/queries";
 import { variantImages } from "@/lib/products/variants";
@@ -13,6 +15,7 @@ export default async function ProductDetailPage({
   searchParams,
 }: PageProps<"/dashboard/products/[productId]">) {
   const merchant = await requireMerchant();
+  const storefront = merchant.storefront!;
   const { productId } = await params;
   const { from } = await searchParams;
 
@@ -41,7 +44,15 @@ export default async function ProductDetailPage({
   }
 
   return (
-    <main className="mx-auto max-w-3xl px-5 py-10 sm:px-8 sm:py-14">
+    <>
+      <TopBar
+        title={product.name}
+        subtitle={product.category ?? "Product details"}
+        shopUrl={getStorefrontOrigin(storefront.subdomain)}
+        shopLabel={`${storefront.subdomain}.${getRootDomain()}`}
+      />
+
+      <main className="mx-auto max-w-3xl px-5 py-10 sm:px-8 sm:py-14">
       <Link
         href={backHref}
         className="text-sm text-nk-neutral-500 hover:text-nk-text"
@@ -69,6 +80,7 @@ export default async function ProductDetailPage({
         />
         <ProductEditor product={product} categories={categories} />
       </div>
-    </main>
+      </main>
+    </>
   );
 }

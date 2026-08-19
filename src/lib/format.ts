@@ -19,6 +19,11 @@ export function daysUntil(date: Date): number {
 	return Math.max(0, Math.ceil((date.getTime() - Date.now()) / msPerDay));
 }
 
+/** Whether `date` has already passed. Same purity reasoning as `daysUntil`. */
+export function isPast(date: Date): boolean {
+	return date.getTime() < Date.now();
+}
+
 /**
  * "5 minutes ago", "Yesterday", "Last week" — how a merchant actually reads
  * a timestamp at a glance, rather than parsing "16 Aug". Falls back to a

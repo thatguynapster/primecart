@@ -271,7 +271,12 @@ async function findMerchantByEmail(email: string | undefined) {
   if (!email) return null;
   return prisma.merchant.findUnique({
     where: { email },
-    select: { id: true, email: true, storefront: { select: { subdomain: true } } },
+    select: {
+      id: true,
+      email: true,
+      paystackSubscriptionCode: true,
+      storefront: { select: { subdomain: true } },
+    },
   });
 }
 
@@ -287,7 +292,12 @@ async function resolveSubscriptionMerchant(data: NonNullable<PaystackEvent["data
   if (merchantId) {
     const byId = await prisma.merchant.findUnique({
       where: { id: merchantId },
-      select: { id: true, email: true, storefront: { select: { subdomain: true } } },
+      select: {
+        id: true,
+        email: true,
+        paystackSubscriptionCode: true,
+        storefront: { select: { subdomain: true } },
+      },
     });
     if (byId) return byId;
   }
