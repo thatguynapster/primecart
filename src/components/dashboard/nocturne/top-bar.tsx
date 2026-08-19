@@ -51,9 +51,9 @@ export function TopBar({
 
       <ShopLink shopUrl={shopUrl} label={shopLabel} />
 
-      <button type="button" className={btnSecondary("hidden sm:inline-flex")}>
+      {/* <button type="button" className={btnSecondary("hidden sm:inline-flex")}>
         Last 30 days
-      </button>
+      </button> */}
 
       <Link href="/dashboard/orders/new" className={btnPrimary()}>
         New order

@@ -1,15 +1,22 @@
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { formatGhs } from "@/lib/format";
 import { getMerchantBySubdomain } from "@/lib/merchant/lookup";
+import { getStorefrontBestSellers } from "@/lib/storefront/bestsellers";
 import {
+  listCategoryTiles,
+  listFeaturedProducts,
   listStorefrontCategories,
   listStorefrontProducts,
-  priceRange,
-  totalStock,
 } from "@/lib/storefront/catalogue";
+import { ProductCard } from "@/components/store/product-card";
+import {
+  CategoryTiles,
+  Hero,
+  MidPageBanner,
+  NewArrivals,
+  ProductSection,
+} from "@/components/store/home-sections";
 
 export async function generateMetadata({
   params,
@@ -36,19 +43,64 @@ export default async function StorefrontHome({
   const category = typeof query.category === "string" ? query.category : undefined;
   const search = typeof query.q === "string" ? query.q : undefined;
 
-  const [products, categories] = await Promise.all([
-    listStorefrontProducts(merchant.id, { search, category }),
+  // A category or search hit switches the whole page into a flat results
+  // view — clicking a category tile or the header's category nav is meant to
+  // browse that category, not repeat the homepage sections. New Arrivals'
+  // own in-page tabs use a separate `arrivals` param precisely so they don't
+  // trigger this.
+  if (category || search) {
+    return (
+      <CategoryResults subdomain={subdomain} merchantId={merchant.id} category={category} search={search} />
+    );
+  }
+
+  const arrivalsCategory =
+    typeof query.arrivals === "string" ? query.arrivals : undefined;
+
+  const [categories, tiles, bestSellers, featured, newArrivals] = await Promise.all([
     listStorefrontCategories(merchant.id),
+    listCategoryTiles(merchant.id),
+    getStorefrontBestSellers(merchant.id),
+    listFeaturedProducts(merchant.id),
+    listStorefrontProducts(merchant.id, { category: arrivalsCategory, limit: 12 }),
+  ]);
+
+  return (
+    <div>
+      <Hero merchant={merchant} />
+      <CategoryTiles tiles={tiles} />
+      <ProductSection title="Best Sellers" subdomain={subdomain} products={bestSellers} />
+      <ProductSection title="Our Featured Collection" subdomain={subdomain} products={featured} />
+      <MidPageBanner merchant={merchant} />
+      <NewArrivals
+        subdomain={subdomain}
+        categories={categories}
+        activeCategory={arrivalsCategory}
+        products={newArrivals}
+      />
+    </div>
+  );
+}
+
+/** The pre-redesign flat grid, kept for category/search results — now built on the shared ProductCard. */
+async function CategoryResults({
+  subdomain,
+  merchantId,
+  category,
+  search,
+}: {
+  subdomain: string;
+  merchantId: string;
+  category?: string;
+  search?: string;
+}) {
+  const [products, categories] = await Promise.all([
+    listStorefrontProducts(merchantId, { search, category }),
+    listStorefrontCategories(merchantId),
   ]);
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
-      {merchant.description && (
-        <p className="mb-8 max-w-lg text-[15px] leading-relaxed text-neutral-600">
-          {merchant.description}
-        </p>
-      )}
-
       <form className="mb-6">
         <input
           type="search"
@@ -91,62 +143,14 @@ export default async function StorefrontHome({
 
       {products.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-neutral-300 p-12 text-center">
-          <p className="text-[15px] font-medium">
-            {search || category ? "Nothing here yet." : "This shop is just getting started."}
-          </p>
-          <p className="mt-2 text-[14px] text-neutral-500">
-            {search || category
-              ? "Try another search."
-              : "Check back soon for products."}
-          </p>
+          <p className="text-[15px] font-medium">Nothing here yet.</p>
+          <p className="mt-2 text-[14px] text-neutral-500">Try another search.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-3">
-          {products.map((product) => {
-            const range = priceRange(product);
-            const soldOut = totalStock(product) === 0;
-
-            return (
-              <Link
-                key={product.id}
-                href={`/products/${product.id}`}
-                className="group"
-              >
-                <div className="relative aspect-square overflow-hidden rounded-xl border border-neutral-200 bg-neutral-50">
-                  {product.images[0] ? (
-                    <Image
-                      src={product.images[0]}
-                      alt={product.name}
-                      fill
-                      sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 300px"
-                      className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-                    />
-                  ) : (
-                    <span className="grid h-full place-items-center text-[13px] text-neutral-400">
-                      No photo
-                    </span>
-                  )}
-
-                  {soldOut && (
-                    <span className="absolute top-2 left-2 rounded-full bg-neutral-900/85 px-2.5 py-1 text-[11px] font-medium text-white">
-                      Sold out
-                    </span>
-                  )}
-                </div>
-
-                <p className="mt-3 text-[14px] leading-snug font-medium">
-                  {product.name}
-                </p>
-                {range && (
-                  <p className="mt-0.5 text-[13.5px] text-neutral-600">
-                    {range.min === range.max
-                      ? formatGhs(range.min)
-                      : `${formatGhs(range.min)} – ${formatGhs(range.max)}`}
-                  </p>
-                )}
-              </Link>
-            );
-          })}
+        <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-4">
+          {products.map((product) => (
+            <ProductCard key={product.id} subdomain={subdomain} product={product} />
+          ))}
         </div>
       )}
     </div>

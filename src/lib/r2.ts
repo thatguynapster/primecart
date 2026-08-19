@@ -117,23 +117,23 @@ export async function uploadProductImage(params: {
 }
 
 /**
- * Uploads a merchant's shop logo and returns its public URL.
- *
- * Kept in its own key namespace (`logos/…`) rather than alongside product
- * photos: a logo belongs to the merchant, not to any product, and separating
- * them keeps the bucket readable.
+ * Uploads a merchant-branding image (logo, hero, or mid-page banner) and
+ * returns its public URL. Each kind gets its own key namespace — none of
+ * these belong to any one product, and separating them keeps the bucket
+ * readable.
  */
-export async function uploadMerchantLogo(params: {
+async function uploadMerchantAsset(params: {
+  folder: "logos" | "hero" | "banner";
   merchantId: string;
   file: File;
 }): Promise<string> {
-  const { merchantId, file } = params;
+  const { folder, merchantId, file } = params;
 
   const invalid = validateImageFile(file);
   if (invalid) throw new ImageUploadError(invalid);
 
   const extension = ALLOWED_TYPES[file.type];
-  const key = `logos/${merchantId}/${randomUUID()}.${extension}`;
+  const key = `${folder}/${merchantId}/${randomUUID()}.${extension}`;
 
   await client().send(
     new PutObjectCommand({
@@ -146,6 +146,29 @@ export async function uploadMerchantLogo(params: {
   );
 
   return publicUrlFor(key);
+}
+
+export function uploadMerchantLogo(params: {
+  merchantId: string;
+  file: File;
+}): Promise<string> {
+  return uploadMerchantAsset({ folder: "logos", ...params });
+}
+
+/** Phase 14 hero section image. */
+export function uploadMerchantHeroImage(params: {
+  merchantId: string;
+  file: File;
+}): Promise<string> {
+  return uploadMerchantAsset({ folder: "hero", ...params });
+}
+
+/** Phase 14 mid-page banner image. */
+export function uploadMerchantBannerImage(params: {
+  merchantId: string;
+  file: File;
+}): Promise<string> {
+  return uploadMerchantAsset({ folder: "banner", ...params });
 }
 
 /**

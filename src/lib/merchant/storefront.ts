@@ -57,6 +57,83 @@ export async function setStorefrontLogo(
 }
 
 /**
+ * Phase 14 hero and mid-page banner content. Two independent slots sharing
+ * the same field shape (headline, subheading, image) — same per-field write
+ * pattern as the branding functions above, so saving one never clobbers the
+ * other or `isActive`.
+ */
+export type HeroBannerFields = {
+  headline: string | null;
+  subheading: string | null;
+};
+
+export async function updateStorefrontHero(
+  merchantId: string,
+  subdomain: string,
+  fields: HeroBannerFields
+): Promise<void> {
+  await runEmbeddedUpdate({
+    collection: "Merchant",
+    filter: { _id: oid(merchantId) },
+    update: {
+      $set: {
+        "storefront.heroHeadline": fields.headline,
+        "storefront.heroSubheading": fields.subheading,
+      },
+    },
+  });
+
+  invalidateStorefront(subdomain);
+}
+
+export async function setStorefrontHeroImage(
+  merchantId: string,
+  subdomain: string,
+  imageUrl: string | null
+): Promise<void> {
+  await runEmbeddedUpdate({
+    collection: "Merchant",
+    filter: { _id: oid(merchantId) },
+    update: { $set: { "storefront.heroImageUrl": imageUrl } },
+  });
+
+  invalidateStorefront(subdomain);
+}
+
+export async function updateStorefrontBanner(
+  merchantId: string,
+  subdomain: string,
+  fields: HeroBannerFields
+): Promise<void> {
+  await runEmbeddedUpdate({
+    collection: "Merchant",
+    filter: { _id: oid(merchantId) },
+    update: {
+      $set: {
+        "storefront.bannerHeadline": fields.headline,
+        "storefront.bannerSubheading": fields.subheading,
+      },
+    },
+  });
+
+  invalidateStorefront(subdomain);
+}
+
+export async function setStorefrontBannerImage(
+  merchantId: string,
+  subdomain: string,
+  imageUrl: string | null
+): Promise<void> {
+  await runEmbeddedUpdate({
+    collection: "Merchant",
+    filter: { _id: oid(merchantId) },
+    update: { $set: { "storefront.bannerImageUrl": imageUrl } },
+  });
+
+  invalidateStorefront(subdomain);
+}
+
+/**
  * Switches a storefront on or off — the effect of a subscription lapsing or
  * reactivating (Phase 13). Same per-field write as the two functions above,
  * for the same reason: writing the whole `storefront` composite here would

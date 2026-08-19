@@ -51,6 +51,14 @@ export type StorefrontMerchant = {
   logoUrl: string | null;
   primaryColor: string;
   description: string | null;
+  /** Phase 14 hero content — all optional, the page falls back when unset. */
+  heroHeadline: string | null;
+  heroSubheading: string | null;
+  heroImageUrl: string | null;
+  /** Phase 14 mid-page banner — independent content from the hero's. */
+  bannerHeadline: string | null;
+  bannerSubheading: string | null;
+  bannerImageUrl: string | null;
 };
 
 const storefrontCache = new Map<string, CacheEntry<StorefrontMerchant | null>>();
@@ -76,6 +84,12 @@ export async function getMerchantBySubdomain(
         logoUrl: merchant.storefront.logoUrl,
         primaryColor: merchant.storefront.primaryColor,
         description: merchant.storefront.description,
+        heroHeadline: merchant.storefront.heroHeadline,
+        heroSubheading: merchant.storefront.heroSubheading,
+        heroImageUrl: merchant.storefront.heroImageUrl,
+        bannerHeadline: merchant.storefront.bannerHeadline,
+        bannerSubheading: merchant.storefront.bannerSubheading,
+        bannerImageUrl: merchant.storefront.bannerImageUrl,
       }
     : null;
 

@@ -1,6 +1,4 @@
-import { Prisma } from "@prisma/client";
-
-import { prisma } from "@/lib/prisma";
+import { aggregate, isoDate, oid } from "@/lib/db/aggregate";
 
 /**
  * Dashboard reporting.
@@ -12,59 +10,10 @@ import { prisma } from "@/lib/prisma";
  * `merchantId` is the first condition of every `$match`. It arrives from the
  * Clerk session via `requireMerchant`, never from the client.
  *
- * Note on raw pipelines: MongoDB's extended JSON is required here, so object
- * ids are `{ $oid }` and dates `{ $date }` — Prisma passes the command through
- * untouched rather than serialising native values.
+ * `aggregate`, `oid` and `isoDate` live in src/lib/db/aggregate.ts — the
+ * storefront's own best-seller/category rollups (src/lib/storefront/) need
+ * the same raw-pipeline plumbing, so it is shared rather than duplicated.
  */
-
-const oid = (id: string) => ({ $oid: id });
-const isoDate = (date: Date) => ({ $date: date.toISOString() });
-
-type AggregateResult<T> = {
-	cursor?: { firstBatch?: T[] };
-};
-
-/**
- * A pooled MongoDB connection that has sat idle can be reset by the network
- * path (a NAT/router timeout, or Atlas's own idle-connection handling on
- * shared tiers) between one request and the next. The driver only discovers
- * this when it tries to use the connection, so the request that draws the
- * dead connection fails outright — the *next* request gets a fresh one and
- * succeeds, which is why reloading the page "fixes" it.
- *
- * $runCommandRaw sits outside Prisma's typed-query retry path, so this one
- * chokepoint gets its own: one retry, only for this specific transient
- * pattern, never for a real query error (bad pipeline, auth, etc.) — those
- * fail the same way twice, so retrying them would just double the latency
- * before an inevitable failure.
- */
-function isResetConnectionError(error: unknown): boolean {
-	if (!(error instanceof Prisma.PrismaClientKnownRequestError)) return false;
-	return /forcibly closed|ECONNRESET|connection reset|os error 10054/i.test(
-		error.message
-	);
-}
-
-async function aggregate<T>(
-	collection: string,
-	pipeline: Prisma.InputJsonValue[]
-): Promise<T[]> {
-	const command: Prisma.InputJsonObject = {
-		aggregate: collection,
-		pipeline,
-		cursor: {}
-	};
-
-	let result: AggregateResult<T>;
-	try {
-		result = (await prisma.$runCommandRaw(command)) as AggregateResult<T>;
-	} catch (error) {
-		if (!isResetConnectionError(error)) throw error;
-		result = (await prisma.$runCommandRaw(command)) as AggregateResult<T>;
-	}
-
-	return result.cursor?.firstBatch ?? [];
-}
 
 function daysAgo(days: number): Date {
 	return new Date(Date.now() - days * 86_400_000);
