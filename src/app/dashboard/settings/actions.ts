@@ -11,6 +11,8 @@ import {
   updateStorefrontBranding,
   updateStorefrontHero,
 } from "@/lib/merchant/storefront";
+import { PaystackError, createSubaccount, updateSubaccount } from "@/lib/paystack";
+import { prisma } from "@/lib/prisma";
 import {
   ImageUploadError,
   deleteImage,
@@ -239,4 +241,73 @@ export async function removeBannerImage(): Promise<void> {
   await deleteImage(storefront.bannerImageUrl);
 
   revalidatePath("/dashboard/settings");
+}
+
+// ---------------------------------------------------------------------------
+// Payout details
+// ---------------------------------------------------------------------------
+
+/**
+ * Adds or changes where storefront sales get paid out.
+ *
+ * The onboarding flow (`src/app/onboarding/actions.ts`) is the only other
+ * place that ever creates a subaccount — this mirrors its validation and its
+ * "Paystack first" ordering (never write a subaccount code the create call
+ * didn't actually confirm), but branches into an update when one already
+ * exists rather than always creating a new one. A merchant provisioned
+ * without a subaccount at all (e.g. a database seeded directly rather than
+ * through onboarding) lands in the create branch here, same as if they were
+ * onboarding for the first time.
+ */
+export async function updatePayoutDetails(
+  _prev: SettingsState,
+  formData: FormData
+): Promise<SettingsState> {
+  const merchant = await requireMerchant();
+  const storefront = merchant.storefront;
+  if (!storefront) return { error: "Finish setting up your shop first." };
+
+  const bankCode = String(formData.get("bankCode") ?? "").trim();
+  const accountNumber = String(formData.get("accountNumber") ?? "").trim();
+
+  const fieldErrors: Record<string, string> = {};
+  if (!bankCode) {
+    fieldErrors.bankCode = "Choose where you want to be paid.";
+  }
+  if (!accountNumber) {
+    fieldErrors.accountNumber = "Enter your account or mobile money number.";
+  } else if (!/^[0-9]{5,20}$/.test(accountNumber)) {
+    fieldErrors.accountNumber = "Use digits only.";
+  }
+  if (Object.keys(fieldErrors).length > 0) return { fieldErrors };
+
+  try {
+    if (merchant.paystackSubaccountCode) {
+      await updateSubaccount(merchant.paystackSubaccountCode, {
+        businessName: storefront.businessName,
+        bankCode,
+        accountNumber,
+      });
+    } else {
+      const subaccount = await createSubaccount({
+        businessName: storefront.businessName,
+        bankCode,
+        accountNumber,
+      });
+      await prisma.merchant.update({
+        where: { id: merchant.id },
+        data: { paystackSubaccountCode: subaccount.subaccount_code },
+      });
+    }
+  } catch (error) {
+    if (error instanceof PaystackError) {
+      return { error: `Paystack could not verify these details: ${error.message}` };
+    }
+    return {
+      error: "Could not reach Paystack just now. Check your details and try again.",
+    };
+  }
+
+  revalidatePath("/dashboard/settings");
+  return { savedAt: Date.now() };
 }

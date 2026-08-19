@@ -127,6 +127,55 @@ export async function createSubaccount(params: {
   return body.data;
 }
 
+export type PaystackSubaccountDetails = {
+  subaccount_code: string;
+  settlement_bank: string;
+  account_number: string;
+};
+
+/**
+ * Current payout details on file — settings' "Payout details" card shows
+ * these so a merchant can see where their money is currently going before
+ * changing it. `settlement_bank` here is the bank's *name*, not its code
+ * (Paystack's own response shape), so it is display-only — updating payout
+ * details always re-selects a bank from `listGhanaianBanks()` rather than
+ * trying to map a name back to a code.
+ */
+export async function getSubaccount(
+  subaccountCode: string
+): Promise<PaystackSubaccountDetails> {
+  const body = await paystackFetch<PaystackSubaccountDetails>(
+    `/subaccount/${subaccountCode}`
+  );
+  return body.data;
+}
+
+/**
+ * Updates where a merchant's storefront sales get paid out. Same
+ * `percentage_charge: 0` requirement as `createSubaccount` — PrimeCart's 3%
+ * is applied per-transaction, never as a standing cut on the subaccount
+ * itself (D-6), and an update request that omitted this would let Paystack
+ * reset it to its own default.
+ */
+export async function updateSubaccount(
+  subaccountCode: string,
+  params: { businessName: string; bankCode: string; accountNumber: string }
+): Promise<PaystackSubaccountDetails> {
+  const body = await paystackFetch<PaystackSubaccountDetails>(
+    `/subaccount/${subaccountCode}`,
+    {
+      method: "PUT",
+      body: JSON.stringify({
+        business_name: params.businessName,
+        settlement_bank: params.bankCode,
+        account_number: params.accountNumber,
+        percentage_charge: 0,
+      }),
+    }
+  );
+  return body.data;
+}
+
 // ---------------------------------------------------------------------------
 // Transactions
 // ---------------------------------------------------------------------------

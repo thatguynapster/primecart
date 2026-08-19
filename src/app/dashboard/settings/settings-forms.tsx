@@ -1,16 +1,18 @@
 "use client";
 
-import Image from "next/image";
 import { useActionState, useId, useState } from "react";
 import { useFormStatus } from "react-dom";
 
 import { Field, FormError, inputClass } from "@/components/dashboard/fields";
+import { ImagePicker } from "@/components/dashboard/image-picker";
+import type { PaystackBank, PaystackSubaccountDetails } from "@/lib/paystack";
 import {
   removeBannerImage,
   removeHeroImage,
   removeLogo,
   updateBanner,
   updateHero,
+  updatePayoutDetails,
   updateShopDetails,
   uploadBannerImage,
   uploadHeroImage,
@@ -148,7 +150,6 @@ export function LogoForm({
     {}
   );
   const [removing, setRemoving] = useState(false);
-  const inputId = useId();
 
   return (
     <section className="rounded-md border border-nk-neutral-800 bg-nk-surface p-6 sm:p-8">
@@ -158,71 +159,46 @@ export function LogoForm({
         your shop shows the first letter of its name.
       </p>
 
-      <div className="mt-5 flex items-center gap-4">
-        <div className="grid size-16 shrink-0 place-items-center overflow-hidden rounded-md border border-nk-neutral-800 bg-nk-neutral-900">
-          {logoUrl ? (
-            <Image
-              src={logoUrl}
-              alt="Your logo"
-              width={64}
-              height={64}
-              className="size-16 object-cover"
-            />
-          ) : (
-            <span className="text-xl font-medium text-nk-neutral-600">
-              {businessName.charAt(0).toUpperCase()}
-            </span>
-          )}
-        </div>
-
-        {logoUrl && (
-          <button
-            type="button"
-            disabled={removing}
-            onClick={async () => {
-              setRemoving(true);
-              try {
-                await removeLogo();
-              } finally {
-                setRemoving(false);
-              }
-            }}
-            className="text-sm text-nk-neutral-500 underline underline-offset-4 hover:text-nk-text disabled:opacity-50"
-          >
-            {removing ? "Removing…" : "Remove logo"}
-          </button>
-        )}
-      </div>
-
       {!configured ? (
         <p className="mt-5 rounded-md border border-dashed border-nk-neutral-800 p-5 text-sm text-nk-neutral-500">
           Image storage is not connected yet.
         </p>
       ) : (
         <form
-          // Remounting after a save clears the file input.
+          // Remounting after a save clears the picked file and its preview.
           key={state.savedAt ?? 0}
           action={formAction}
           className="mt-5 space-y-4"
         >
           <FormError message={state.error} />
 
-          <div className="flex flex-wrap items-center gap-3">
-            <label
-              htmlFor={inputId}
-              className="cursor-pointer rounded-md border border-nk-neutral-800 bg-transparent px-4 py-2.5 text-sm font-medium transition-colors hover:bg-nk-text/7"
-            >
-              Choose logo
-            </label>
-            <input
-              id={inputId}
-              name="logo"
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              className="text-sm text-nk-neutral-500 file:hidden"
-            />
+          <ImagePicker name="logo" currentUrl={logoUrl} shape="square" />
+          {!logoUrl && (
+            <p className="text-sm text-nk-neutral-500">
+              Without one, your shop shows &ldquo;{businessName.charAt(0).toUpperCase()}&rdquo; instead.
+            </p>
+          )}
+
+          <div className="flex items-center gap-4">
             <Saving label="Upload" />
             <Saved at={state.savedAt} />
+            {logoUrl && (
+              <button
+                type="button"
+                disabled={removing}
+                onClick={async () => {
+                  setRemoving(true);
+                  try {
+                    await removeLogo();
+                  } finally {
+                    setRemoving(false);
+                  }
+                }}
+                className="text-sm text-nk-neutral-500 underline underline-offset-4 hover:text-nk-text disabled:opacity-50"
+              >
+                {removing ? "Removing…" : "Remove logo"}
+              </button>
+            )}
           </div>
         </form>
       )}
@@ -271,7 +247,6 @@ function HeroBannerForm({
   );
   const [removing, setRemoving] = useState(false);
   const ids = { headline: useId(), subheading: useId() };
-  const imageInputId = useId();
 
   return (
     <section className="rounded-md border border-nk-neutral-800 bg-nk-surface p-6 sm:p-8">
@@ -312,40 +287,6 @@ function HeroBannerForm({
         <p className="text-sm font-medium text-nk-text">Image</p>
         <p className="mt-1 text-sm text-nk-neutral-500">{imageHint}</p>
 
-        <div className="mt-4 flex items-center gap-4">
-          {imageUrl ? (
-            <Image
-              src={imageUrl}
-              alt=""
-              width={120}
-              height={68}
-              className="h-17 w-30 flex-none rounded-md border border-nk-neutral-800 object-cover"
-            />
-          ) : (
-            <div className="grid h-17 w-30 flex-none place-items-center rounded-md border border-dashed border-nk-neutral-800 text-xs text-nk-neutral-600">
-              None yet
-            </div>
-          )}
-
-          {imageUrl && (
-            <button
-              type="button"
-              disabled={removing}
-              onClick={async () => {
-                setRemoving(true);
-                try {
-                  await onRemoveImage();
-                } finally {
-                  setRemoving(false);
-                }
-              }}
-              className="text-sm text-nk-neutral-500 underline underline-offset-4 hover:text-nk-text disabled:opacity-50"
-            >
-              {removing ? "Removing…" : "Remove image"}
-            </button>
-          )}
-        </div>
-
         {!configured ? (
           <p className="mt-4 rounded-md border border-dashed border-nk-neutral-800 p-5 text-sm text-nk-neutral-500">
             Image storage is not connected yet.
@@ -358,22 +299,28 @@ function HeroBannerForm({
           >
             <FormError message={imageState.error} />
 
-            <div className="flex flex-wrap items-center gap-3">
-              <label
-                htmlFor={imageInputId}
-                className="cursor-pointer rounded-md border border-nk-neutral-800 bg-transparent px-4 py-2.5 text-sm font-medium transition-colors hover:bg-nk-text/7"
-              >
-                Choose image
-              </label>
-              <input
-                id={imageInputId}
-                name="image"
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                className="text-sm text-nk-neutral-500 file:hidden"
-              />
+            <ImagePicker name="image" currentUrl={imageUrl} shape="wide" />
+
+            <div className="flex items-center gap-4">
               <Saving label="Upload" />
               <Saved at={imageState.savedAt} />
+              {imageUrl && (
+                <button
+                  type="button"
+                  disabled={removing}
+                  onClick={async () => {
+                    setRemoving(true);
+                    try {
+                      await onRemoveImage();
+                    } finally {
+                      setRemoving(false);
+                    }
+                  }}
+                  className="text-sm text-nk-neutral-500 underline underline-offset-4 hover:text-nk-text disabled:opacity-50"
+                >
+                  {removing ? "Removing…" : "Remove image"}
+                </button>
+              )}
             </div>
           </form>
         )}
@@ -433,5 +380,124 @@ export function BannerForm({
       uploadAction={uploadBannerImage}
       onRemoveImage={removeBannerImage}
     />
+  );
+}
+
+// ---------------------------------------------------------------------------
+
+/**
+ * Payout details — the bank/mobile money account storefront sales settle
+ * into. Onboarding is the only other place a subaccount ever gets created;
+ * this covers both adding one for the first time (a merchant provisioned
+ * without going through onboarding, e.g. seeded directly) and changing an
+ * existing one. Current details are shown read-only — Paystack returns the
+ * bank as a *name*, not the code `<select>` needs, so "change" always means
+ * picking fresh from the dropdown rather than trying to preselect it.
+ */
+export function PayoutForm({
+  banks,
+  hasSubaccount,
+  current,
+}: {
+  banks: PaystackBank[];
+  /** Whether a subaccount exists at all — drives create-vs-update wording, independent of whether `current` could be fetched. */
+  hasSubaccount: boolean;
+  /** The fetched display details, or null if there's none yet, or the fetch failed. */
+  current: PaystackSubaccountDetails | null;
+}) {
+  const [state, formAction] = useActionState<SettingsState, FormData>(
+    updatePayoutDetails,
+    {}
+  );
+  const ids = { bankCode: useId(), accountNumber: useId() };
+  const fieldErrors = state.fieldErrors ?? {};
+
+  const bankOptions = banks.filter((b) => b.type !== "mobile_money");
+  const momoOptions = banks.filter((b) => b.type === "mobile_money");
+
+  return (
+    <section className="rounded-md border border-nk-neutral-800 bg-nk-surface p-6 sm:p-8">
+      <h2 className="text-base font-medium tracking-tight">Payout details</h2>
+      <p className="mt-2 text-sm leading-relaxed text-nk-neutral-400">
+        Where your storefront sales get paid. We charge 3% on storefront sales
+        only, covering all payment processing fees — manual orders are always
+        free.
+      </p>
+
+      {current ? (
+        <div className="mt-5 rounded-md border border-nk-neutral-800 bg-nk-neutral-900 px-4 py-3">
+          <p className="text-xs text-nk-neutral-500">Currently paid to</p>
+          <p className="mt-1 text-sm text-nk-text">
+            {current.settlement_bank} · {current.account_number}
+          </p>
+        </div>
+      ) : hasSubaccount ? (
+        <p className="mt-5 rounded-md border border-nk-neutral-800 bg-nk-neutral-900 px-4 py-3 text-sm text-nk-neutral-500">
+          A payout account is on file — details couldn&rsquo;t be loaded from
+          Paystack just now. You can still update it below.
+        </p>
+      ) : (
+        <p className="mt-5 rounded-md border border-dashed border-nk-neutral-800 px-4 py-3 text-sm text-nk-neutral-500">
+          No payout account on file yet — storefront sales can&rsquo;t be paid
+          out until you add one.
+        </p>
+      )}
+
+      <form
+        key={state.savedAt ?? 0}
+        action={formAction}
+        className="mt-5 space-y-5"
+      >
+        <FormError message={state.error} />
+
+        <Field
+          label={hasSubaccount ? "New bank or mobile money" : "Bank or mobile money"}
+          htmlFor={ids.bankCode}
+          error={fieldErrors.bankCode}
+        >
+          <select id={ids.bankCode} name="bankCode" defaultValue="" className={inputClass}>
+            <option value="" disabled>
+              Choose one
+            </option>
+            {momoOptions.length > 0 && (
+              <optgroup label="Mobile money">
+                {momoOptions.map((bank) => (
+                  <option key={bank.code} value={bank.code}>
+                    {bank.name}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+            <optgroup label="Banks">
+              {bankOptions.map((bank) => (
+                <option key={bank.code} value={bank.code}>
+                  {bank.name}
+                </option>
+              ))}
+            </optgroup>
+          </select>
+        </Field>
+
+        <Field
+          label="Account or mobile money number"
+          htmlFor={ids.accountNumber}
+          error={fieldErrors.accountNumber}
+        >
+          <input
+            id={ids.accountNumber}
+            name="accountNumber"
+            inputMode="numeric"
+            placeholder="0244000000"
+            autoComplete="off"
+            className={inputClass}
+          />
+        </Field>
+
+        <div className="flex items-center gap-4">
+          <Saving label={hasSubaccount ? "Update payout details" : "Add payout details"} />
+          <Saved at={state.savedAt} />
+        </div>
+      </form>
+    </section>
   );
 }
