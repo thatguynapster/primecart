@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { ClerkProvider } from "@clerk/nextjs";
 import { Archivo, Geist, Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
 
@@ -39,15 +38,11 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    // Points Clerk's client components at this app's own auth screens. The
-    // proxy's server-side guard is configured separately, in src/proxy.ts.
-    <ClerkProvider signInUrl="/sign-in" signUpUrl="/sign-up">
-      <html
-        lang="en"
-        className={`${geistSans.variable} ${archivo.variable} ${geistMono.variable} ${inter.variable} h-full antialiased motion-safe:scroll-smooth`}
-      >
-        <body className="min-h-full flex flex-col">{children}</body>
-      </html>
-    </ClerkProvider>
+    <html
+      lang="en"
+      className={`${geistSans.variable} ${archivo.variable} ${geistMono.variable} ${inter.variable} h-full antialiased motion-safe:scroll-smooth`}
+    >
+      <body className="min-h-full flex flex-col">{children}</body>
+    </html>
   );
 }
