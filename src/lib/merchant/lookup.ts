@@ -59,6 +59,10 @@ export type StorefrontMerchant = {
   bannerHeadline: string | null;
   bannerSubheading: string | null;
   bannerImageUrl: string | null;
+  /** Footer socials (14.20) — each optional, icon only renders once set. */
+  facebookUrl: string | null;
+  instagramUrl: string | null;
+  whatsappNumber: string | null;
 };
 
 const storefrontCache = new Map<string, CacheEntry<StorefrontMerchant | null>>();
@@ -90,6 +94,9 @@ export async function getMerchantBySubdomain(
         bannerHeadline: merchant.storefront.bannerHeadline,
         bannerSubheading: merchant.storefront.bannerSubheading,
         bannerImageUrl: merchant.storefront.bannerImageUrl,
+        facebookUrl: merchant.storefront.facebookUrl,
+        instagramUrl: merchant.storefront.instagramUrl,
+        whatsappNumber: merchant.storefront.whatsappNumber,
       }
     : null;
 

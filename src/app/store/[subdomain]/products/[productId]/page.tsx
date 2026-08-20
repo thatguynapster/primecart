@@ -41,7 +41,7 @@ export default async function StorefrontProductPage({
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
       <Link
-        href="/"
+        href="/products"
         className="text-[13.5px] text-neutral-500 hover:text-neutral-900"
       >
         ← All products

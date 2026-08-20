@@ -87,6 +87,15 @@ type MerchantStorefront {
   bannerHeadline   String?
   bannerSubheading String?
   bannerImageUrl   String?
+
+  // Footer socials (14.20) — all optional, each icon only renders once set.
+  // WhatsApp in place of the reference's LinkedIn: this merchant profile
+  // (small Ghanaian shops) already sells over WhatsApp day to day, matching
+  // the same reasoning D-15's parked `whatsappNumber` proposal made —
+  // LinkedIn does not fit this audience the way it fits Lumixio's.
+  facebookUrl    String?
+  instagramUrl   String?
+  whatsappNumber String?
 }
 
 // ============================================

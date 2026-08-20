@@ -14,6 +14,7 @@ import {
   updateHero,
   updatePayoutDetails,
   updateShopDetails,
+  updateSocials,
   uploadBannerImage,
   uploadHeroImage,
   uploadLogo,
@@ -495,6 +496,87 @@ export function PayoutForm({
 
         <div className="flex items-center gap-4">
           <Saving label={hasSubaccount ? "Update payout details" : "Add payout details"} />
+          <Saved at={state.savedAt} />
+        </div>
+      </form>
+    </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
+
+/**
+ * Footer socials (14.20) — Facebook and Instagram links, plus a WhatsApp
+ * number. Each is independently optional; the footer only shows an icon for
+ * whichever ones are actually set.
+ */
+export function SocialsForm({
+  facebookUrl,
+  instagramUrl,
+  whatsappNumber,
+}: {
+  facebookUrl: string | null;
+  instagramUrl: string | null;
+  whatsappNumber: string | null;
+}) {
+  const [state, formAction] = useActionState<SettingsState, FormData>(
+    updateSocials,
+    {}
+  );
+  const ids = { facebook: useId(), instagram: useId(), whatsapp: useId() };
+  const fieldErrors = state.fieldErrors ?? {};
+
+  return (
+    <section className="rounded-md border border-nk-neutral-800 bg-nk-surface p-6 sm:p-8">
+      <h2 className="text-base font-medium tracking-tight">Socials</h2>
+      <p className="mt-2 text-sm leading-relaxed text-nk-neutral-400">
+        Shown as icons in your shop&rsquo;s footer. All optional — only the
+        ones you fill in appear.
+      </p>
+
+      <form action={formAction} className="mt-5 space-y-5">
+        <FormError message={state.error} />
+
+        <Field label="Facebook" htmlFor={ids.facebook} error={fieldErrors.facebookUrl}>
+          <input
+            id={ids.facebook}
+            name="facebookUrl"
+            type="url"
+            placeholder="https://facebook.com/yourshop"
+            defaultValue={facebookUrl ?? ""}
+            className={inputClass}
+          />
+        </Field>
+
+        <Field label="Instagram" htmlFor={ids.instagram} error={fieldErrors.instagramUrl}>
+          <input
+            id={ids.instagram}
+            name="instagramUrl"
+            type="url"
+            placeholder="https://instagram.com/yourshop"
+            defaultValue={instagramUrl ?? ""}
+            className={inputClass}
+          />
+        </Field>
+
+        <Field
+          label="WhatsApp number"
+          htmlFor={ids.whatsapp}
+          hint="Customers can message you directly"
+          error={fieldErrors.whatsappNumber}
+        >
+          <input
+            id={ids.whatsapp}
+            name="whatsappNumber"
+            inputMode="tel"
+            placeholder="0244000000"
+            defaultValue={whatsappNumber ?? ""}
+            className={inputClass}
+          />
+        </Field>
+
+        <div className="flex items-center gap-4">
+          <Saving label="Save changes" />
           <Saved at={state.savedAt} />
         </div>
       </form>

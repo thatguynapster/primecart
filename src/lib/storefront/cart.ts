@@ -32,6 +32,14 @@ type CartState = {
   setQuantity: (variantId: string, quantity: number) => void;
   remove: (variantId: string) => void;
   clear: () => void;
+  // Whether the cart slideover (14.17) is open — shared state rather than
+  // local to the header's trigger, so a "View cart" link elsewhere on the
+  // page (e.g. after adding an item from the product page) can open the same
+  // sheet instance instead of navigating to a page that no longer exists.
+  isOpen: boolean;
+  openCart: () => void;
+  closeCart: () => void;
+  setCartOpen: (open: boolean) => void;
 };
 
 const stores = new Map<string, ReturnType<typeof createCartStore>>();
@@ -79,10 +87,18 @@ function createCartStore(subdomain: string) {
           })),
 
         clear: () => set({ lines: [] }),
+
+        isOpen: false,
+        openCart: () => set({ isOpen: true }),
+        closeCart: () => set({ isOpen: false }),
+        setCartOpen: (open) => set({ isOpen: open }),
       }),
       {
         name: `primecart-cart:${subdomain}`,
         storage: createJSONStorage(() => localStorage),
+        // Whether the sheet happens to be open is not something worth
+        // resuming on a fresh page load — only the cart's contents are.
+        partialize: (state) => ({ lines: state.lines }),
       }
     )
   );

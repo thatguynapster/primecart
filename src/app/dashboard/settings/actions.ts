@@ -10,6 +10,7 @@ import {
   updateStorefrontBanner,
   updateStorefrontBranding,
   updateStorefrontHero,
+  updateStorefrontSocials,
 } from "@/lib/merchant/storefront";
 import { PaystackError, createSubaccount, updateSubaccount } from "@/lib/paystack";
 import { prisma } from "@/lib/prisma";
@@ -307,6 +308,47 @@ export async function updatePayoutDetails(
       error: "Could not reach Paystack just now. Check your details and try again.",
     };
   }
+
+  revalidatePath("/dashboard/settings");
+  return { savedAt: Date.now() };
+}
+
+// ---------------------------------------------------------------------------
+// Socials (14.20)
+// ---------------------------------------------------------------------------
+
+const URL_LIKE = /^https?:\/\/.+/i;
+const WHATSAPP_NUMBER = /^\+?[0-9]{7,15}$/;
+
+export async function updateSocials(
+  _prev: SettingsState,
+  formData: FormData
+): Promise<SettingsState> {
+  const merchant = await requireMerchant();
+  const storefront = merchant.storefront;
+  if (!storefront) return { error: "Finish setting up your shop first." };
+
+  const facebookUrl = String(formData.get("facebookUrl") ?? "").trim();
+  const instagramUrl = String(formData.get("instagramUrl") ?? "").trim();
+  const whatsappNumber = String(formData.get("whatsappNumber") ?? "").trim();
+
+  const fieldErrors: Record<string, string> = {};
+  if (facebookUrl && !URL_LIKE.test(facebookUrl)) {
+    fieldErrors.facebookUrl = "Enter a full link, starting with https://";
+  }
+  if (instagramUrl && !URL_LIKE.test(instagramUrl)) {
+    fieldErrors.instagramUrl = "Enter a full link, starting with https://";
+  }
+  if (whatsappNumber && !WHATSAPP_NUMBER.test(whatsappNumber)) {
+    fieldErrors.whatsappNumber = "Enter digits only, with an optional leading +.";
+  }
+  if (Object.keys(fieldErrors).length > 0) return { fieldErrors };
+
+  await updateStorefrontSocials(merchant.id, storefront.subdomain, {
+    facebookUrl: facebookUrl || null,
+    instagramUrl: instagramUrl || null,
+    whatsappNumber: whatsappNumber || null,
+  });
 
   revalidatePath("/dashboard/settings");
   return { savedAt: Date.now() };

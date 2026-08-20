@@ -141,7 +141,7 @@ export function CategoryTiles({
         {tiles.map((tile) => (
           <Link
             key={tile.name}
-            href={`/?category=${encodeURIComponent(tile.name)}`}
+            href={`/products?category=${encodeURIComponent(tile.name)}`}
             className="group relative aspect-square w-32 flex-none overflow-hidden rounded-xl bg-neutral-100 sm:w-auto"
           >
             {tile.imageUrl ? (
@@ -168,8 +168,8 @@ export function CategoryTiles({
 
 // ---------------------------------------------------------------------------
 // Best Sellers (section 5) and Featured Collection (section 7) — same
-// heading + grid treatment, no "View all" link since neither has a dedicated
-// listing page to point at.
+// heading + grid treatment. Reference shows a "View all Product →" link in
+// both; now that /products exists (14.18) it has somewhere real to point.
 // ---------------------------------------------------------------------------
 
 export function ProductSection({
@@ -187,9 +187,17 @@ export function ProductSection({
 
   return (
     <section id={id} className="mx-auto max-w-5xl px-4 py-10 sm:px-6 sm:py-14">
-      <h2 className="text-xl font-semibold tracking-tight sm:text-2xl">
-        {title}
-      </h2>
+      <div className="flex items-baseline justify-between gap-4">
+        <h2 className="text-xl font-semibold tracking-tight sm:text-2xl">
+          {title}
+        </h2>
+        <Link
+          href="/products"
+          className="shrink-0 text-[13px] font-medium text-neutral-600 hover:text-neutral-900"
+        >
+          View all →
+        </Link>
+      </div>
 
       <div className="mt-7 grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-4">
         {products.map((product) => (

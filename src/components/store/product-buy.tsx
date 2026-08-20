@@ -1,7 +1,6 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import { useMemo, useState } from "react";
 import type { Product, ProductVariant } from "@prisma/client";
 
@@ -28,6 +27,7 @@ export function ProductBuy({
   const useStore = useCartStore(subdomain);
   const add = useStore((state) => state.add);
   const inCart = useStore((state) => state.lines);
+  const openCart = useStore((state) => state.openCart);
 
   // Open on something buyable rather than a sold-out option.
   const [variantId, setVariantId] = useState(
@@ -224,9 +224,13 @@ export function ProductBuy({
         {added && (
           <p className="mt-4 flex flex-wrap items-center gap-2 text-[13.5px] text-neutral-600">
             Added to your cart.
-            <Link href="/cart" className="font-medium underline underline-offset-4">
+            <button
+              type="button"
+              onClick={openCart}
+              className="font-medium underline underline-offset-4"
+            >
               View cart
-            </Link>
+            </button>
           </p>
         )}
       </div>

@@ -79,6 +79,54 @@ export async function listStorefrontProducts(
   return options.limit ? sellable.slice(0, options.limit) : sellable;
 }
 
+export type StorefrontProductPage = {
+  products: Product[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+};
+
+/**
+ * Paginated products listing (14.18) — the dedicated `/products` page that
+ * category tiles/nav and search now lead to, instead of switching the
+ * homepage into a flat results view. Fetches every matching product and
+ * paginates in JavaScript rather than at the database level: the
+ * sellable-variant filter has to run after the fetch regardless (same
+ * constraint `listStorefrontProducts` already has), and at the catalogue
+ * sizes a single merchant actually has this is simpler and correct — a true
+ * DB-level offset would need the filter pushed into the query, which isn't
+ * expressible in Prisma for "has at least one active variant".
+ */
+export async function listStorefrontProductsPage(
+  merchantId: string,
+  options: {
+    search?: string;
+    category?: string;
+    page?: number;
+    pageSize?: number;
+  } = {}
+): Promise<StorefrontProductPage> {
+  const pageSize = options.pageSize ?? 24;
+  const all = await listStorefrontProducts(merchantId, {
+    search: options.search,
+    category: options.category,
+  });
+
+  const total = all.length;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const page = Math.min(Math.max(1, options.page ?? 1), totalPages);
+  const start = (page - 1) * pageSize;
+
+  return {
+    products: all.slice(start, start + pageSize),
+    total,
+    page,
+    pageSize,
+    totalPages,
+  };
+}
+
 export async function getStorefrontProduct(
   merchantId: string,
   productId: string

@@ -36,6 +36,10 @@ export function CartView({ subdomain }: { subdomain: string }) {
   const [live, setLive] = useState<StockMap | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  // The checkout form only appears once the shopper deliberately confirms
+  // they want to proceed, rather than sitting there the moment the cart
+  // opens — a cart with items in it isn't necessarily a decision to check out.
+  const [checkingOut, setCheckingOut] = useState(false);
 
   const ids = {
     name: useId(),
@@ -149,7 +153,7 @@ export function CartView({ subdomain }: { subdomain: string }) {
   const canSubmit = problems.length === 0 && !submitting;
 
   return (
-    <div className="grid gap-10 lg:grid-cols-[1.3fr_1fr]">
+    <div className="flex flex-col gap-8">
       <div>
         <div className="divide-y divide-neutral-100 overflow-hidden rounded-2xl border border-neutral-200">
           {lines.map((line) => {
@@ -256,7 +260,35 @@ export function CartView({ subdomain }: { subdomain: string }) {
             </span>
           </div>
 
-          <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+          {!checkingOut ? (
+            <>
+              <button
+                type="button"
+                disabled={problems.length > 0}
+                onClick={() => setCheckingOut(true)}
+                className="mt-6 w-full rounded-xl px-6 py-3 text-[14px] font-medium disabled:opacity-60"
+                style={{ background: "var(--brand)", color: "var(--on-brand)" }}
+              >
+                Proceed to checkout
+              </button>
+
+              {problems.length > 0 && (
+                <p className="mt-3 text-[12.5px] text-red-600">
+                  Fix the items flagged above before checking out.
+                </p>
+              )}
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => setCheckingOut(false)}
+                className="mt-6 text-[13px] text-neutral-500 hover:text-neutral-900"
+              >
+                ← Back to cart
+              </button>
+
+              <form onSubmit={handleSubmit} className="mt-4 space-y-4">
             <div>
               <label htmlFor={ids.name} className="text-[13px] font-medium">
                 Your name
@@ -360,7 +392,9 @@ export function CartView({ subdomain }: { subdomain: string }) {
               You will pay securely on Paystack. Nothing is charged until you
               confirm there.
             </p>
-          </form>
+              </form>
+            </>
+          )}
         </div>
       </div>
     </div>

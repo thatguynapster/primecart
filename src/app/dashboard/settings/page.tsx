@@ -17,6 +17,7 @@ import {
   LogoForm,
   PayoutForm,
   ShopDetailsForm,
+  SocialsForm,
 } from "./settings-forms";
 
 export const metadata = {
@@ -75,6 +76,12 @@ export default async function SettingsPage() {
             banks={banks}
             hasSubaccount={Boolean(merchant.paystackSubaccountCode)}
             current={currentPayout}
+          />
+
+          <SocialsForm
+            facebookUrl={storefront.facebookUrl}
+            instagramUrl={storefront.instagramUrl}
+            whatsappNumber={storefront.whatsappNumber}
           />
 
           <BillingCard

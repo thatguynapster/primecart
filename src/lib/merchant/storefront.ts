@@ -133,6 +133,33 @@ export async function setStorefrontBannerImage(
   invalidateStorefront(subdomain);
 }
 
+/** Footer socials (14.20) — Facebook/Instagram URLs plus a WhatsApp number, each independently optional. */
+export type SocialFields = {
+  facebookUrl: string | null;
+  instagramUrl: string | null;
+  whatsappNumber: string | null;
+};
+
+export async function updateStorefrontSocials(
+  merchantId: string,
+  subdomain: string,
+  fields: SocialFields
+): Promise<void> {
+  await runEmbeddedUpdate({
+    collection: "Merchant",
+    filter: { _id: oid(merchantId) },
+    update: {
+      $set: {
+        "storefront.facebookUrl": fields.facebookUrl,
+        "storefront.instagramUrl": fields.instagramUrl,
+        "storefront.whatsappNumber": fields.whatsappNumber,
+      },
+    },
+  });
+
+  invalidateStorefront(subdomain);
+}
+
 /**
  * Switches a storefront on or off — the effect of a subscription lapsing or
  * reactivating (Phase 13). Same per-field write as the two functions above,

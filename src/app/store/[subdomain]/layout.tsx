@@ -1,12 +1,18 @@
 import Image from "next/image";
 import Link from "next/link";
+import {
+  FacebookLogo,
+  InstagramLogo,
+  MagnifyingGlass,
+  WhatsappLogo,
+} from "@phosphor-icons/react/dist/ssr";
 import { notFound } from "next/navigation";
 
 import { getMerchantBySubdomain } from "@/lib/merchant/lookup";
 import { brandStyle } from "@/lib/storefront/brand";
 import { getBestSellingCategories } from "@/lib/storefront/bestsellers";
 import { listStorefrontCategories } from "@/lib/storefront/catalogue";
-import { CartButton } from "@/components/store/cart-button";
+import { CartSheet } from "@/components/store/cart-sheet";
 
 /**
  * Storefront shell.
@@ -39,8 +45,8 @@ export default async function StorefrontLayout({
       className="flex min-h-full flex-col bg-white text-neutral-900"
     >
       <header className="sticky top-0 z-40 border-b border-neutral-200 bg-white/90 backdrop-blur">
-        <div className="mx-auto flex h-16 max-w-5xl items-center justify-between gap-4 px-4 sm:px-6">
-          <Link href="/" className="flex min-w-0 items-center gap-2.5">
+        <div className="mx-auto flex h-16 max-w-5xl items-center gap-3 px-4 sm:px-6 justify-between">
+          <Link href="/" className="flex min-w-0 shrink-0 items-center gap-2.5">
             {merchant.logoUrl ? (
               <Image
                 src={merchant.logoUrl}
@@ -57,27 +63,27 @@ export default async function StorefrontLayout({
                 {merchant.businessName.charAt(0).toUpperCase()}
               </span>
             )}
-            <span className="truncate text-[15px] font-semibold tracking-tight">
+            <span className="hidden truncate text-[15px] font-semibold tracking-tight sm:inline">
               {merchant.businessName}
             </span>
           </Link>
 
           {/* Reference section 1: nav links as category names. Data-driven per
               merchant rather than the reference's hardcoded electronics list —
-              hidden below the header's own breakpoint on small screens, where
-              there isn't room for both branding and a nav row. */}
+              hidden below xl, where the search box (kept visible at every
+              width per the owner's instruction) needs the room instead. */}
           {categories.length > 0 && (
-            <nav className="hidden min-w-0 items-center gap-5 overflow-x-auto lg:flex">
+            <nav className="hidden min-w-0 shrink-0 items-center gap-5 overflow-x-auto xl:flex">
               <Link
                 href="/"
                 className="shrink-0 text-[13.5px] font-medium text-neutral-600 hover:text-neutral-900"
               >
                 Home
               </Link>
-              {categories.slice(0, 6).map((category) => (
+              {categories.slice(0, 5).map((category) => (
                 <Link
                   key={category}
-                  href={`/?category=${encodeURIComponent(category)}`}
+                  href={`/products?category=${encodeURIComponent(category)}`}
                   className="shrink-0 text-[13.5px] font-medium text-neutral-600 hover:text-neutral-900"
                 >
                   {category}
@@ -86,38 +92,103 @@ export default async function StorefrontLayout({
             </nav>
           )}
 
-          <CartButton subdomain={subdomain} />
+          {/* Search always lives here, never on the page itself (14.15) — a
+              category filter switching it out from under the shopper, or
+              search only appearing on some pages, was the exact "bad UX"
+              flagged. Submits a plain GET to the dedicated products listing. */}
+          <div className="flex gap-3">
+            <form action="/products" className="min-w-0 max-w-44 flex-1">
+              <label className="flex items-center gap-2 rounded-full border border-neutral-300 px-3.5 py-2 focus-within:border-neutral-900">
+                <MagnifyingGlass size={15} className="flex-none text-neutral-400" />
+                <input
+                  type="search"
+                  name="q"
+                  placeholder="Search"
+                  aria-label="Search products"
+                  className="w-full min-w-0 border-0 bg-transparent text-[14px] outline-none placeholder:text-neutral-400"
+                />
+              </label>
+            </form>
+
+            <CartSheet subdomain={subdomain} primaryColor={merchant.primaryColor} />
+          </div>
         </div>
       </header>
 
       <main className="flex-1">{children}</main>
 
-      <footer className="border-t border-neutral-200 bg-neutral-50">
-        <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
+      {/* Reference section 11 — dark background, the shop name fading into
+          an oversized wordmark at the bottom, a light-divided bottom bar with
+          "Powered by PrimeCart" and payment-method marks (14.19). Reduced to
+          one link column (decided 2026-08-18): Shop/Company/Policy & Info
+          cut, Categories kept and driven by what actually sells rather than
+          a static list. */}
+      <footer className="relative overflow-hidden bg-neutral-950 text-neutral-300">
+        <div className="relative mx-auto max-w-5xl px-4 pt-12 pb-40 sm:px-6 sm:pt-16 sm:pb-52">
           <div className="flex flex-wrap gap-10">
             <div className="min-w-0 flex-1">
-              <p className="text-[13px] font-medium">{merchant.businessName}</p>
+              <p className="text-lg font-semibold tracking-tight text-white">
+                {merchant.businessName}
+              </p>
               {merchant.description && (
-                <p className="mt-1 max-w-md text-[13px] text-neutral-500">
+                <p className="mt-2 max-w-md text-[13px] leading-relaxed text-neutral-400">
                   {merchant.description}
                 </p>
               )}
+
+              {/* Reference section 11: social icons under the tagline (14.20) — each
+                  independently optional, so a merchant who's only set up one still
+                  gets a footer that looks intentional rather than half-empty. */}
+              {(merchant.facebookUrl || merchant.instagramUrl || merchant.whatsappNumber) && (
+                <div className="mt-4 flex items-center gap-3">
+                  {merchant.facebookUrl && (
+                    <a
+                      href={merchant.facebookUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label="Facebook"
+                      className="text-neutral-400 transition-colors hover:text-white"
+                    >
+                      <FacebookLogo size={18} weight="fill" />
+                    </a>
+                  )}
+                  {merchant.instagramUrl && (
+                    <a
+                      href={merchant.instagramUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label="Instagram"
+                      className="text-neutral-400 transition-colors hover:text-white"
+                    >
+                      <InstagramLogo size={18} weight="fill" />
+                    </a>
+                  )}
+                  {merchant.whatsappNumber && (
+                    <a
+                      href={`https://wa.me/${merchant.whatsappNumber.replace(/[^0-9]/g, "")}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label="WhatsApp"
+                      className="text-neutral-400 transition-colors hover:text-white"
+                    >
+                      <WhatsappLogo size={18} weight="fill" />
+                    </a>
+                  )}
+                </div>
+              )}
             </div>
 
-            {/* Reference section 11, reduced to one column (decided
-                2026-08-18): Shop/Company/Policy & Info cut, Categories kept
-                and driven by what actually sells rather than a static list. */}
             {bestSellingCategories.length > 0 && (
               <div className="min-w-32">
-                <p className="text-[11.5px] font-semibold tracking-wide text-neutral-400 uppercase">
+                <p className="text-[11.5px] font-semibold tracking-wide text-neutral-500 uppercase">
                   Categories
                 </p>
                 <ul className="mt-3 space-y-2">
                   {bestSellingCategories.map((category) => (
                     <li key={category.name}>
                       <Link
-                        href={`/?category=${encodeURIComponent(category.name)}`}
-                        className="text-[13px] text-neutral-600 hover:text-neutral-900"
+                        href={`/products?category=${encodeURIComponent(category.name)}`}
+                        className="text-[13px] text-neutral-400 hover:text-white"
                       >
                         {category.name}
                       </Link>
@@ -127,10 +198,36 @@ export default async function StorefrontLayout({
               </div>
             )}
           </div>
+        </div>
 
-          <p className="mt-8 text-[12px] text-neutral-400">
-            Powered by PrimeCart
-          </p>
+        {/* The oversized wordmark dissolving into the footer's own
+            background top-to-bottom — a gradient fill on the text itself
+            (`bg-clip-text`), not a flat-opacity block clipped by a
+            container edge, which read as the text getting cut off mid-glyph
+            rather than fading away. Purely decorative, so hidden from screen
+            readers. */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 bottom-16 translate-y-[12%] bg-linear-to-b from-neutral-800 to-neutral-950 bg-clip-text text-center leading-none font-black whitespace-nowrap text-transparent select-none"
+          style={{ fontSize: "16vw" }}
+        >
+          {merchant.businessName}
+        </div>
+
+        <div className="relative border-t border-white/10">
+          <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-5 sm:px-6">
+            <p className="text-[12px] text-neutral-500">Powered by <Link href="https://primecart.app" target="_blank" rel="noopener noreferrer" className="text-white hover:underline">PrimeCart</Link></p>
+            <div className="flex items-center gap-1.5">
+              {["Visa", "Mastercard", "Mobile Money"].map((method) => (
+                <span
+                  key={method}
+                  className="rounded-sm border border-white/15 px-2 py-1 text-[10px] font-semibold tracking-wide text-neutral-400 uppercase"
+                >
+                  {method}
+                </span>
+              ))}
+            </div>
+          </div>
         </div>
       </footer>
     </div>
