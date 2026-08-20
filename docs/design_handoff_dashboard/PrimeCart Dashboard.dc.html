@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/nocturne-9085b916-1818-4662-afe0-d0f74d8dde74/styles.css">
+<script src="_ds/nocturne-9085b916-1818-4662-afe0-d0f74d8dde74/_ds_bundle.js"></script>
+<style>
+  body { margin: 0; background: var(--color-bg); }
+  a { color: var(--color-accent-300); text-decoration: none; }
+  a:hover { color: var(--color-accent-200); }
+  @keyframes pc-pulse { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, #968ae0 55%, transparent); } 70% { box-shadow: 0 0 0 8px transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
+  @keyframes pc-shimmer { 0% { background-position: -320px 0; } 100% { background-position: 320px 0; } }
+  @keyframes pc-in { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: none; } }
+</style>
+</helmet>
+<div style="display: grid; grid-template-columns: {{ railWidth }} 1fr; min-height: 100vh; font-family: var(--font-body); color: var(--color-text); background: var(--color-bg);">
+
+  <aside style="position: sticky; top: 0; height: 100vh; background: var(--color-neutral-900); border-right: 1px solid var(--color-neutral-800); padding: 16px 10px; display: flex; flex-direction: column; gap: 18px; overflow: hidden;">
+    <div style="display: flex; align-items: center; gap: 10px; padding: 4px 8px;">
+      <div style="width: 26px; height: 26px; border-radius: var(--radius-sm); border: 1px solid var(--color-accent); color: var(--color-accent-300); flex: none; display: grid; place-items: center; font-size: 13px; font-weight: 600;">P</div>
+      <sc-if value="{{ expanded }}" hint-placeholder-val="{{ true }}">
+        <span style="font-size: 15px; font-weight: 500; letter-spacing: -0.01em; white-space: nowrap;">PrimeCart</span>
+      </sc-if>
+    </div>
+
+    <nav style="display: flex; flex-direction: column; gap: 2px;">
+      <sc-for list="{{ nav }}" as="item" hint-placeholder-count="5">
+        <button onClick="{{ item.go }}" title="{{ item.label }}" style="display: flex; align-items: center; gap: 11px; width: 100%; border: 0; cursor: pointer; font: inherit; font-size: 13.5px; text-align: left; padding: 8px 10px; border-radius: var(--radius-md); white-space: nowrap; color: {{ item.fg }}; background: {{ item.bg }}; box-shadow: {{ item.mark }};">
+          <span style="flex: none; display: grid; place-items: center; width: 17px;">{{ item.icon }}</span>
+          <sc-if value="{{ expanded }}" hint-placeholder-val="{{ true }}"><span>{{ item.label }}</span></sc-if>
+          <sc-if value="{{ item.showBadge }}" hint-placeholder-val="{{ false }}">
+            <span style="margin-left: auto; font-size: 10.5px; border: 1px solid var(--color-accent-700); color: var(--color-accent-300); border-radius: var(--radius-sm); padding: 0 6px;">{{ item.badge }}</span>
+          </sc-if>
+        </button>
+      </sc-for>
+    </nav>
+
+    <div style="flex: 1;"></div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <sc-if value="{{ expanded }}" hint-placeholder-val="{{ true }}">
+        <div style="border: 1px solid var(--color-neutral-800); border-radius: var(--radius-md); padding: 11px;">
+          <div style="font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-neutral-500); margin-bottom: 5px;">Trial</div>
+          <div style="font-size: 12.5px; color: var(--color-neutral-300); margin-bottom: 9px;">17 days left on your free trial.</div>
+          <button class="btn btn-primary btn-block" style="margin: 0;">Subscribe</button>
+        </div>
+      </sc-if>
+      <button onClick="{{ toggleRail }}" style="display: flex; align-items: center; gap: 11px; border: 0; cursor: pointer; font: inherit; font-size: 12.5px; padding: 8px 10px; border-radius: var(--radius-md); background: transparent; color: var(--color-neutral-500); white-space: nowrap;">
+        <span style="flex: none; width: 17px; display: grid; place-items: center;">{{ railIcon }}</span>
+        <sc-if value="{{ expanded }}" hint-placeholder-val="{{ true }}"><span>Collapse panel</span></sc-if>
+      </button>
+    </div>
+  </aside>
+
+  <main style="min-width: 0; display: flex; flex-direction: column;">
+
+    <header style="position: sticky; top: 0; z-index: 30; display: flex; align-items: center; gap: 12px; padding: 12px 24px; background: color-mix(in srgb, var(--color-bg) 90%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid var(--color-neutral-800);">
+      <div>
+        <div style="font-size: 18px; font-weight: 500; letter-spacing: -0.015em; line-height: 1.2;">{{ sectionTitle }}</div>
+        <div style="font-size: 12px; color: var(--color-neutral-500);">{{ sectionSub }}</div>
+      </div>
+      <div style="flex: 1;"></div>
+      <label style="display: flex; align-items: center; gap: 8px; background: var(--color-surface); border: 1px solid var(--color-neutral-800); border-radius: var(--radius-md); padding: 6px 12px; width: 300px;">
+        <svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor" style="opacity: 0.5;"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg>
+        <input placeholder="Search orders, products, customers" style="border: 0; background: transparent; font: inherit; font-size: 12.5px; outline: none; width: 100%; color: var(--color-text);" />
+      </label>
+      <button class="btn btn-secondary">Last 30 days</button>
+      <button class="btn btn-primary">New order</button>
+      <div style="width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--color-neutral-700); color: var(--color-neutral-300); display: grid; place-items: center; font-size: 11.5px; font-weight: 500;">AM</div>
+    </header>
+
+    <div style="padding: 20px 24px 40px;">
+
+      <sc-if value="{{ loading }}" hint-placeholder-val="{{ false }}">
+        <div style="display: flex; flex-direction: column; gap: 14px;">
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;">
+            <div style="height: 96px; border-radius: var(--radius-md); background: linear-gradient(90deg, var(--color-surface) 0%, var(--color-neutral-800) 45%, var(--color-surface) 85%); background-size: 320px 100%; animation: pc-shimmer 1.15s linear infinite;"></div>
+            <div style="height: 96px; border-radius: var(--radius-md); background: linear-gradient(90deg, var(--color-surface) 0%, var(--color-neutral-800) 45%, var(--color-surface) 85%); background-size: 320px 100%; animation: pc-shimmer 1.15s linear infinite;"></div>
+            <div style="height: 96px; border-radius: var(--radius-md); background: linear-gradient(90deg, var(--color-surface) 0%, var(--color-neutral-800) 45%, var(--color-surface) 85%); background-size: 320px 100%; animation: pc-shimmer 1.15s linear infinite;"></div>
+            <div style="height: 96px; border-radius: var(--radius-md); background: linear-gradient(90deg, var(--color-surface) 0%, var(--color-neutral-800) 45%, var(--color-surface) 85%); background-size: 320px 100%; animation: pc-shimmer 1.15s linear infinite;"></div>
+          </div>
+          <div style="height: 300px; border-radius: var(--radius-md); background: linear-gradient(90deg, var(--color-surface) 0%, var(--color-neutral-800) 45%, var(--color-surface) 85%); background-size: 320px 100%; animation: pc-shimmer 1.15s linear infinite;"></div>
+          <div style="height: 200px; border-radius: var(--radius-md); background: linear-gradient(90deg, var(--color-surface) 0%, var(--color-neutral-800) 45%, var(--color-surface) 85%); background-size: 320px 100%; animation: pc-shimmer 1.15s linear infinite;"></div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ showOverview }}" hint-placeholder-val="{{ true }}">
+        <div style="display: flex; flex-direction: column; gap: 16px;">
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;">
+            <sc-for list="{{ kpis }}" as="k" hint-placeholder-count="4">
+              <div style="background: var(--color-surface); border: 1px solid var(--color-neutral-800); border-radius: var(--radius-md); padding: 14px 16px; display: flex; flex-direction: column; gap: 6px;">
+                <span style="font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-neutral-500);">{{ k.label }}</span>
+                <span style="font-size: 26px; font-weight: 500; letter-spacing: -0.02em; line-height: 1;">{{ k.value }}</span>
+                <span style="font-size: 12px; color: {{ k.deltaColor }};">{{ k.delta }}</span>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1.6fr 1fr; gap: 14px; align-items: start;">
+            <div style="background: var(--color-surface); border: 1px solid var(--color-neutral-800); border-radius: var(--radius-md); padding: 18px 20px;">
+              <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 18px;">
+                <h4 style="margin: 0; font-size: 16px;">Sales, last 14 days</h4>
+                <span style="font-size: 12px; color: var(--color-neutral-500);">GHS 41,280 total</span>
+              </div>
+              <div style="display: flex; align-items: flex-end; gap: 8px; height: 200px;">
+                <sc-for list="{{ bars }}" as="b" hint-placeholder-count="14">
+                  <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 7px; height: 100%; justify-content: flex-end;">
+                    <div style="width: 100%; border-radius: var(--radius-sm); background: {{ b.fill }}; height: {{ b.h }};"></div>
+                    <span style="font-size: 10px; color: var(--color-neutral-600);">{{ b.label }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+
+            <div style="background: var(--color-surface); border: 1px solid var(--color-neutral-800); border-radius: var(--radius-md); padding: 18px 20px;">
+              <div style="display: flex; align-items: center; gap: 9px; margin-bottom: 14px;">
+                <span style="width: 7px; height: 7px; border-radius: 50%; background: var(--color-accent); animation: pc-pulse 2s infinite;"></span>
+                <h4 style="margin: 0; font-size: 16px;">Live orders</h4>
+                <span style="margin-left: auto; font-size: 11.5px; color: var(--color-neutral-600);">Storefront</span>
+              </div>
+              <div style="display: flex; flex-direction: column;">
+                <sc-for list="{{ feed }}" as="f" hint-placeholder-count="4">
+                  <div style="display: flex; gap: 10px; align-items: center; padding: 9px 0; border-top: 1px solid var(--color-neutral-800); animation: pc-in 0.35s ease both;">
+                    <div style="width: 28px; height: 28px; border-radius: 50%; flex: none; border: 1px solid var(--color-accent-700); color: var(--color-accent-300); display: grid; place-items: center; font-size: 11px;">{{ f.initials }}</div>
+                    <div style="min-width: 0; flex: 1;">
+                      <div style="font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ f.item }}</div>
+                      <div style="font-size: 11px; color: var(--color-neutral-600);">{{ f.who }} · {{ f.ago }}</div>
+                    </div>
+                    <span style="font-size: 13px; font-weight: 500;">{{ f.total }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+            <div style="background: var(--color-surface); border: 1px solid var(--color-neutral-800); border-radius: var(--radius-md); padding: 18px 20px;">
+              <h4 style="margin: 0 0 12px; font-size: 16px;">Best sellers</h4>
+              <sc-for list="{{ best }}" as="p" hint-placeholder-count="4">
+                <div style="display: flex; align-items: center; gap: 12px; padding: 7px 0;">
+                  <span style="font-size: 13px; width: 150px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--color-neutral-300);">{{ p.name }}</span>
+                  <div style="flex: 1; height: 6px; border-radius: 999px; background: var(--color-neutral-800); overflow: hidden;">
+                    <div style="height: 100%; border-radius: 999px; background: var(--color-accent-500); width: {{ p.w }};"></div>
+                  </div>
+                  <span style="font-size: 12px; width: 78px; text-align: right; color: var(--color-neutral-500);">{{ p.sold }} sold</span>
+                </div>
+              </sc-for>
+            </div>
+            <div style="background: var(--color-surface); border: 1px solid var(--color-neutral-800); border-radius: var(--radius-md); padding: 18px 20px;">
+              <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px;">
+                <h4 style="margin: 0; font-size: 16px;">Low stock</h4>
+                <a href="#" style="font-size: 12.5px;">Restock list →</a>
+              </div>
+              <sc-for list="{{ lowStock }}" as="s" hint-placeholder-count="4">
+                <div style="display: flex; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px solid var(--color-neutral-800);">
+                  <span style="font-size: 13px; flex: 1;">{{ s.name }}</span>
+                  <span style="font-size: 11.5px; color: var(--color-neutral-600);">{{ s.variant }}</span>
+                  <span class="tag tag-accent">{{ s.left }} left</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ showOrders }}" hint-placeholder-val="{{ false }}">
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+            <sc-for list="{{ views }}" as="v" hint-placeholder-count="5">
+              <button onClick="{{ v.go }}" style="cursor: pointer; font: inherit; font-size: 12.5px; padding: 5px 12px; border-radius: var(--radius-md); border: 1px solid {{ v.border }}; color: {{ v.fg }}; background: {{ v.bg }};">{{ v.label }}</button>
+            </sc-for>
+            <div style="flex: 1;"></div>
+            <button class="btn btn-secondary">Filters · 2</button>
+            <button class="btn btn-secondary">Export CSV</button>
+          </div>
+
+          <div style="background: var(--color-surface); border: 1px solid var(--color-neutral-800); border-radius: var(--radius-md); overflow: hidden;">
+            <div onScroll="{{ onScroll }}" style="max-height: 560px; overflow: auto;">
+              <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                <thead>
+                  <tr>
+                    <th style="position: sticky; top: 0; background: var(--color-neutral-900); color: var(--color-neutral-400); text-align: left; padding: 9px 16px; font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 500;">Order</th>
+                    <th style="position: sticky; top: 0; background: var(--color-neutral-900); color: var(--color-neutral-400); text-align: left; padding: 9px 16px; font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 500;">Customer</th>
+                    <th style="position: sticky; top: 0; background: var(--color-neutral-900); color: var(--color-neutral-400); text-align: left; padding: 9px 16px; font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 500;">Channel</th>
+                    <th style="position: sticky; top: 0; background: var(--color-neutral-900); color: var(--color-neutral-400); text-align: left; padding: 9px 16px; font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 500;">Status</th>
+                    <th style="position: sticky; top: 0; background: var(--color-neutral-900); color: var(--color-neutral-400); text-align: left; padding: 9px 16px; font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 500;">Payment</th>
+                    <th style="position: sticky; top: 0; background: var(--color-neutral-900); color: var(--color-neutral-400); text-align: right; padding: 9px 16px; font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 500;">Total</th>
+                    <th style="position: sticky; top: 0; background: var(--color-neutral-900); color: var(--color-neutral-400); text-align: right; padding: 9px 16px; font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 500;">Placed</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <sc-for list="{{ rows }}" as="o" hint-placeholder-count="10">
+                    <tr onClick="{{ o.open }}" style="cursor: pointer; border-top: 1px solid var(--color-neutral-800);">
+                      <td style="padding: 11px 16px; font-weight: 500;">{{ o.number }}</td>
+                      <td style="padding: 11px 16px; color: var(--color-neutral-200);">{{ o.customer }}</td>
+                      <td style="padding: 11px 16px; color: var(--color-neutral-500);">{{ o.channel }}</td>
+                      <td style="padding: 11px 16px;"><span style="display: inline-flex; font-size: 11px; border-radius: var(--radius-sm); padding: 2px 9px; border: 1px solid {{ o.statusBorder }}; color: {{ o.statusFg }};">{{ o.status }}</span></td>
+                      <td style="padding: 11px 16px; color: {{ o.payFg }};">{{ o.payment }}</td>
+                      <td style="padding: 11px 16px; text-align: right; font-weight: 500;">{{ o.total }}</td>
+                      <td style="padding: 11px 16px; text-align: right; color: var(--color-neutral-600);">{{ o.placed }}</td>
+                    </tr>
+                  </sc-for>
+                  <sc-if value="{{ loadingMore }}" hint-placeholder-val="{{ false }}">
+                    <tr><td colspan="7" style="padding: 0;">
+                      <div style="display: flex; flex-direction: column; gap: 1px;">
+                        <div style="height: 42px; background: linear-gradient(90deg, var(--color-surface) 0%, var(--color-neutral-800) 45%, var(--color-surface) 85%); background-size: 320px 100%; animation: pc-shimmer 1.15s linear infinite;"></div>
+                        <div style="height: 42px; background: linear-gradient(90deg, var(--color-surface) 0%, var(--color-neutral-800) 45%, var(--color-surface) 85%); background-size: 320px 100%; animation: pc-shimmer 1.15s linear infinite;"></div>
+                        <div style="height: 42px; background: linear-gradient(90deg, var(--color-surface) 0%, var(--color-neutral-800) 45%, var(--color-surface) 85%); background-size: 320px 100%; animation: pc-shimmer 1.15s linear infinite;"></div>
+                      </div>
+                    </td></tr>
+                  </sc-if>
+                </tbody>
+              </table>
+            </div>
+            <div style="padding: 9px 16px; border-top: 1px solid var(--color-neutral-800); font-size: 12px; color: var(--color-neutral-600);">{{ rowCountLabel }}</div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ showProducts }}" hint-placeholder-val="{{ false }}">
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span class="tag tag-accent">All 68</span>
+            <span class="tag tag-outline">Low stock 6</span>
+            <span class="tag tag-outline">Archived 4</span>
+            <div style="flex: 1;"></div>
+            <button class="btn btn-secondary">Import CSV</button>
+            <button class="btn btn-primary">Add product</button>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;">
+            <sc-for list="{{ products }}" as="p" hint-placeholder-count="6">
+              <div style="background: var(--color-surface); border: 1px solid var(--color-neutral-800); border-radius: var(--radius-md); padding: 13px; display: flex; gap: 13px;">
+                <div style="width: 66px; height: 66px; flex: none; border-radius: var(--radius-md); display: grid; place-items: center; font-size: 17px; font-weight: 500; border: 1px solid {{ p.swatchBorder }}; color: {{ p.swatchFg }};">{{ p.initials }}</div>
+                <div style="min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 5px;">
+                  <div style="display: flex; justify-content: space-between; gap: 10px; align-items: baseline;">
+                    <span style="font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ p.name }}</span>
+                    <span style="font-size: 13.5px; font-weight: 500;">{{ p.price }}</span>
+                  </div>
+                  <span style="font-size: 11.5px; color: var(--color-neutral-600);">{{ p.meta }}</span>
+                  <div style="height: 5px; border-radius: 999px; background: var(--color-neutral-800); overflow: hidden; margin-top: 2px;">
+                    <div style="height: 100%; border-radius: 999px; background: {{ p.barFill }}; width: {{ p.barW }};"></div>
+                  </div>
+                  <span style="font-size: 11.5px; color: {{ p.stockFg }};">{{ p.stockLabel }}</span>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ showCustomers }}" hint-placeholder-val="{{ false }}">
+        <div style="background: var(--color-surface); border: 1px solid var(--color-neutral-800); border-radius: var(--radius-md); overflow: hidden;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+            <thead>
+              <tr>
+                <th style="background: var(--color-neutral-900); color: var(--color-neutral-400); text-align: left; padding: 9px 16px; font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 500;">Customer</th>
+                <th style="background: var(--color-neutral-900); color: var(--color-neutral-400); text-align: left; padding: 9px 16px; font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 500;">Contact</th>
+                <th style="background: var(--color-neutral-900); color: var(--color-neutral-400); text-align: right; padding: 9px 16px; font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 500;">Orders</th>
+                <th style="background: var(--color-neutral-900); color: var(--color-neutral-400); text-align: right; padding: 9px 16px; font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 500;">Spent</th>
+                <th style="background: var(--color-neutral-900); color: var(--color-neutral-400); text-align: right; padding: 9px 16px; font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 500;">Last order</th>
+              </tr>
+            </thead>
+            <tbody>
+              <sc-for list="{{ customers }}" as="c" hint-placeholder-count="8">
+                <tr style="border-top: 1px solid var(--color-neutral-800);">
+                  <td style="padding: 10px 16px;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                      <span style="width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--color-neutral-700); color: var(--color-neutral-300); display: grid; place-items: center; font-size: 11px;">{{ c.initials }}</span>
+                      <span>{{ c.name }}</span>
+                    </div>
+                  </td>
+                  <td style="padding: 10px 16px; color: var(--color-neutral-500);">{{ c.contact }}</td>
+                  <td style="padding: 10px 16px; text-align: right;">{{ c.orders }}</td>
+                  <td style="padding: 10px 16px; text-align: right; font-weight: 500;">{{ c.spent }}</td>
+                  <td style="padding: 10px 16px; text-align: right; color: var(--color-neutral-600);">{{ c.last }}</td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ showAnalytics }}" hint-placeholder-val="{{ false }}">
+        <div style="display: flex; flex-direction: column; gap: 14px;">
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;">
+            <sc-for list="{{ analyticsKpis }}" as="k" hint-placeholder-count="4">
+              <div style="background: var(--color-surface); border: 1px solid var(--color-neutral-800); border-radius: var(--radius-md); padding: 14px 16px; display: flex; flex-direction: column; gap: 6px;">
+                <span style="font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-neutral-500);">{{ k.label }}</span>
+                <span style="font-size: 24px; font-weight: 500; letter-spacing: -0.02em; line-height: 1;">{{ k.value }}</span>
+                <span style="font-size: 12px; color: var(--color-neutral-500);">{{ k.delta }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="background: var(--color-surface); border: 1px solid var(--color-neutral-800); border-radius: var(--radius-md); padding: 18px 20px;">
+            <h4 style="margin: 0 0 16px; font-size: 16px;">Revenue by month</h4>
+            <div style="display: flex; align-items: flex-end; gap: 12px; height: 230px;">
+              <sc-for list="{{ monthBars }}" as="b" hint-placeholder-count="12">
+                <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; height: 100%; justify-content: flex-end;">
+                  <div style="width: 100%; border-radius: var(--radius-sm); background: {{ b.fill }}; height: {{ b.h }};"></div>
+                  <span style="font-size: 10.5px; color: var(--color-neutral-600);">{{ b.label }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+            <div style="background: var(--color-surface); border: 1px solid var(--color-neutral-800); border-radius: var(--radius-md); padding: 18px 20px;">
+              <h4 style="margin: 0 0 12px; font-size: 16px;">Where orders come from</h4>
+              <sc-for list="{{ channels }}" as="c" hint-placeholder-count="3">
+                <div style="display: flex; align-items: center; gap: 12px; padding: 7px 0;">
+                  <span style="font-size: 13px; width: 110px; color: var(--color-neutral-300);">{{ c.name }}</span>
+                  <div style="flex: 1; height: 6px; border-radius: 999px; background: var(--color-neutral-800); overflow: hidden;">
+                    <div style="height: 100%; border-radius: 999px; background: {{ c.fill }}; width: {{ c.w }};"></div>
+                  </div>
+                  <span style="font-size: 12px; width: 42px; text-align: right; color: var(--color-neutral-500);">{{ c.pct }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <div style="background: var(--color-surface); border: 1px solid var(--color-neutral-800); border-radius: var(--radius-md); padding: 18px 20px;">
+              <h4 style="margin: 0 0 12px; font-size: 16px;">Stock value by category</h4>
+              <sc-for list="{{ stockValue }}" as="c" hint-placeholder-count="4">
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0; border-top: 1px solid var(--color-neutral-800);">
+                  <span style="font-size: 13px;">{{ c.name }}</span>
+                  <span style="font-size: 12px; color: var(--color-neutral-600);">{{ c.units }} units</span>
+                  <span style="font-size: 13.5px; font-weight: 500;">{{ c.value }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+    </div>
+  </main>
+
+  <sc-if value="{{ drawerOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeDrawer }}" style="position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 60;"></div>
+  </sc-if>
+  <sc-if value="{{ drawerOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position: fixed; top: 0; right: 0; bottom: 0; width: 440px; background: var(--color-bg); border-left: 1px solid var(--color-neutral-700); z-index: 61; box-shadow: var(--shadow-lg); display: flex; flex-direction: column;">
+      <div style="padding: 16px 20px; border-bottom: 1px solid var(--color-neutral-800); display: flex; align-items: flex-start; gap: 12px;">
+        <div>
+          <div style="font-size: 20px; font-weight: 500; letter-spacing: -0.015em;">{{ drawerNumber }}</div>
+          <div style="font-size: 12px; color: var(--color-neutral-500);">{{ drawerMeta }}</div>
+        </div>
+        <div style="flex: 1;"></div>
+        <button onClick="{{ closeDrawer }}" class="btn btn-secondary btn-icon">✕</button>
+      </div>
+      <div style="padding: 16px 20px; overflow: auto; display: flex; flex-direction: column; gap: 18px;">
+        <div style="display: flex; gap: 6px;">
+          <span class="tag tag-accent">{{ drawerStatus }}</span>
+          <span class="tag tag-neutral">{{ drawerChannel }}</span>
+        </div>
+        <div>
+          <h5 style="margin: 0 0 8px; font-size: 14px;">Items</h5>
+          <sc-for list="{{ drawerItems }}" as="i" hint-placeholder-count="2">
+            <div style="display: flex; align-items: center; gap: 10px; padding: 9px 0; border-top: 1px solid var(--color-neutral-800);">
+              <span style="width: 30px; height: 30px; border-radius: var(--radius-sm); border: 1px solid var(--color-neutral-800); display: grid; place-items: center; font-size: 11.5px; color: var(--color-neutral-400);">{{ i.qty }}×</span>
+              <div style="flex: 1; min-width: 0;">
+                <div style="font-size: 13px;">{{ i.name }}</div>
+                <div style="font-size: 11px; color: var(--color-neutral-600);">{{ i.variant }}</div>
+              </div>
+              <span style="font-size: 13px; font-weight: 500;">{{ i.total }}</span>
+            </div>
+          </sc-for>
+          <div style="display: flex; justify-content: space-between; padding: 12px 0 0; border-top: 1px solid var(--color-neutral-800); margin-top: 4px;">
+            <span style="font-size: 13.5px; color: var(--color-neutral-400);">Total</span>
+            <span style="font-size: 17px; font-weight: 500;">{{ drawerTotal }}</span>
+          </div>
+        </div>
+        <div>
+          <h5 style="margin: 0 0 8px; font-size: 14px;">Timeline</h5>
+          <sc-for list="{{ drawerTimeline }}" as="t" hint-placeholder-count="3">
+            <div style="display: flex; gap: 10px; padding: 7px 0;">
+              <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--color-accent); margin-top: 6px; flex: none;"></span>
+              <div style="flex: 1;">
+                <div style="font-size: 13px;">{{ t.what }}</div>
+                <div style="font-size: 11px; color: var(--color-neutral-600);">{{ t.when }}</div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+        <div>
+          <h5 style="margin: 0 0 8px; font-size: 14px;">Delivery</h5>
+          <p style="font-size: 13px; margin: 0; color: var(--color-neutral-400);">{{ drawerAddress }}</p>
+        </div>
+      </div>
+      <div style="margin-top: auto; padding: 14px 20px; border-top: 1px solid var(--color-neutral-800); display: flex; gap: 8px;">
+        <button class="btn btn-secondary" style="flex: 1;">Print receipt</button>
+        <button class="btn btn-primary" style="flex: 1;">Mark fulfilled</button>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;: {&quot;width&quot;: 1440, &quot;height&quot;: 960}}">
+class Component extends DCLogic {
+  state = { section: 'overview', collapsed: false, loading: false, visible: 14, loadingMore: false, view: 'All orders', drawer: null, tick: 0 };
+
+  names = ['Ama Mensah', 'Kojo Boateng', 'Efua Darko', 'Yaw Asante', 'Akosua Frimpong', 'Kwabena Owusu', 'Adjoa Nyarko', 'Kofi Adjei', 'Abena Sarpong', 'Nii Lartey', 'Esi Quartey', 'Kwesi Amponsah'];
+  items = ['Adinkra signet ring', 'Krobo bead strand', 'Hoop earrings, large', 'Woven cuff', 'Everyday chain', 'Stud set of three', 'Kente-wrap bangle', 'Anklet, fine'];
+  channelNames = ['Storefront', 'Manual', 'WhatsApp'];
+  statuses = ['Pending', 'Confirmed', 'Processing', 'Shipped', 'Delivered'];
+
+  allOrders = this.buildOrders();
+
+  buildOrders() {
+    const out = [];
+    for (let i = 0; i < 96; i++) {
+      out.push({
+        id: i,
+        number: '#PC-' + (2418 - i),
+        customer: this.names[i % this.names.length],
+        channel: this.channelNames[i % 3],
+        status: this.statuses[(i * 3) % 5],
+        paid: i % 4 !== 1,
+        amount: 145 + ((i * 137) % 900),
+        placed: i < 3 ? (i + 4) + ' min ago' : i < 12 ? Math.ceil(i / 2) + ' hrs ago' : Math.ceil(i / 6) + ' days ago',
+        item: this.items[i % this.items.length]
+      });
+    }
+    return out;
+  }
+
+  componentDidMount() { this.timer = setInterval(() => this.setState(s => ({ tick: s.tick + 1 })), 7000); }
+  componentWillUnmount() { clearInterval(this.timer); clearTimeout(this.loadTimer); }
+
+  cash(n) { return 'GHS ' + n.toLocaleString('en-GH'); }
+  initials(name) { return name.split(' ').map(p => p[0]).join(''); }
+
+  go(section) {
+    if (section === this.state.section) return;
+    this.setState({ section, loading: true, visible: 14, drawer: null });
+    clearTimeout(this.loadTimer);
+    this.loadTimer = setTimeout(() => this.setState({ loading: false }), 650);
+  }
+
+  onScroll = (e) => {
+    const el = e.currentTarget;
+    if (this.state.loadingMore) return;
+    if (el.scrollTop + el.clientHeight < el.scrollHeight - 90) return;
+    if (this.state.visible >= this.filtered().length) return;
+    this.setState({ loadingMore: true });
+    setTimeout(() => this.setState(s => ({ loadingMore: false, visible: s.visible + 12 })), 700);
+  };
+
+  filtered() {
+    const v = this.state.view;
+    return this.allOrders.filter(o => {
+      if (v === 'Unpaid') return !o.paid;
+      if (v === 'To fulfil') return o.status === 'Confirmed' || o.status === 'Processing';
+      if (v === 'Storefront only') return o.channel === 'Storefront';
+      if (v === 'WhatsApp') return o.channel === 'WhatsApp';
+      return true;
+    });
+  }
+
+  statusColors(s) {
+    if (s === 'Delivered') return ['var(--color-neutral-700)', 'var(--color-neutral-300)'];
+    if (s === 'Pending') return ['var(--color-neutral-800)', 'var(--color-neutral-500)'];
+    return ['var(--color-accent-700)', 'var(--color-accent-300)'];
+  }
+
+  renderVals() {
+    const s = this.state;
+    const expanded = !s.collapsed;
+    const icon = (d) => React.createElement('svg', { width: 16, height: 16, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round' }, React.createElement('path', { d }));
+
+    const navDefs = [
+      ['overview', 'Overview', 'M3 12h6v9H3zM9 3h6v18H9zM15 8h6v13h-6z'],
+      ['orders', 'Orders', 'M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4ZM3 6h18M16 10a4 4 0 0 1-8 0'],
+      ['products', 'Products', 'M20 7 12 3 4 7v10l8 4 8-4ZM4 7l8 4 8-4M12 21V11'],
+      ['customers', 'Customers', 'M17 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9.5 7a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0M22 21v-2a4 4 0 0 0-3-3.8'],
+      ['analytics', 'Analytics', 'M3 3v18h18M7 15l4-5 3 3 5-7']
+    ];
+    const nav = navDefs.map(([key, label, d]) => {
+      const on = s.section === key;
+      return {
+        label, icon: icon(d), go: () => this.go(key),
+        bg: on ? 'var(--color-accent-900)' : 'transparent',
+        fg: on ? 'var(--color-accent-200)' : 'var(--color-neutral-400)',
+        mark: on ? 'inset 2px 0 0 0 var(--color-accent)' : 'none',
+        showBadge: key === 'orders', badge: '7'
+      };
+    });
+
+    const titles = {
+      overview: ['Good morning, Ama', 'Akoma · akoma.primecart.app'],
+      orders: ['Orders', this.filtered().length + ' orders in this view'],
+      products: ['Products', '68 active · 6 low on stock'],
+      customers: ['Customers', '312 people have bought from you'],
+      analytics: ['Analytics', 'Last 12 months']
+    };
+
+    const feed = this.allOrders.slice(0, 5 + (s.tick % 4)).slice(-5).map(o => ({
+      initials: this.initials(o.customer), item: o.item, who: o.customer, ago: o.placed, total: this.cash(o.amount)
+    }));
+
+    const barVals = [42, 55, 38, 61, 72, 49, 66, 80, 58, 74, 91, 69, 83, 96];
+    const bars = barVals.map((v, i) => ({
+      h: Math.round((v / 100) * 180) + 'px',
+      fill: i === barVals.length - 1 ? 'var(--color-accent-500)' : 'var(--color-accent-800)',
+      label: String(i + 1)
+    }));
+
+    const rows = this.filtered().slice(0, s.visible).map(o => {
+      const [border, fg] = this.statusColors(o.status);
+      return {
+        number: o.number, customer: o.customer, channel: o.channel, status: o.status,
+        statusBorder: border, statusFg: fg,
+        payment: o.paid ? 'Paid' : 'Unpaid',
+        payFg: o.paid ? 'var(--color-neutral-300)' : 'var(--color-accent-300)',
+        total: this.cash(o.amount), placed: o.placed,
+        open: () => this.setState({ drawer: o })
+      };
+    });
+
+    const products = [
+      ['Adinkra signet ring', 'GHS 480', '4 variants · Jewellery', 62, 'ok'],
+      ['Krobo bead strand', 'GHS 260', '3 variants · Jewellery', 88, 'ok'],
+      ['Hoop earrings, large', 'GHS 340', '2 variants · Jewellery', 9, 'low'],
+      ['Woven cuff', 'GHS 190', '1 variant · Accessories', 44, 'ok'],
+      ['Everyday chain', 'GHS 520', '2 variants · Jewellery', 5, 'low'],
+      ['Stud set of three', 'GHS 210', '1 variant · Jewellery', 71, 'ok']
+    ].map(([name, price, meta, pct, st]) => ({
+      name, price, meta,
+      initials: this.initials(name).slice(0, 2),
+      swatchBorder: st === 'low' ? 'var(--color-accent-700)' : 'var(--color-neutral-800)',
+      swatchFg: st === 'low' ? 'var(--color-accent-300)' : 'var(--color-neutral-500)',
+      barW: pct + '%',
+      barFill: st === 'low' ? 'var(--color-accent-500)' : 'var(--color-neutral-600)',
+      stockFg: st === 'low' ? 'var(--color-accent-300)' : 'var(--color-neutral-600)',
+      stockLabel: st === 'low' ? Math.round(pct / 6) + ' units left — restock' : Math.round(pct / 2) + ' units in stock'
+    }));
+
+    const d = s.drawer;
+    return {
+      expanded,
+      railWidth: s.collapsed ? '64px' : '216px',
+      railIcon: icon(s.collapsed ? 'm9 18 6-6-6-6' : 'm15 18-6-6 6-6'),
+      toggleRail: () => this.setState(st => ({ collapsed: !st.collapsed })),
+      nav,
+      sectionTitle: titles[s.section][0],
+      sectionSub: titles[s.section][1],
+      loading: s.loading,
+      showOverview: !s.loading && s.section === 'overview',
+      showOrders: !s.loading && s.section === 'orders',
+      showProducts: !s.loading && s.section === 'products',
+      showCustomers: !s.loading && s.section === 'customers',
+      showAnalytics: !s.loading && s.section === 'analytics',
+
+      kpis: [
+        { label: 'Revenue, 30 days', value: 'GHS 41,280', delta: '+18% on last month', deltaColor: 'var(--color-neutral-400)' },
+        { label: 'Orders', value: '164', delta: '+22 this week', deltaColor: 'var(--color-neutral-400)' },
+        { label: 'Average order', value: 'GHS 252', delta: '−4% on last month', deltaColor: 'var(--color-accent-300)' },
+        { label: 'Stock value', value: 'GHS 96,400', delta: '6 items low', deltaColor: 'var(--color-accent-300)' }
+      ],
+      bars, feed,
+      best: [
+        { name: 'Krobo bead strand', w: '92%', sold: 48 },
+        { name: 'Adinkra signet ring', w: '74%', sold: 39 },
+        { name: 'Everyday chain', w: '55%', sold: 29 },
+        { name: 'Hoop earrings, large', w: '38%', sold: 20 }
+      ],
+      lowStock: [
+        { name: 'Everyday chain', variant: '45cm', left: 2 },
+        { name: 'Hoop earrings, large', variant: 'Gold', left: 3 },
+        { name: 'Woven cuff', variant: 'Natural', left: 4 },
+        { name: 'Stud set of three', variant: 'Silver', left: 5 }
+      ],
+
+      views: ['All orders', 'Unpaid', 'To fulfil', 'Storefront only', 'WhatsApp'].map(v => ({
+        label: v,
+        go: () => this.setState({ view: v, visible: 14 }),
+        bg: s.view === v ? 'var(--color-accent-900)' : 'transparent',
+        border: s.view === v ? 'var(--color-accent-600)' : 'var(--color-neutral-800)',
+        fg: s.view === v ? 'var(--color-accent-200)' : 'var(--color-neutral-400)'
+      })),
+      rows,
+      loadingMore: s.loadingMore,
+      onScroll: this.onScroll,
+      rowCountLabel: 'Showing ' + rows.length + ' of ' + this.filtered().length + ' orders — scroll for more',
+
+      products,
+      customers: this.names.map((n, i) => ({
+        initials: this.initials(n), name: n,
+        contact: '02' + (4 + (i % 5)) + ' ' + (100 + i * 7) + ' ' + (2000 + i * 13),
+        orders: 1 + ((i * 5) % 9),
+        spent: this.cash(320 + i * 415),
+        last: i < 3 ? 'Today' : (i - 1) + ' days ago'
+      })),
+
+      analyticsKpis: [
+        { label: 'Revenue, 12 months', value: 'GHS 412k', delta: 'Best month: November' },
+        { label: 'Orders', value: '1,940', delta: '78% from the storefront' },
+        { label: 'Repeat rate', value: '34%', delta: '+6 points year on year' },
+        { label: 'Refunds', value: '1.2%', delta: '23 of 1,940 orders' }
+      ],
+      monthBars: ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'].map((m, i) => {
+        const v = [38, 44, 52, 47, 58, 63, 55, 68, 74, 82, 96, 88][i];
+        return { label: m, h: Math.round((v / 100) * 210) + 'px', fill: v > 90 ? 'var(--color-accent-500)' : 'var(--color-neutral-700)' };
+      }),
+      channels: [
+        { name: 'Storefront', w: '78%', pct: '78%', fill: 'var(--color-accent-500)' },
+        { name: 'Manual', w: '14%', pct: '14%', fill: 'var(--color-neutral-600)' },
+        { name: 'WhatsApp', w: '8%', pct: '8%', fill: 'var(--color-neutral-700)' }
+      ],
+      stockValue: [
+        { name: 'Jewellery', units: 412, value: 'GHS 61,200' },
+        { name: 'Accessories', units: 188, value: 'GHS 21,400' },
+        { name: 'Beadwork', units: 96, value: 'GHS 9,600' },
+        { name: 'Gifting', units: 41, value: 'GHS 4,200' }
+      ],
+
+      drawerOpen: !!d,
+      closeDrawer: () => this.setState({ drawer: null }),
+      drawerNumber: d ? d.number : '',
+      drawerMeta: d ? d.customer + ' · ' + d.placed : '',
+      drawerStatus: d ? d.status : '',
+      drawerChannel: d ? d.channel : '',
+      drawerTotal: d ? this.cash(d.amount) : '',
+      drawerItems: d ? [
+        { qty: 1, name: d.item, variant: 'Default', total: this.cash(Math.round(d.amount * 0.6)) },
+        { qty: 2, name: this.items[(d.id + 3) % this.items.length], variant: 'Gold', total: this.cash(Math.round(d.amount * 0.4)) }
+      ] : [],
+      drawerTimeline: d ? [
+        { what: 'Order placed on the storefront', when: d.placed },
+        { what: d.paid ? 'Payment confirmed — Paystack' : 'Awaiting payment — reserved 30 min', when: d.placed },
+        { what: 'Stock reserved across 2 variants', when: d.placed }
+      ] : [],
+      drawerAddress: d ? d.customer + ', 024 000 0000 — 14 Ring Road East, Osu, Accra, Greater Accra' : ''
+    };
+  }
+}
+</script>
+</body>
+</html>

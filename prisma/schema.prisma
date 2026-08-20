@@ -1,8 +1,15 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+// PrimeCart — Prisma schema
+//
+// Prisma is pinned to 6.19.x. Do not upgrade to v7 — it drops MongoDB support.
+//
+// Multi-tenancy: every document is scoped by merchantId, and every query must
+// filter on it first. merchantId is always derived from the Clerk session
+// server-side — never accepted from the client.
+//
+// Embedded types (MerchantStorefront, ProductVariant, OrderLineItem,
+// ShippingAddress) cannot be written through standard Prisma Client methods on
+// MongoDB. All writes touching them go through prisma.$runCommandRaw — see
+// src/lib/db/embedded.ts.
 
 generator client {
   provider = "prisma-client-js"
@@ -13,315 +20,249 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Users {
-  id         String @id @default(auto()) @map("_id") @db.ObjectId
-  first_name String
-  last_name  String
-  avatar     String
-  email      String @unique
-
-  business Business?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-type Location {
-  address      String
-  country      String
-  country_code String
-  city         String
-  longitude    Float
-  latitude     Float
-  region       String
-}
-
-model Business {
-  id          String    @id @default(auto()) @map("_id") @db.ObjectId
-  unique_id   String    @unique() @default(uuid())
-  name        String
-  subdomain   String    @unique()
-  domain      String?   @unique()
-  description String?   @default("")
-  email       String
-  logo        String
-  phone       String
-  location    Location
-  country     String
-  city        String
-  state       String
-  zip_code    String
-  is_deleted  Boolean?  @default(false)
-  deletedAt   DateTime?
-
-  user_id    String              @unique @db.ObjectId
-  user       Users               @relation(fields: [user_id], references: [id])
-  products   Products[]
-  payment    Payment[]
-  categories ProductCategories[]
-
-  // experimental_features_id  String               @unique @db.ObjectId
-  // experimental_feature_list ExperimentalFeatures @relation(fields: [experimental_features_id], references: [id])
-
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  Customer  Customer[]
-
-  experimental_features Boolean @default(false)
-}
-
-type CTA {
-  text String
-  link String
-}
-
-type HeroSection {
-  backgroundImage String
-  title           String
-  subText         String
-  cta             CTA
-}
-
-type Support {
-  deliveryPolicy String
-  paymentPolicy  String
-  faq            String
-  privacyPolicy  String
-  UserAgreement  String
-}
-
-type SocialMediaLinks {
-  facebook  String
-  instagram String
-  twitter   String
-}
-
-type Contact {
-  email   String
-  phone   String
-  socials SocialMediaLinks
-}
-
-model ExperimentalFeatures {
-  id          String      @id @default(auto()) @map("_id") @db.ObjectId
-  business_id String      @unique @db.ObjectId // Ensures a one-to-one relationship
-  heroSection HeroSection
-}
-
-model StorefrontFeatures {
-  id          String  @id @default(auto()) @map("_id") @db.ObjectId
-  business_id String  @unique @db.ObjectId // Ensures a one-to-one relationship
-  support     Support
-  contact     Contact
-}
-
-type Bank {
-  bank_name      String
-  account_name   String
-  account_number String
-  swift_code     String
-  iban           String
-  currency       String
-  country        String
-  state          String
-  city           String
-  address        String
-  zip_code       String
-  recipient_id   String?
-}
-
-type MoMo {
-  provider       String
-  account_number String
-  account_name   String
-  recipient_id   String?
-}
-
-model Payment {
-  id          String    @id @default(auto()) @map("_id") @db.ObjectId
-  bank        Bank?
-  momo        MoMo?
-  business_id String    @unique @db.ObjectId
-  business    Business? @relation(fields: [business_id], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Products {
-  id          String    @id @default(auto()) @map("_id") @db.ObjectId
-  unique_id   String    @unique() @default(uuid())
-  name        String
-  description String
-  images      String[]
-  is_deleted  Boolean   @default(false)
-  deletedAt   DateTime?
-  cost_price  Float
-
-  business_id String   @db.ObjectId
-  business    Business @relation(fields: [business_id], references: [id])
-
-  category_id String            @db.ObjectId
-  category    ProductCategories @relation(fields: [category_id], references: [id])
-
-  orders OrderProduct[]
-
-  variations ProductVariations[] // One-to-many relationship with ProductVariation
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model ProductCategories {
-  id          String @id @default(auto()) @map("_id") @db.ObjectId
-  unique_id   String @unique() @default(uuid())
-  name        String
-  description String
-
-  business_id String   @db.ObjectId
-  business    Business @relation(fields: [business_id], references: [id])
-
-  products Products[] // One-to-many relationship
-
-  previewImage String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model ProductVariations {
-  id         String @id @default(auto()) @map("_id") @db.ObjectId
-  unique_id  String @unique() @default(uuid())
-  // sku        String?
-  price      Float
-  quantity   Int
-  attributes Json
-
-  product_id String   @db.ObjectId
-  product    Products @relation(fields: [product_id], references: [id])
-
-  orders OrderProduct[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-enum OrderStatus {
-  CONFIRMED
-  SHIPPING
-  DELIVERED
-  CANCELLED
-}
-
-model ProductOrders {
-  id        String @id @default(auto()) @map("_id") @db.ObjectId
-  unique_id String @unique() @default(uuid())
-
-  customer_id String   @db.ObjectId
-  customer    Customer @relation(fields: [customer_id], references: [id])
-
-  business_id String @db.ObjectId
-
-  location   Location
-  payment_id String?       @unique @db.ObjectId
-  payment    OrderPayment? @relation(fields: [payment_id], references: [id])
-
-  orderStatus OrderStatus    @default(CONFIRMED)
-  amount      Float
-  products    OrderProduct[] // One-to-many relationship with OrderProducts
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model OrderProduct {
+// ============================================
+// MERCHANT
+// ============================================
+model Merchant {
   id String @id @default(auto()) @map("_id") @db.ObjectId
 
-  quantity Int
-  amount   Float
+  // Clerk owns authentication — no password is ever stored here.
+  // This is the only supported way to resolve a session to a merchant.
+  clerkUserId String @unique
 
-  product_id String   @db.ObjectId
-  product    Products @relation(fields: [product_id], references: [id])
-
-  product_variation_id String            @db.ObjectId
-  product_variation    ProductVariations @relation(fields: [product_variation_id], references: [id])
-
-  order_id String        @db.ObjectId
-  order    ProductOrders @relation(fields: [order_id], references: [id])
-
+  email     String   @unique
+  name      String
+  phone     String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  storefront MerchantStorefront?
+
+  // Paystack. Subaccount is created at onboarding with percentage_charge: 0 —
+  // the 3% is applied per-transaction via transaction_charge at initialization.
+  paystackSubaccountCode String?
+
+  // Subscription. Merchants are not enrolled in the plan at signup; they get 30
+  // days free, and the subscription is initiated at trial expiry.
+  trialExpiresAt           DateTime
+  subscriptionStatus       SubscriptionStatus @default(TRIAL)
+  paystackSubscriptionCode String?
+  // Paystack's authoritative next_payment_date, fetched after activation —
+  // null for TRIAL/EXPIRED/CANCELLED, or for a subscription forced ACTIVE
+  // without ever going through a real Paystack checkout. Powers the Billing
+  // card's renewal-date warning on /dashboard/settings.
+  subscriptionRenewsAt     DateTime?
+
+  products  Product[]
+  orders    Order[]
+  customers Customer[]
+
+  // No @@index([email]) or @@index([clerkUserId]) — @unique already creates
+  // those indexes, and declaring them twice fails schema validation.
+  //
+  // Drives the daily trial-expiry cron's lookup.
+  @@index([subscriptionStatus, trialExpiresAt])
+}
+
+// storefront.subdomain and storefront.customDomain need indexes that Prisma
+// cannot declare on embedded types. They are created by prisma/indexes.ts.
+type MerchantStorefront {
+  subdomain    String
+  customDomain String?
+  businessName String
+  logoUrl      String?
+  primaryColor String  @default("#000000")
+  description  String?
+  isActive     Boolean @default(true)
+
+  // Phase 14 — storefront redesign. Both optional: unset, the hero falls back
+  // to businessName/description and the mid-page banner section is skipped
+  // outright (there is no sensible fallback content for a second banner).
+  heroHeadline   String?
+  heroSubheading String?
+  heroImageUrl   String?
+
+  // A second, independent slot from the hero's — same shape, but its own
+  // content so the page does not show the same banner twice (Phase 14 spec).
+  bannerHeadline   String?
+  bannerSubheading String?
+  bannerImageUrl   String?
+
+  // Footer socials (14.20) — all optional, each icon only renders once set.
+  // WhatsApp in place of the reference's LinkedIn: this merchant profile
+  // (small Ghanaian shops) already sells over WhatsApp day to day, matching
+  // the same reasoning D-15's parked `whatsappNumber` proposal made —
+  // LinkedIn does not fit this audience the way it fits Lumixio's.
+  facebookUrl    String?
+  instagramUrl   String?
+  whatsappNumber String?
+}
+
+// ============================================
+// PRODUCT
+// ============================================
+model Product {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  merchantId  String   @db.ObjectId
+  name        String
+  description String?
+  category    String?
+  images      String[]
+  isActive    Boolean  @default(true)
+  // Phase 14 — merchant-curated "Featured Collection" section, distinct from
+  // Best Sellers (sales-derived) and New Arrivals (recency-derived).
+  isFeatured  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  variants ProductVariant[]
+  merchant Merchant         @relation(fields: [merchantId], references: [id])
+
+  @@index([merchantId])
+  @@index([merchantId, isActive])
+  @@index([merchantId, category])
+}
+
+// Variants are embedded and have no independent existence. Do not create a
+// separate collection for them.
+type ProductVariant {
+  id                String   @default(cuid())
+  name              String
+  sku               String?
+  price             Float
+  stock             Int      @default(0)
+  lowStockThreshold Int      @default(5)
+  attributes        Json
+  isActive          Boolean  @default(true)
+
+  // References into the parent Product.images — this option does not own
+  // uploads of its own. Keeping photos on the product means a shared shot is
+  // uploaded once, and the per-product cap still means something.
+  //
+  // Empty is meaningful: the option shows all of the product's photos.
+  imageUrls         String[]
+
+  // Set when a low-stock notification has been sent for the current dip below
+  // lowStockThreshold; cleared when stock rises back above it. Dedupe marker
+  // only — a merchant recounting their own stock never sets or reads this,
+  // only reserveStock/restoreStock touch it (see docs/NOTIFICATIONS.md).
+  lowStockAlertedAt DateTime?
+}
+
+// ============================================
+// CUSTOMER
+// ============================================
+model Customer {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  merchantId String   @db.ObjectId
+  name       String
+  email      String?
+  phone      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  merchant Merchant @relation(fields: [merchantId], references: [id])
+  orders   Order[]
+
+  @@index([merchantId])
+  @@index([merchantId, email])
+  @@index([merchantId, phone])
+}
+
+// ============================================
+// ORDER
+// ============================================
+model Order {
+  id          String      @id @default(auto()) @map("_id") @db.ObjectId
+  merchantId  String      @db.ObjectId
+  customerId  String?     @db.ObjectId
+  orderNumber String
+  status      OrderStatus @default(PENDING)
+  source      OrderSource @default(MANUAL)
+
+  paymentStatus PaymentStatus @default(UNPAID)
+  paymentRef    String?
+
+  subtotal Float
+  total    Float
+
+  lineItems       OrderLineItem[]
+  shippingAddress ShippingAddress?
+
+  // Stock is reserved (hard decrement) at order creation. This holds the
+  // 30-minute deadline for payment, and is cleared once payment is confirmed
+  // or the order is expired by the cron job.
+  reservedUntil DateTime?
+
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  merchant Merchant  @relation(fields: [merchantId], references: [id])
+  customer Customer? @relation(fields: [customerId], references: [id])
+
+  @@index([merchantId])
+  @@index([merchantId, status])
+  @@index([merchantId, createdAt])
+  @@index([merchantId, orderNumber])
+  @@index([paymentRef])
+  // Drives the expiry cron's lookup of abandoned reservations.
+  @@index([status, paymentStatus, reservedUntil])
+}
+
+// Snapshot pattern: product name, variant name, SKU and price are copied in at
+// order time. Never read live product data from a historical order.
+type OrderLineItem {
+  productId   String
+  variantId   String
+  productName String
+  variantName String
+  sku         String?
+  price       Float
+  quantity    Int
+  subtotal    Float
+}
+
+type ShippingAddress {
+  name    String
+  phone   String
+  address String
+  city    String
+  region  String?
+}
+
+// ============================================
+// ENUMS
+// ============================================
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  // Set by the expiry cron when a checkout is abandoned and the stock
+  // reservation lapses. Never selectable by a merchant — CANCELLED is the
+  // merchant's deliberate cancellation.
+  EXPIRED
+}
+
+enum OrderSource {
+  STOREFRONT
+  MANUAL
+  WHATSAPP // deferred to Phase 2 — placeholder only
 }
 
 enum PaymentStatus {
-  FAILED
+  UNPAID
   PAID
-  PROCESSING
-  ABANDONED
+  PARTIALLY_PAID
+  REFUNDED
 }
 
-enum PaymentProvider {
-  PAYSTACK
-}
-
-model OrderPayment {
-  id           String          @id @default(auto()) @map("_id") @db.ObjectId
-  provider     PaymentProvider // Payment provider, e.g., Stripe, PayPal
-  checkout_url String // URL for the checkout process
-  access_code  String
-  reference    String
-  status       PaymentStatus   @default(PROCESSING) // Payment status, e.g., pending, completed, failed - obtained from payment provider
-
-  order_id String?        @unique @db.ObjectId // Ensures a one-to-one relationship
-  order    ProductOrders? @relation
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Customer {
-  id String @id @default(auto()) @map("_id") @db.ObjectId
-  // unique_id String @unique() @default(uuid())
-
-  name     String
-  email    String
-  phone    String          @unique()
-  location Location
-  orders   ProductOrders[]
-
-  business_id String   @db.ObjectId
-  business    Business @relation(fields: [business_id], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-enum TransactionType {
-  CREDIT
-  DEBIT
-  WITHDRAWAL
-}
-
-enum PreferredChannel {
-  MOMO
-  BANK
-}
-
-type PaymentMetaData {
-  preferred_channel PreferredChannel
-}
-
-model PaymentTransaction {
-  id                String           @id @default(auto()) @map("_id") @db.ObjectId
-  payment_reference String?
-  reference_id      String?
-  description       String
-  amount            Float
-  business_id       String           @db.ObjectId
-  status            PaymentStatus
-  type              TransactionType
-  payment_date      DateTime
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
-  meta_data         PaymentMetaData?
+enum SubscriptionStatus {
+  TRIAL
+  ACTIVE
+  EXPIRED
+  CANCELLED
 }
