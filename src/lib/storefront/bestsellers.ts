@@ -1,4 +1,5 @@
 import type { Product } from "@prisma/client";
+import { cache } from "react";
 
 import { aggregate, oid } from "@/lib/db/aggregate";
 import { prisma } from "@/lib/prisma";
@@ -20,8 +21,16 @@ type SoldRow = { productId: string; sold: number };
  * Every paid line item, grouped by product, most sold first. Uncapped by
  * design — the footer's category rollup needs the full sales picture, not
  * just the top handful a product grid would show.
+ *
+ * Wrapped in React's `cache()`: the homepage calls `getStorefrontBestSellers`
+ * and the layout calls `getBestSellingCategories`, and both run this exact
+ * same aggregation — without memoisation that's the same expensive query
+ * hitting Atlas twice per request. Caught by the production Lighthouse
+ * audit's server-response-time finding.
  */
-async function soldByProduct(merchantId: string): Promise<SoldRow[]> {
+const soldByProduct = cache(async function soldByProduct(
+  merchantId: string
+): Promise<SoldRow[]> {
   return aggregate<SoldRow>("Order", [
     { $match: { merchantId: oid(merchantId), paymentStatus: "PAID" } },
     { $unwind: "$lineItems" },
@@ -34,7 +43,7 @@ async function soldByProduct(merchantId: string): Promise<SoldRow[]> {
     { $sort: { sold: -1 } },
     { $project: { _id: 0, productId: "$_id", sold: 1 } },
   ]);
-}
+});
 
 export async function getStorefrontBestSellers(
   merchantId: string,

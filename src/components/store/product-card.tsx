@@ -45,7 +45,12 @@ export function ProductCard({
               src={product.images[0]}
               alt={product.name}
               fill
-              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 300px"
+              // Every grid this card appears in is 2 columns below `lg` and 4
+              // columns at `lg`+ inside a max-w-5xl container — corrected
+              // 2026-08-20 after a Lighthouse audit found the previous
+              // 33vw/300px guess request ~33% more bytes than the ~226px a
+              // card actually renders at once 4 columns are in play.
+              sizes="(max-width: 1023px) 50vw, 230px"
               className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
             />
           ) : (

@@ -180,7 +180,7 @@ export default async function StorefrontLayout({
 
             {bestSellingCategories.length > 0 && (
               <div className="min-w-32">
-                <p className="text-[11.5px] font-semibold tracking-wide text-neutral-500 uppercase">
+                <p className="text-[11.5px] font-semibold tracking-wide text-neutral-400 uppercase">
                   Categories
                 </p>
                 <ul className="mt-3 space-y-2">
@@ -216,7 +216,7 @@ export default async function StorefrontLayout({
 
         <div className="relative border-t border-white/10">
           <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-5 sm:px-6">
-            <p className="text-[12px] text-neutral-500">Powered by <Link href="https://primecart.app" target="_blank" rel="noopener noreferrer" className="text-white hover:underline">PrimeCart</Link></p>
+            <p className="text-[12px] text-neutral-400">Powered by <Link href="https://primecart.app" target="_blank" rel="noopener noreferrer" className="text-white underline underline-offset-2">PrimeCart</Link></p>
             <div className="flex items-center gap-1.5">
               {["Visa", "Mastercard", "Mobile Money"].map((method) => (
                 <span

@@ -1,4 +1,5 @@
 import type { Product, ProductVariant } from "@prisma/client";
+import { cache } from "react";
 
 import { prisma } from "@/lib/prisma";
 import { variantImages } from "@/lib/products/variants";
@@ -139,7 +140,14 @@ export async function getStorefrontProduct(
   return product;
 }
 
-export async function listStorefrontCategories(
+/**
+ * Wrapped in React's `cache()` (verified against the Next 16 docs' own
+ * "Reusing data with React.cache" guidance) — the storefront layout and the
+ * homepage both call this on every request, and without memoisation that's
+ * two identical round trips to Atlas instead of one. Lighthouse's production
+ * audit caught the resulting ~1.7s server response time.
+ */
+export const listStorefrontCategories = cache(async function listStorefrontCategories(
   merchantId: string
 ): Promise<string[]> {
   const rows = await prisma.product.findMany({
@@ -152,7 +160,7 @@ export async function listStorefrontCategories(
   return rows
     .map((row) => row.category)
     .filter((category): category is string => Boolean(category));
-}
+});
 
 /** The "Featured Collection" section — merchant-curated via Product.isFeatured. */
 export async function listFeaturedProducts(

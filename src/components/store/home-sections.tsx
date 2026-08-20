@@ -45,7 +45,12 @@ function BannerBlock({
             src={imageUrl}
             alt=""
             fill
-            priority={large}
+            // `priority` was deprecated in Next 16 in favour of `preload` —
+            // verified against the bundled Next 16 docs, not assumed. Lighthouse
+            // flagged the hero specifically (`fetchpriority=high should be
+            // applied`) since the old prop no longer sets that attribute.
+            {...(large ? { fetchPriority: "high" as const } : {})}
+            loading={large ? "eager" : undefined}
             sizes="100vw"
             quality={90}
             className="object-cover"
