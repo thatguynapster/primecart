@@ -14,7 +14,6 @@ import {
   type Icon,
 } from "@phosphor-icons/react";
 
-import { btnPrimary } from "@/components/dashboard/nocturne/ui";
 import {
   setRailCollapsed,
   useRailCollapsed,
@@ -37,12 +36,8 @@ type NavItem = {
  */
 export function SideRail({
   ordersNeedingAction,
-  trialDaysLeft,
-  showTrialCard,
 }: {
   ordersNeedingAction: number;
-  trialDaysLeft: number;
-  showTrialCard: boolean;
 }) {
   const pathname = usePathname();
   const collapsed = useRailCollapsed();
@@ -117,22 +112,6 @@ export function SideRail({
       <div className="flex-1" />
 
       <div className="flex flex-col gap-2">
-        {expanded && showTrialCard && (
-          <div className="rounded-md border border-nk-neutral-800 p-2.75">
-            <div className="mb-1.25 text-xs font-medium tracking-widest text-nk-neutral-500 uppercase">
-              Trial
-            </div>
-            <div className="mb-2.5 text-xs text-nk-neutral-300">
-              {trialDaysLeft === 0
-                ? "Your free trial has ended."
-                : `${trialDaysLeft} ${trialDaysLeft === 1 ? "day" : "days"} left on your free trial.`}
-            </div>
-            <Link href="/billing" className={btnPrimary("w-full")}>
-              Subscribe
-            </Link>
-          </div>
-        )}
-
         <button
           type="button"
           onClick={() => setRailCollapsed(!collapsed)}

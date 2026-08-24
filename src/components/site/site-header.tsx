@@ -48,7 +48,7 @@ export function SiteHeader() {
             href="/sign-up"
             className="rounded-full bg-neutral-900 px-4 py-2 text-[13.5px] font-medium text-white transition-colors hover:bg-neutral-700"
           >
-            Start free trial
+            Get started free
           </Link>
         </div>
       </div>

@@ -2,7 +2,7 @@ import { clerkMiddleware } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
 import { getSubdomain } from "@/lib/domain";
-import { getMerchantBySubdomain, getSubscriptionStatus } from "@/lib/merchant/lookup";
+import { getMerchantBySubdomain } from "@/lib/merchant/lookup";
 
 /**
  * Proxy — request routing for the multi-tenant app.
@@ -51,20 +51,6 @@ function isPublicRoute(pathname: string): boolean {
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
   );
 }
-
-/** Routes gated behind an active (or trialling) subscription. */
-function isDashboardRoute(pathname: string): boolean {
-  return pathname === "/dashboard" || pathname.startsWith("/dashboard/");
-}
-
-/**
- * Where an EXPIRED merchant is sent to reactivate.
- *
- * Requires sign-in — it is a merchant's own billing page, not a public page —
- * but is deliberately *not* a dashboard route, so the subscription guard below
- * never redirects it back to itself.
- */
-const BILLING_PATH = "/billing";
 
 export default clerkMiddleware(async (auth, req) => {
   const url = req.nextUrl;
@@ -116,23 +102,6 @@ export default clerkMiddleware(async (auth, req) => {
   }
 
   await auth.protect();
-
-  if (isDashboardRoute(url.pathname)) {
-    const { userId } = await auth();
-
-    if (userId) {
-      try {
-        const status = await getSubscriptionStatus(userId);
-        if (status === "EXPIRED") {
-          return NextResponse.redirect(new URL(BILLING_PATH, req.url));
-        }
-      } catch {
-        // Fail open, consistent with the storefront path: a lookup failure
-        // must not lock a paying merchant out of their own dashboard.
-        return NextResponse.next();
-      }
-    }
-  }
 
   return NextResponse.next();
 }, {

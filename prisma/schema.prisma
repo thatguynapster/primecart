@@ -42,26 +42,12 @@ model Merchant {
   // the 3% is applied per-transaction via transaction_charge at initialization.
   paystackSubaccountCode String?
 
-  // Subscription. Merchants are not enrolled in the plan at signup; they get 30
-  // days free, and the subscription is initiated at trial expiry.
-  trialExpiresAt           DateTime
-  subscriptionStatus       SubscriptionStatus @default(TRIAL)
-  paystackSubscriptionCode String?
-  // Paystack's authoritative next_payment_date, fetched after activation —
-  // null for TRIAL/EXPIRED/CANCELLED, or for a subscription forced ACTIVE
-  // without ever going through a real Paystack checkout. Powers the Billing
-  // card's renewal-date warning on /dashboard/settings.
-  subscriptionRenewsAt     DateTime?
-
   products  Product[]
   orders    Order[]
   customers Customer[]
 
   // No @@index([email]) or @@index([clerkUserId]) — @unique already creates
   // those indexes, and declaring them twice fails schema validation.
-  //
-  // Drives the daily trial-expiry cron's lookup.
-  @@index([subscriptionStatus, trialExpiresAt])
 }
 
 // storefront.subdomain and storefront.customDomain need indexes that Prisma
@@ -74,6 +60,12 @@ type MerchantStorefront {
   primaryColor String  @default("#000000")
   description  String?
   isActive     Boolean @default(true)
+
+  // When onboarding completed and the shop actually went live — distinct from
+  // Merchant.createdAt (signup), which can precede this by days if onboarding
+  // isn't finished right away. Drives D-17's 30-day dormancy grace period, so
+  // a brand-new shop isn't flagged before it's had a fair chance to sell.
+  createdAt DateTime @default(now())
 
   // Phase 14 — storefront redesign. Both optional: unset, the hero falls back
   // to businessName/description and the mid-page banner section is skipped
@@ -258,11 +250,4 @@ enum PaymentStatus {
   PAID
   PARTIALLY_PAID
   REFUNDED
-}
-
-enum SubscriptionStatus {
-  TRIAL
-  ACTIVE
-  EXPIRED
-  CANCELLED
 }

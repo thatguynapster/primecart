@@ -1,5 +1,3 @@
-import type { SubscriptionStatus } from "@prisma/client";
-
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -106,37 +104,4 @@ export async function getMerchantBySubdomain(
 
 export function invalidateStorefront(subdomain: string) {
   storefrontCache.delete(subdomain);
-}
-
-// ---------------------------------------------------------------------------
-// Subscription gating: clerk user -> subscription status
-// ---------------------------------------------------------------------------
-
-const subscriptionCache = new Map<
-  string,
-  CacheEntry<SubscriptionStatus | null>
->();
-
-/**
- * Subscription status for a signed-in merchant, or null if no merchant record
- * exists yet (a Clerk user who has signed up but not completed onboarding).
- */
-export async function getSubscriptionStatus(
-  clerkUserId: string
-): Promise<SubscriptionStatus | null> {
-  const cached = readCache(subscriptionCache, clerkUserId);
-  if (cached) return cached.data;
-
-  const merchant = await prisma.merchant.findUnique({
-    where: { clerkUserId },
-    select: { subscriptionStatus: true },
-  });
-
-  const data = merchant?.subscriptionStatus ?? null;
-  writeCache(subscriptionCache, clerkUserId, data);
-  return data;
-}
-
-export function invalidateSubscription(clerkUserId: string) {
-  subscriptionCache.delete(clerkUserId);
 }
