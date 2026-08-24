@@ -12,12 +12,6 @@ import { prisma } from "@/lib/prisma";
  * route handler and Server Action calls through here (task 3.12).
  */
 
-const TRIAL_DAYS = 30;
-
-function trialExpiry(): Date {
-	return new Date(Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000);
-}
-
 /**
  * The current merchant, creating the record on first sign-in.
  *
@@ -58,9 +52,7 @@ export async function getCurrentMerchant(): Promise<Merchant | null> {
 			data: {
 				clerkUserId: userId,
 				email,
-				name,
-				trialExpiresAt: trialExpiry()
-				// subscriptionStatus defaults to TRIAL.
+				name
 				// storefront is set during onboarding, not here — its absence is what
 				// marks onboarding as incomplete.
 			}

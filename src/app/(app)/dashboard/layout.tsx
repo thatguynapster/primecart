@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 
 import { SideRail } from "@/components/dashboard/nocturne/side-rail";
-import { daysUntil } from "@/lib/format";
 import { countOrdersNeedingAction } from "@/lib/dashboard/queries";
 import { hasCompletedOnboarding, requireMerchant } from "@/lib/merchant/current";
 
@@ -27,7 +26,6 @@ export default async function DashboardLayout({
   }
 
   const ordersNeedingAction = await countOrdersNeedingAction(merchant.id);
-  const trialDaysLeft = daysUntil(merchant.trialExpiresAt);
 
   return (
     // `scheme-dark` is what makes native controls match the theme — file
@@ -35,11 +33,7 @@ export default async function DashboardLayout({
     // browser, not by our classes, and default to the light OS palette
     // otherwise. No amount of Tailwind on the elements themselves fixes it.
     <div className="font-nk scheme-dark flex min-h-full bg-nk-bg text-nk-text">
-      <SideRail
-        ordersNeedingAction={ordersNeedingAction}
-        trialDaysLeft={trialDaysLeft}
-        showTrialCard={merchant.subscriptionStatus === "TRIAL"}
-      />
+      <SideRail ordersNeedingAction={ordersNeedingAction} />
 
       <main className="flex min-w-0 flex-1 flex-col">{children}</main>
     </div>

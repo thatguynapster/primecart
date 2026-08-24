@@ -183,6 +183,13 @@ export async function updateSubaccount(
 /** PrimeCart's cut of a storefront sale. Manual orders never call this module. */
 export const STOREFRONT_FEE_RATE = 0.03;
 
+/**
+ * D-16: the 3% is capped at GHS 100 per order, so an unusually large single
+ * sale doesn't cost the merchant disproportionately. In pesewas, matching
+ * `amountInPesewas` below.
+ */
+export const STOREFRONT_FEE_CAP_PESEWAS = 100 * 100;
+
 type InitializeTransactionParams = {
   /** Where the receipt/Paystack notifications go — the guest's own email. */
   email: string;
@@ -207,7 +214,9 @@ type InitializeTransactionResult = {
  * The 3% is computed here, once — `transaction_charge` — and only here.
  * `createSubaccount` above sets `percentage_charge: 0` for exactly this
  * reason: applying a cut in both places stacks them, taking ~6% from the
- * merchant instead of 3% (D-6 in the project's decision log).
+ * merchant instead of 3% (D-6 in the project's decision log). Capped at
+ * `STOREFRONT_FEE_CAP_PESEWAS` (D-16) so an unusually large order doesn't
+ * cost the merchant disproportionately.
  */
 export async function initializeTransaction(
   params: InitializeTransactionParams
@@ -220,101 +229,11 @@ export async function initializeTransaction(
         email: params.email,
         amount: params.amountInPesewas,
         subaccount: params.subaccount,
-        transaction_charge: Math.round(
-          params.amountInPesewas * STOREFRONT_FEE_RATE
+        transaction_charge: Math.min(
+          Math.round(params.amountInPesewas * STOREFRONT_FEE_RATE),
+          STOREFRONT_FEE_CAP_PESEWAS
         ),
         bearer: "account",
-        reference: params.reference,
-        callback_url: params.callbackUrl,
-        metadata: params.metadata,
-      }),
-    }
-  );
-
-  return body.data;
-}
-
-// ---------------------------------------------------------------------------
-// Subscriptions (Phase 13) — PrimeCart's own revenue, not a merchant sale
-// ---------------------------------------------------------------------------
-
-type PaystackPlan = {
-  plan_code: string;
-  amount: number;
-  interval: string;
-  currency: string;
-};
-
-/**
- * Fetches a plan's own details from Paystack — its authoritative amount, in
- * particular. `/transaction/initialize` rejects a `plan`-linked charge that
- * has no `amount`, contrary to the docs' implication that it derives one —
- * verified live against the real test plan. Fetching it here means the
- * amount charged always matches the plan currently configured, without
- * hardcoding a price that could drift from what Paystack actually charges.
- */
-export async function getPlan(planCode: string): Promise<PaystackPlan> {
-  const body = await paystackFetch<PaystackPlan>(`/plan/${planCode}`);
-  return body.data;
-}
-
-export type PaystackSubscription = {
-  status: string;
-  /** ISO date string, or null for a subscription Paystack has already ended. */
-  next_payment_date: string | null;
-};
-
-/**
- * Fetches a subscription's own state from Paystack — in particular
- * `next_payment_date`, which nothing in a webhook payload reliably carries
- * (verified against this project's own webhook history: `subscription.create`
- * fires once, renewal `charge.success` events carry no subscription-level
- * fields at all). Called after activation so the merchant-facing renewal date
- * comes from Paystack directly rather than being computed locally and risking
- * drift from what Paystack will actually charge.
- */
-export async function getSubscription(
-  subscriptionCode: string
-): Promise<PaystackSubscription> {
-  const body = await paystackFetch<PaystackSubscription>(
-    `/subscription/${subscriptionCode}`
-  );
-  return body.data;
-}
-
-type InitializePlanTransactionParams = {
-  /** The merchant's own account email — this charges PrimeCart's subscription fee, not a merchant sale. */
-  email: string;
-  /** Paystack plan code. */
-  planCode: string;
-  reference: string;
-  callbackUrl: string;
-  metadata: Record<string, unknown>;
-};
-
-/**
- * Starts a PrimeCart subscription payment against the configured plan.
- *
- * Deliberately separate from `initializeTransaction`: this has no
- * `subaccount`/`transaction_charge` — the money is PrimeCart's own revenue,
- * not a merchant's storefront sale routed through their subaccount. Passing
- * `plan` here is what makes Paystack fire `subscription.create` on the first
- * successful charge; the webhook (task 13.8) reacts to that event, never to
- * this call's return value.
- */
-export async function initializePlanTransaction(
-  params: InitializePlanTransactionParams
-): Promise<InitializeTransactionResult> {
-  const plan = await getPlan(params.planCode);
-
-  const body = await paystackFetch<InitializeTransactionResult>(
-    "/transaction/initialize",
-    {
-      method: "POST",
-      body: JSON.stringify({
-        email: params.email,
-        amount: plan.amount,
-        plan: params.planCode,
         reference: params.reference,
         callback_url: params.callbackUrl,
         metadata: params.metadata,

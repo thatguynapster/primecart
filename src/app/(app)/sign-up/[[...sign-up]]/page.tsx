@@ -1,7 +1,7 @@
 import { SignUp } from "@clerk/nextjs";
 
 export const metadata = {
-  title: "Start your free trial — PrimeCart",
+  title: "Get started — PrimeCart",
 };
 
 export default function SignUpPage() {

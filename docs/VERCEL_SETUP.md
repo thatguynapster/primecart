@@ -134,14 +134,15 @@ Vercel Cron needs a Pro plan, so the handover specifies cron-job.org instead. Be
 6. **Request method** — `GET`.
 7. Save, then use **Test run**. Expect **200**. A **401** means the header does not match; a **404** means the route is not deployed yet.
 
-### The second job (Phase 13)
+### The second job (D-17 — dormant-shop digest)
 
-Same procedure, different URL and schedule:
+Same procedure, different URL and schedule. Superseded the original "expire trials" job when the subscription model was replaced with D-16/D-17 (2026-08-24) — there is no trial to expire any more, but a weekly check for inactive shops replaced it.
 
-- **Title** — "PrimeCart · expire trials"
-- **URL** — `https://primecart.app/api/cron/expire-trials`
-- **Schedule** — once daily
+- **Title** — "PrimeCart · dormant shop digest"
+- **URL** — `https://primecart.app/api/cron/dormant-digest`
+- **Schedule** — once weekly
 - **Same** `Authorization` header
+- Also needs `ADMIN_NOTIFICATION_EMAIL` set in the Production environment — the endpoint refuses to run without it, the same way it refuses without `CRON_SECRET`.
 
 ### Notes
 
@@ -154,9 +155,9 @@ Same procedure, different URL and schedule:
 
   So the host in the URL decides which orders get expired and whose stock moves. These jobs are not read-only checks: they cancel orders and put stock back.
 
-  **The live jobs point at `primecart.app`.** A second pair aimed at `dev.primecart.app` is optional and safe — useful for exercising the expiry flow against test data before trusting it in production. Just never point two jobs at the same host, or both will try to expire the same orders at once.
-- cron-job.org retries and emails on repeated failure — leave that on. A silently dead expiry job leaks stock.
-- Neither endpoint exists yet: `/api/cron/expire-orders` arrives in Phase 9, `/api/cron/expire-trials` in Phase 13. Create the jobs after those deploy, or the test run will 404.
+  **The live jobs point at `primecart.app`.** A second pair aimed at `dev.primecart.app` is optional and safe — useful for exercising the flow against test data before trusting it in production. Just never point two jobs at the same host, or the order-expiry pair will try to expire the same orders twice.
+- cron-job.org retries and emails on repeated failure — leave that on. A silently dead expiry job leaks stock; a silently dead digest just means you stop hearing about dormant shops, which is quieter to miss — worth checking its execution history occasionally.
+- Create each job only after its endpoint is actually deployed, or the test run will 404.
 
 ## 9. Paystack webhook URL — required, not automatic
 

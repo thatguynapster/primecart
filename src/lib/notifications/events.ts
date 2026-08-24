@@ -1,5 +1,6 @@
+import type { DormantMerchant } from "@/lib/admin/dormancy";
 import { getDashboardOrigin } from "@/lib/domain";
-import { formatGhs } from "@/lib/format";
+import { formatGhs, formatRelativeDate } from "@/lib/format";
 import { sendEmail } from "./resend";
 
 /**
@@ -107,5 +108,39 @@ export async function notifyLowStock(params: {
     });
   } catch (error) {
     console.error(`notifyLowStock failed for product ${params.productId}:`, error);
+  }
+}
+
+/**
+ * D-17 — the weekly dormant-shop digest, sent to the owner's own inbox
+ * (`ADMIN_NOTIFICATION_EMAIL`), never to a merchant. Deliberately just a
+ * list, not an action of any kind — see docs/TASKS.md's D-17 for why this
+ * flags rather than automatically pausing anything.
+ */
+export async function notifyDormantMerchants(params: {
+  adminEmail: string;
+  merchants: DormantMerchant[];
+}): Promise<void> {
+  const rows = params.merchants
+    .map((merchant) => {
+      const lastSale = merchant.lastPaidOrderAt
+        ? `last sale ${formatRelativeDate(merchant.lastPaidOrderAt)}`
+        : "never sold anything";
+      return `<li><strong>${merchant.businessName}</strong> (${merchant.subdomain}) — ${lastSale}, ${merchant.email}</li>`;
+    })
+    .join("");
+
+  try {
+    await sendEmail({
+      to: params.adminEmail,
+      subject: `${params.merchants.length} dormant ${params.merchants.length === 1 ? "shop" : "shops"} this week`,
+      html: layout(
+        "Shops with no sales in 30+ days",
+        `<p>Worth a check-in — these merchants may have hit a bottleneck.</p>
+         <ul>${rows}</ul>`
+      ),
+    });
+  } catch (error) {
+    console.error("notifyDormantMerchants failed:", error);
   }
 }

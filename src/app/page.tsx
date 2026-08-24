@@ -85,7 +85,7 @@ export default function LandingPage() {
             <div className="mx-auto max-w-3xl text-center">
               <span className="inline-flex items-center gap-2 rounded-full border border-neutral-300/80 bg-white/70 px-3.5 py-1.5 text-[12.5px] font-medium text-neutral-600">
                 <span className="size-1.5 rounded-full bg-neutral-900" />
-                30 days free — no card needed
+                No subscription — you only pay when you sell
               </span>
 
               <h1 className="font-display mt-8 text-[2.5rem] leading-[0.95] font-extrabold tracking-[-0.04em] text-balance text-neutral-900 sm:text-[4rem] lg:text-[4.75rem]">
@@ -103,7 +103,7 @@ export default function LandingPage() {
                   href="/sign-up"
                   className="w-full rounded-full bg-neutral-900 px-6 py-3 text-center text-sm font-medium text-white transition-colors hover:bg-neutral-700 sm:w-auto"
                 >
-                  Start free trial
+                  Get started free
                 </Link>
                 <a
                   href="#features"
@@ -213,83 +213,75 @@ export default function LandingPage() {
                 Pricing
               </p>
               <h2 className="font-display mt-4 text-3xl leading-[1.05] font-extrabold tracking-[-0.03em] text-balance text-neutral-900 sm:text-[2.75rem]">
-                One price. No hidden charges.
+                No subscription. Ever.
               </h2>
             </div>
 
-            <div className="mt-12 grid gap-5 sm:mt-16 lg:grid-cols-[1.1fr_1fr]">
+            <div className="mt-12 sm:mt-16">
               <div className="rounded-2xl border border-neutral-900 bg-neutral-900 p-8 text-white sm:p-10">
-                <div className="flex items-baseline gap-2">
-                  <span className="font-display text-5xl font-extrabold tracking-[-0.04em]">
-                    GHS 79
-                  </span>
-                  <span className="text-sm text-neutral-400">/ month</span>
-                </div>
-                <p className="mt-3 text-[14px] text-neutral-300">
-                  Everything below, for one shop. Start with 30 days free — no
-                  card needed to begin.
-                </p>
-
-                <ul className="mt-8 space-y-3 text-[14px] text-neutral-200">
-                  {[
-                    "Unlimited products and variants",
-                    "Your own storefront link",
-                    "Orders from storefront, walk-in and WhatsApp",
-                    "Low-stock alerts",
-                    "Sales and stock reports",
-                  ].map((item) => (
-                    <li key={item} className="flex gap-3">
-                      <span
-                        aria-hidden="true"
-                        className="mt-2 size-1 shrink-0 rounded-full bg-neutral-500"
-                      />
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-
-                <Link
-                  href="/sign-up"
-                  className="mt-9 block rounded-full bg-white px-6 py-3 text-center text-sm font-medium text-neutral-900 transition-colors hover:bg-neutral-200"
-                >
-                  Start free trial
-                </Link>
-              </div>
-
-              <div className="rounded-2xl border border-neutral-200 bg-[#F5F5F4] p-8 sm:p-10">
-                <div className="flex items-baseline gap-2">
-                  <span className="font-display text-5xl font-extrabold tracking-[-0.04em] text-neutral-900">
-                    3%
-                  </span>
-                  <span className="text-sm text-neutral-500">
-                    / storefront sale
-                  </span>
-                </div>
-
-                <p className="mt-5 text-[14px] leading-relaxed text-neutral-700">
-                  We charge 3% on storefront sales only. That 3% covers all
-                  payment processing fees — no hidden charges on top. Manual
-                  orders are always free. You keep 97% of every sale.
-                </p>
-
-                <div className="mt-8 rounded-xl border border-neutral-200 bg-white p-5">
-                  <p className="text-[12px] font-medium tracking-[0.12em] text-neutral-400 uppercase">
-                    On a GHS 200 order
-                  </p>
-                  <dl className="mt-4 space-y-2.5 text-[14px]">
-                    <div className="flex justify-between text-neutral-600">
-                      <dt>Customer pays</dt>
-                      <dd className="font-mono tabular-nums">GHS 200.00</dd>
+                <div className="grid gap-8 sm:grid-cols-[1.1fr_1fr] sm:items-center">
+                  <div>
+                    <div className="flex items-baseline gap-2">
+                      <span className="font-display text-5xl font-extrabold tracking-[-0.04em]">
+                        3%
+                      </span>
+                      <span className="text-sm text-neutral-400">
+                        / storefront sale, capped at GHS 100
+                      </span>
                     </div>
-                    <div className="flex justify-between text-neutral-600">
-                      <dt>PrimeCart fee (3%)</dt>
-                      <dd className="font-mono tabular-nums">− GHS 6.00</dd>
-                    </div>
-                    <div className="flex justify-between border-t border-neutral-200 pt-2.5 font-medium text-neutral-900">
-                      <dt>You receive</dt>
-                      <dd className="font-mono tabular-nums">GHS 194.00</dd>
-                    </div>
-                  </dl>
+                    <p className="mt-3 max-w-sm text-[14px] leading-relaxed text-neutral-300">
+                      No monthly fee, no trial that runs out. You only pay
+                      when a storefront sale actually happens — and never
+                      more than GHS 100 on any single order. Manual orders
+                      are always free. Nothing to cancel, because there is
+                      nothing recurring.
+                    </p>
+
+                    <ul className="mt-7 space-y-3 text-[14px] text-neutral-200">
+                      {[
+                        "Unlimited products and variants",
+                        "Your own storefront link",
+                        "Orders from storefront, walk-in and WhatsApp",
+                        "Low-stock alerts",
+                        "Sales and stock reports",
+                      ].map((item) => (
+                        <li key={item} className="flex gap-3">
+                          <span
+                            aria-hidden="true"
+                            className="mt-2 size-1 shrink-0 rounded-full bg-neutral-500"
+                          />
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+
+                    <Link
+                      href="/sign-up"
+                      className="mt-9 inline-block rounded-full bg-white px-6 py-3 text-center text-sm font-medium text-neutral-900 transition-colors hover:bg-neutral-200"
+                    >
+                      Get started free
+                    </Link>
+                  </div>
+
+                  <div className="rounded-xl border border-white/10 bg-white/[0.04] p-5">
+                    <p className="text-[12px] font-medium tracking-[0.12em] text-neutral-400 uppercase">
+                      On a GHS 200 order
+                    </p>
+                    <dl className="mt-4 space-y-2.5 text-[14px]">
+                      <div className="flex justify-between text-neutral-300">
+                        <dt>Customer pays</dt>
+                        <dd className="font-mono tabular-nums">GHS 200.00</dd>
+                      </div>
+                      <div className="flex justify-between text-neutral-300">
+                        <dt>PrimeCart fee (3%)</dt>
+                        <dd className="font-mono tabular-nums">− GHS 6.00</dd>
+                      </div>
+                      <div className="flex justify-between border-t border-white/10 pt-2.5 font-medium text-white">
+                        <dt>You receive</dt>
+                        <dd className="font-mono tabular-nums">GHS 194.00</dd>
+                      </div>
+                    </dl>
+                  </div>
                 </div>
               </div>
             </div>
@@ -306,14 +298,14 @@ export default function LandingPage() {
                 Count your stock once. Then let it count itself.
               </h2>
               <p className="mx-auto mt-5 max-w-lg text-[15px] leading-relaxed text-neutral-600">
-                Set up your shop in an afternoon. Thirty days free, and nothing
-                to pay until you have seen it work.
+                Set up your shop in an afternoon. No subscription, and nothing
+                to pay until you make your first sale.
               </p>
               <Link
                 href="/sign-up"
                 className="mt-8 inline-block rounded-full bg-neutral-900 px-7 py-3.5 text-sm font-medium text-white transition-colors hover:bg-neutral-700"
               >
-                Start free trial
+                Get started free
               </Link>
             </div>
           </div>
