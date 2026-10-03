@@ -6,6 +6,8 @@ import { getMerchantBySubdomain } from "@/lib/merchant/lookup";
 import {
   getStorefrontProduct,
   sellableVariants,
+  toPublicProduct,
+  toPublicVariant,
 } from "@/lib/storefront/catalogue";
 
 export async function generateMetadata({
@@ -50,8 +52,8 @@ export default async function StorefrontProductPage({
       <div className="mt-6">
         <ProductBuy
           subdomain={subdomain}
-          product={product}
-          variants={sellableVariants(product)}
+          product={toPublicProduct(product)}
+          variants={sellableVariants(product).map(toPublicVariant)}
         />
       </div>
     </div>

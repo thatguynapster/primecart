@@ -1,4 +1,4 @@
-import type { Product, ProductVariant } from "@prisma/client";
+import type { Prisma, Product, ProductVariant } from "@prisma/client";
 import { cache } from "react";
 
 import { prisma } from "@/lib/prisma";
@@ -12,6 +12,54 @@ import { variantImages } from "@/lib/products/variants";
  * belonging to another merchant. A shopper is anonymous, so `merchantId` comes
  * from the subdomain the proxy resolved — never from anything they can set.
  */
+
+/**
+ * The shape of a variant that is safe to serialize to a shopper's browser
+ * (DEV-6 §A.7 / §2.5). Raw Prisma `ProductVariant` objects must never reach a
+ * Client Component — everything on them is sent as-is in the RSC payload,
+ * where any shopper can read it from page source. That's how `lowStockThreshold`
+ * and `lowStockAlertedAt` leak today, and how `costPrice` would leak once added.
+ *
+ * `lowStock` is a boolean derived from `lowStockThreshold` here, server-side —
+ * the storefront needs to know *whether* to show "Only N left", not the
+ * merchant's internal reorder threshold.
+ */
+export type PublicVariant = {
+  id: string;
+  name: string;
+  price: number;
+  stock: number;
+  attributes: Prisma.JsonValue;
+  imageUrls: string[];
+  lowStock: boolean;
+};
+
+export function toPublicVariant(variant: ProductVariant): PublicVariant {
+  return {
+    id: variant.id,
+    name: variant.name,
+    price: variant.price,
+    stock: variant.stock,
+    attributes: variant.attributes,
+    imageUrls: variantImages(variant),
+    lowStock: variant.stock > 0 && variant.stock <= variant.lowStockThreshold,
+  };
+}
+
+/** The shape of a product that is safe to serialize to a shopper's browser. */
+export type PublicProduct = Pick<
+  Product,
+  "id" | "name" | "description" | "images"
+>;
+
+export function toPublicProduct(product: Product): PublicProduct {
+  return {
+    id: product.id,
+    name: product.name,
+    description: product.description,
+    images: product.images,
+  };
+}
 
 /** A variant a shopper may actually buy. */
 export function sellableVariants(product: Product): ProductVariant[] {
@@ -40,8 +88,8 @@ export function totalStock(product: Product): number {
  * same rule the dashboard preview uses.
  */
 export function imagesForVariant(
-  product: Product,
-  variant: ProductVariant | undefined
+  product: Pick<Product, "images">,
+  variant: { imageUrls?: string[] | null } | undefined
 ): string[] {
   if (!variant) return product.images;
   const picked = variantImages(variant).filter((url) =>

@@ -616,6 +616,30 @@ Not in the original handover — new scope, raised 2026-08-17 once the dashboard
 
 ---
 
+## Phase 15 — Profit Tracking & Product Customization (DEV-6 / DEV-7)
+
+Not in the original handover — new scope, proposed 2026-09-27, owner sign-off recorded 2026-10-03 (see Resolved Decisions below). Full spec: **[`PROFIT_AND_CUSTOMIZATION.md`](./PROFIT_AND_CUSTOMIZATION.md)**. Every schema change is additive and optional; no existing product, order, cart, checkout, webhook, or report may break. Build order below follows the spec's own "Rollout order" (§Rollout order) — each step is safe to deploy on its own and steps must not be reordered.
+
+| #     | Task | Status | Done |
+| ----- | ---- | ------ | ---- |
+| 15.1  | **A.7 — storefront DTO.** Add `PublicVariant`/`toPublicVariant` in `src/lib/storefront/catalogue.ts`; stop passing raw Prisma `Product`/`ProductVariant` to `ProductBuy` and other client components (fixes the existing `lowStockThreshold`/`lowStockAlertedAt` leak). Ship alone first — prerequisite for 15.3 | [ ] | |
+| 15.2  | Schema push: `costPrice` on `ProductVariant`, `costPrice`/`platformFee` on `Order`/`OrderLineItem`, `allowCustomization`/`customizationLabel`/`customizationMaxLength`/`customizationRequired`/`customizationFee` on `Product`, `customization`/`customizationLabel`/`customizationFee` on `OrderLineItem` — via `npm run db:push` (not raw `prisma db push`, per A.1) | [ ] | |
+| 15.3  | B.4 backfill — `scripts/backfill-customization.mjs`, sets `allowCustomization`/`customizationRequired` on documents missing the field. Run against `primecart-dev`, verify, then production, before the code deploy | [ ] | |
+| 15.4  | A.2 — variant writes: `VariantInput.costPrice`, `buildVariant()`, `updateVariant()` embedded-update branch | [ ] | |
+| 15.5  | A.3 — dashboard product form: `parseVariantFields()` cost validation (blank → null, never 0; no block on cost > price, just a warning), margin hint UI | [ ] | |
+| 15.6  | A.4 — snapshot cost + platform fee at order time in `cart/actions.ts` (`checkout`) and `dashboard/orders/actions.ts` (`createManualOrder`); extract `storefrontFeePesewas()` into `src/lib/paystack.ts` and use it from both `initializeTransaction` and `checkout` | [ ] | |
+| 15.7  | A.5 — `getProfitSummary(merchantId, sinceDate)` aggregation in `src/lib/dashboard/queries.ts`; bundle into the existing `getAnalyticsKpis` `Promise.all` | [ ] | |
+| 15.8  | A.6 — UI: "Profit 12 months" KPI + coverage sub-line on analytics page; "No cost" badge on products list; per-line cost/margin + order-level profit on dashboard order detail only (never storefront) | [ ] | |
+| 15.9  | B.2 — cart rework: `CartLine.lineKey`, `lineKeyOf()`, `add`/`setQuantity`/`remove` switch to `lineKey`, zustand persist `version` bump + `migrate`, `cartTotal` includes fee. Ship before 15.11 so the migration can be verified with ordinary carts first | [ ] | |
+| 15.10 | B.3 (stock gap) — `reserveStock` phase 1 sums `quantity` by `variantId` before comparing to `variant.stock`, so two customized lines of the same variant don't both pass phase 1 | [ ] | |
+| 15.11 | B.3 — checkout/manual-order validation: sanitize + validate `customization` against `product.allowCustomization`/`customizationRequired`/`customizationMaxLength` (cap 200), compute fee server-side only, reject (not drop) text for non-customizable products | [ ] | |
+| 15.12 | B.5 — dashboard config UI on product detail (toggle, label, max length, required, fee) + `updateProductDetails` validation; manual order form gets a parallel `customization` input per line | [ ] | |
+| 15.13 | B.6 — storefront customization input on `product-buy.tsx` (label, counter, fee display, required/disable Add to Cart) and `cart-view.tsx` (quoted text under variant name, fee-inclusive price) | [ ] | |
+| 15.14 | B.7 — fulfilment surfaces: dashboard order detail, storefront order confirmation, and `notifyNewOrder` email all show customization text verbatim; add explicit `escapeHtml()` in `notifications/events.ts` for both customization text and the pre-existing unescaped `customerName` | [ ] | |
+| 15.15 | Run the full won't-break checklist (spec §Won't-break checklist, 15 items) before marking this phase done; `tsc --noEmit`, `eslint`, `next build` clean | [ ] | |
+
+---
+
 ## Open Decisions
 
 Deferred by the project owner — revisit before the phase that depends on it. Neither blocks current work.
@@ -625,6 +649,15 @@ Deferred by the project owner — revisit before the phase that depends on it. N
 | D-15 | **Extra storefront branding fields** — banner image, curated page ground, curated font choice, plus a possible `whatsappNumber`. Proposal parked in **[`STOREFRONT_BRANDING.md`](./STOREFRONT_BRANDING.md)** with rationale and implementation notes. Raised because shops currently have only three branding levers and risk all looking alike; deferred until the remaining phases are built. Nothing depends on it. | after Phase 13 |
 
 All other decisions raised against the handover document are resolved — see below.
+
+### Resolved 2026-10-03 by project owner (PROFIT_AND_CUSTOMIZATION.md)
+
+| ID     | Question                                                                              | Decision                                                                                                                                                                                                             |
+| ------ | -------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| DEV-6a | Offer a one-time "apply current cost prices to past orders" button?                   | **No, not in v1.** Would fabricate history if costs changed since the sale. Coverage rising naturally as costs are entered is the honest path. Revisit only if merchants push back on an empty profit number at launch. |
+| DEV-7a | Should customization have its own cost (e.g. engraver's fee) separate from `costPrice`? | **Defer.** No demonstrated merchant demand yet; fold into the `customizationFee` surcharge for now. Add `customizationCost Float?` later (same optional-field pattern as `costPrice`) if jewellery merchants ask. |
+| DEV-7b | Customization per variant instead of per product?                                     | **No.** Per product covers the stated jewellery case; per-variant config would need embedded writes for no clear gain.                                                                                            |
+| DEV-7c | Structured options (font choice, insignia picker) instead of free text?               | **Out of scope.** Free text + label covers "name on a ring"; revisit only if real demand for structured options appears.                                                                                          |
 
 ### Resolved 2026-08-24 by project owner
 
