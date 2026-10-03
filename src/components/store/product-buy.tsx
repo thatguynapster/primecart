@@ -2,10 +2,13 @@
 
 import Image from "next/image";
 import { useMemo, useState } from "react";
-import type { Product, ProductVariant } from "@prisma/client";
 
 import { formatGhs } from "@/lib/format";
-import { imagesForVariant } from "@/lib/storefront/catalogue";
+import {
+  imagesForVariant,
+  type PublicProduct,
+  type PublicVariant,
+} from "@/lib/storefront/catalogue";
 import { useCartStore } from "@/lib/storefront/cart";
 
 /**
@@ -21,8 +24,8 @@ export function ProductBuy({
   variants,
 }: {
   subdomain: string;
-  product: Product;
-  variants: ProductVariant[];
+  product: PublicProduct;
+  variants: PublicVariant[];
 }) {
   const useStore = useCartStore(subdomain);
   const add = useStore((state) => state.add);
@@ -51,7 +54,7 @@ export function ProductBuy({
 
   const image = gallery[Math.min(imageIndex, gallery.length - 1)];
 
-  function selectVariant(next: ProductVariant) {
+  function selectVariant(next: PublicVariant) {
     setVariantId(next.id);
     setImageIndex(0);
     setQuantity(1);
@@ -174,7 +177,7 @@ export function ProductBuy({
             </p>
           ) : (
             <>
-              {variant.stock <= variant.lowStockThreshold && (
+              {variant.lowStock && (
                 <p className="mb-3 text-[13px] text-neutral-500">
                   Only {variant.stock} left.
                 </p>
