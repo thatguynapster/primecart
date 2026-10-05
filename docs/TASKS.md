@@ -622,9 +622,9 @@ Not in the original handover — new scope, proposed 2026-09-27, owner sign-off 
 
 | #     | Task | Status | Done |
 | ----- | ---- | ------ | ---- |
-| 15.1  | **A.7 — storefront DTO.** Add `PublicVariant`/`toPublicVariant` in `src/lib/storefront/catalogue.ts`; stop passing raw Prisma `Product`/`ProductVariant` to `ProductBuy` and other client components (fixes the existing `lowStockThreshold`/`lowStockAlertedAt` leak). Ship alone first — prerequisite for 15.3 | [ ] | |
-| 15.2  | Schema push: `costPrice` on `ProductVariant`, `costPrice`/`platformFee` on `Order`/`OrderLineItem`, `allowCustomization`/`customizationLabel`/`customizationMaxLength`/`customizationRequired`/`customizationFee` on `Product`, `customization`/`customizationLabel`/`customizationFee` on `OrderLineItem` — via `npm run db:push` (not raw `prisma db push`, per A.1) | [ ] | |
-| 15.3  | B.4 backfill — `scripts/backfill-customization.mjs`, sets `allowCustomization`/`customizationRequired` on documents missing the field. Run against `primecart-dev`, verify, then production, before the code deploy | [ ] | |
+| 15.1  | **A.7 — storefront DTO.** Add `PublicVariant`/`toPublicVariant` in `src/lib/storefront/catalogue.ts`; stop passing raw Prisma `Product`/`ProductVariant` to `ProductBuy` and other client components (fixes the existing `lowStockThreshold`/`lowStockAlertedAt` leak). Ship alone first — prerequisite for 15.3 | [x] verified on `dev.primecart.app` (aura-stone): RSC payload + rendered HTML contain no `costPrice`/`lowStockThreshold`/`lowStockAlertedAt`; "Only N left" UI and add-to-cart still work via the new `lowStock` boolean | 2026-10-03 |
+| 15.2  | Schema push: `costPrice` on `ProductVariant`, `costPrice`/`platformFee` on `Order`/`OrderLineItem`, `allowCustomization`/`customizationLabel`/`customizationMaxLength`/`customizationRequired`/`customizationFee` on `Product`, `customization`/`customizationLabel`/`customizationFee` on `OrderLineItem` — via `npm run db:push` (not raw `prisma db push`, per A.1) | [~] schema written, validated, `prisma generate` + `tsc --noEmit` clean. Now runs automatically on deploy via the new `vercel-build` script (see note below) — **confirm it ran in the dev build log** | |
+| 15.3  | B.4 backfill — `scripts/backfill-customization.mjs`, sets `allowCustomization`/`customizationRequired` on documents missing the field. Run against `primecart-dev`, verify, then production, before the code deploy | [~] script written (idempotent, counts before/after, exits non-zero if any remain). Now runs automatically on deploy via `vercel-build`, before `next build` — **confirm it ran in the dev build log** | |
 | 15.4  | A.2 — variant writes: `VariantInput.costPrice`, `buildVariant()`, `updateVariant()` embedded-update branch | [ ] | |
 | 15.5  | A.3 — dashboard product form: `parseVariantFields()` cost validation (blank → null, never 0; no block on cost > price, just a warning), margin hint UI | [ ] | |
 | 15.6  | A.4 — snapshot cost + platform fee at order time in `cart/actions.ts` (`checkout`) and `dashboard/orders/actions.ts` (`createManualOrder`); extract `storefrontFeePesewas()` into `src/lib/paystack.ts` and use it from both `initializeTransaction` and `checkout` | [ ] | |
@@ -637,6 +637,22 @@ Not in the original handover — new scope, proposed 2026-09-27, owner sign-off 
 | 15.13 | B.6 — storefront customization input on `product-buy.tsx` (label, counter, fee display, required/disable Add to Cart) and `cart-view.tsx` (quoted text under variant name, fee-inclusive price) | [ ] | |
 | 15.14 | B.7 — fulfilment surfaces: dashboard order detail, storefront order confirmation, and `notifyNewOrder` email all show customization text verbatim; add explicit `escapeHtml()` in `notifications/events.ts` for both customization text and the pre-existing unescaped `customerName` | [ ] | |
 | 15.15 | Run the full won't-break checklist (spec §Won't-break checklist, 15 items) before marking this phase done; `tsc --noEmit`, `eslint`, `next build` clean | [ ] | |
+
+**Phase 15 notes — schema migration runs on deploy (added 2026-10-04)**
+
+The owner has no shell against the production or dev database, so 15.2/15.3 can't be run by hand. They run as part of the Vercel build instead, via a new `vercel-build` script in `package.json`:
+
+```
+"vercel-build": "prisma generate && npm run db:push && npm run db:backfill && next build"
+```
+
+- **Vercel prefers `vercel-build` over `build`** when both exist, so this needs no dashboard configuration.
+- **`build` is deliberately left database-free** (`prisma generate && next build`). The won't-break checklist calls for running `next build` locally, and that must never push schema to whatever `DATABASE_URL` happens to be in `.env`.
+- **Ordering is the point:** schema push → backfill → `next build`. The new code only goes live after the build succeeds, so the data is always migrated before anything reads it. In the window between the push and the new deployment, the *old* code runs against the *new* schema — safe only because every Phase 15 field is additive and optional (§A.1), which is exactly why the spec required that.
+- **Both steps are idempotent**, so re-running on every deploy is a no-op once applied. `db:push` re-creates the manual storefront indexes via `prisma/indexes.mjs`; the backfill matches only documents still missing the field.
+- **Failures block the deploy by design.** A DB blip during build fails the whole build rather than shipping code against an unmigrated database. The backfill also exits non-zero if any product is still missing `allowCustomization` afterwards, so a partial migration can't pass silently.
+- **Check the Vercel env var scoping before the first deploy.** If Preview deployments share `DATABASE_URL` with Production, every branch build would push schema and backfill against production. Production and Preview should point at different databases.
+- Once production has run the backfill successfully, `npm run db:backfill` can be dropped from `vercel-build` — it's a one-off migration. Harmless to leave, but it is permanent cruft otherwise.
 
 ---
 

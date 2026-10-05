@@ -104,6 +104,22 @@ model Product {
   // Phase 14 — merchant-curated "Featured Collection" section, distinct from
   // Best Sellers (sales-derived) and New Arrivals (recency-derived).
   isFeatured  Boolean  @default(false)
+
+  // DEV-7 (Phase 15). Shopper-supplied personalisation (engraving, a name, an
+  // insignia). Off by default. Existing products are backfilled to false —
+  // `@default` only applies on create, not to existing documents (see
+  // scripts/backfill-customization.mjs).
+  allowCustomization Boolean @default(false)
+  // Prompt shown to the shopper, e.g. "Name to engrave". Falls back to
+  // "Personalisation" when null.
+  customizationLabel String?
+  // Hard cap enforced server-side. Null -> 30. Max accepted 200.
+  customizationMaxLength Int?
+  // When true, the product can't be added to the cart without text.
+  customizationRequired Boolean @default(false)
+  // Flat surcharge per unit when the shopper enters text, in GHS. Null/0 = free.
+  customizationFee Float?
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -126,6 +142,12 @@ type ProductVariant {
   lowStockThreshold Int      @default(5)
   attributes        Json
   isActive          Boolean  @default(true)
+
+  // DEV-6 (Phase 15). What the merchant paid for one unit. Optional: null
+  // means "unknown", which is NOT the same as 0. Unknown-cost sales are left
+  // out of profit and counted in the coverage figure. Never sent to the
+  // storefront (see src/lib/storefront/catalogue.ts's PublicVariant).
+  costPrice         Float?
 
   // References into the parent Product.images — this option does not own
   // uploads of its own. Keeping photos on the product means a shared shot is
@@ -178,6 +200,12 @@ model Order {
   subtotal Float
   total    Float
 
+  // DEV-6 (Phase 15). PrimeCart's cut on this order, in GHS, at the rate/cap
+  // in force when it was placed. 0 for MANUAL/WHATSAPP orders. Null only on
+  // storefront orders created before this field existed (see
+  // getProfitSummary's fee fallback in src/lib/dashboard/queries.ts).
+  platformFee Float?
+
   lineItems       OrderLineItem[]
   shippingAddress ShippingAddress?
 
@@ -213,6 +241,18 @@ type OrderLineItem {
   price       Float
   quantity    Int
   subtotal    Float
+
+  // DEV-6 (Phase 15) snapshot, copied from the variant at order time. Null on
+  // every order placed before this shipped, and on any line whose variant had
+  // no cost.
+  costPrice Float?
+
+  // DEV-7 (Phase 15) snapshots. Null on every non-customized line and all
+  // historical orders. The label is snapshotted too, so renaming the prompt
+  // later doesn't change what an old order says was asked.
+  customization      String?
+  customizationLabel String?
+  customizationFee   Float?
 }
 
 type ShippingAddress {
