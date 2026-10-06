@@ -24,6 +24,9 @@ export type VariantInput = {
   stock: number;
   lowStockThreshold: number;
   attributes: Record<string, string>;
+  // DEV-6. What the merchant paid for one unit. `null`/omitted means
+  // "unknown", distinct from 0 — see docs/PROFIT_AND_CUSTOMIZATION.md §0.
+  costPrice?: number | null;
 };
 
 /**
@@ -50,6 +53,10 @@ export function buildVariant(input: VariantInput) {
     // Always written, so no variant created by this app can hit the null case
     // that `variantImages` guards against.
     imageUrls: [],
+    // Always written, same "always write it" rule imageUrls follows — ?? null
+    // rather than leaving it undefined, so a blank form field is unambiguously
+    // "unknown cost", never a missing field read back as something else.
+    costPrice: input.costPrice ?? null,
   };
 }
 
@@ -106,6 +113,7 @@ export async function updateVariant(
   if (fields.attributes !== undefined) {
     set["variants.$[v].attributes"] = fields.attributes;
   }
+  if (fields.costPrice !== undefined) set["variants.$[v].costPrice"] = fields.costPrice;
 
   if (Object.keys(set).length === 0) return;
 

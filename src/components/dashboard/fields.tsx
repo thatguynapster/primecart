@@ -17,16 +17,18 @@ export function Field({
   htmlFor,
   hint,
   error,
+  className,
   children,
 }: {
   label: string;
   htmlFor: string;
   hint?: string;
   error?: string;
+  className?: string;
   children: ReactNode;
 }) {
   return (
-    <div>
+    <div className={className}>
       <label htmlFor={htmlFor} className="block text-xs text-nk-neutral-400">
         {label}
         {hint && <span className="ml-1.5 text-nk-neutral-600">{hint}</span>}

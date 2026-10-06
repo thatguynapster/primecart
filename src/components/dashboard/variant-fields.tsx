@@ -1,8 +1,9 @@
 "use client";
 
-import { useId } from "react";
+import { useId, useState } from "react";
 
 import { Field, inputClass } from "@/components/dashboard/fields";
+import { formatGhs } from "@/lib/format";
 import type { ProductVariant } from "@prisma/client";
 
 /**
@@ -24,6 +25,7 @@ export function VariantFields({
   const ids = {
     variantName: useId(),
     price: useId(),
+    costPrice: useId(),
     stock: useId(),
     sku: useId(),
     lowStockThreshold: useId(),
@@ -36,6 +38,27 @@ export function VariantFields({
   const existingAttribute = Object.entries(
     (variant?.attributes as Record<string, string> | null) ?? {}
   )[0];
+
+  // Mirrors of the price/cost inputs, tracked only to compute the live margin
+  // hint — the inputs themselves stay uncontrolled (defaultValue) so typing
+  // doesn't fight React over cursor position.
+  const [priceText, setPriceText] = useState(
+    variant?.price != null ? String(variant.price) : ""
+  );
+  const [costText, setCostText] = useState(
+    variant?.costPrice != null ? String(variant.costPrice) : ""
+  );
+
+  const priceNum = Number(priceText);
+  const costNum = Number(costText);
+  const hasMargin =
+    priceText.trim() !== "" &&
+    costText.trim() !== "" &&
+    Number.isFinite(priceNum) &&
+    Number.isFinite(costNum);
+  const profit = hasMargin ? priceNum - costNum : null;
+  const marginPct =
+    hasMargin && priceNum > 0 ? Math.round((profit! / priceNum) * 100) : null;
 
   return (
     <div className="space-y-5">
@@ -67,7 +90,41 @@ export function VariantFields({
             defaultValue={variant?.price}
             placeholder="120"
             className={inputClass}
+            onChange={(event) => setPriceText(event.target.value)}
           />
+        </Field>
+      </div>
+
+      <div className="grid gap-5 sm:grid-cols-2">
+        <Field
+          label="Cost price (what you paid)"
+          htmlFor={ids.costPrice}
+          hint="Optional"
+          error={fieldErrors.costPrice}
+          className="sm:col-start-2"
+        >
+          <input
+            id={ids.costPrice}
+            name="costPrice"
+            inputMode="decimal"
+            defaultValue={variant?.costPrice ?? ""}
+            placeholder="Leave blank if unknown"
+            className={inputClass}
+            onChange={(event) => setCostText(event.target.value)}
+          />
+          {hasMargin && (
+            <p
+              className={
+                profit! < 0
+                  ? "mt-1.5 text-xs text-nk-accent-300"
+                  : "mt-1.5 text-xs text-nk-neutral-500"
+              }
+            >
+              {profit! < 0
+                ? `Selling below cost — ${formatGhs(profit!)} · ${marginPct}%`
+                : `${formatGhs(profit!)} profit · ${marginPct}%`}
+            </p>
+          )}
         </Field>
       </div>
 

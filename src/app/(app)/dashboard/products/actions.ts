@@ -58,6 +58,7 @@ type ParsedVariant = {
   stock: number;
   lowStockThreshold: number;
   attributes: Record<string, string>;
+  costPrice: number | null;
 };
 
 function parseVariantFields(
@@ -71,6 +72,7 @@ function parseVariantFields(
   const thresholdRaw = String(formData.get("lowStockThreshold") ?? "").trim();
   const attributeName = String(formData.get("attributeName") ?? "").trim();
   const attributeValue = String(formData.get("attributeValue") ?? "").trim();
+  const costRaw = String(formData.get("costPrice") ?? "").trim();
 
   if (!name) fieldErrors.variantName = "Name this option, e.g. Black or Large.";
 
@@ -92,6 +94,16 @@ function parseVariantFields(
     fieldErrors.lowStockThreshold = "Enter a whole number, 0 or more.";
   }
 
+  // Blank means "unknown", never 0 — a 0 default would make every product
+  // look like it sells at 100% margin (see docs/PROFIT_AND_CUSTOMIZATION.md §0).
+  const costPrice = costRaw === "" ? null : Number(costRaw);
+  if (costPrice !== null && (!Number.isFinite(costPrice) || costPrice < 0)) {
+    fieldErrors.costPrice = "Enter a cost of 0 or more, or leave it blank.";
+  }
+  // Deliberately no check against costPrice > price — selling below cost is
+  // sometimes intentional (clearance, loss leader). The form shows a
+  // non-blocking margin warning instead; see VariantFields.
+
   if (Object.keys(fieldErrors).length > 0) return null;
 
   return {
@@ -102,6 +114,7 @@ function parseVariantFields(
     lowStockThreshold,
     attributes:
       attributeName && attributeValue ? { [attributeName]: attributeValue } : {},
+    costPrice,
   };
 }
 
@@ -381,6 +394,7 @@ export async function editVariant(
       price: variant.price,
       lowStockThreshold: variant.lowStockThreshold,
       attributes: variant.attributes,
+      costPrice: variant.costPrice,
     });
 
     await setVariantImages(merchant.id, productId, variantId, selectedImages);
