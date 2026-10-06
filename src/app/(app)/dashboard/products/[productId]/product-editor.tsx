@@ -311,6 +311,14 @@ function VariantRow({
                 Archived
               </span>
             )}
+            {variant.costPrice == null && (
+              <span
+                title="Add a cost price to include this option in profit reports"
+                className="rounded-full border border-nk-neutral-800 px-1.5 py-0.5 text-xs font-medium text-nk-neutral-400"
+              >
+                No cost
+              </span>
+            )}
           </div>
           <p className="mt-0.5 text-xs text-nk-neutral-500">
             {formatGhs(variant.price)}

@@ -47,13 +47,28 @@ export default async function ProductsPage({
   const low = active.filter((product) =>
     product.variants.some((variant) => variant.isActive && isLowStock(variant))
   );
+  // DEV-6 (Phase 15) — what the "add cost prices to see the rest" link on the
+  // analytics profit card points at, so a merchant can fix the coverage gap
+  // without hunting through every product.
+  const noCost = active.filter((product) =>
+    product.variants.some(
+      (variant) => variant.isActive && variant.costPrice == null
+    )
+  );
 
   const shown =
-    filter === "archived" ? archived : filter === "low" ? low : active;
+    filter === "archived"
+      ? archived
+      : filter === "low"
+        ? low
+        : filter === "no-cost"
+          ? noCost
+          : active;
 
   const chips = [
     { key: "all", label: `All ${active.length}` },
     { key: "low", label: `Low stock ${low.length}` },
+    { key: "no-cost", label: `No cost ${noCost.length}` },
     { key: "archived", label: `Archived ${archived.length}` },
   ];
 
@@ -103,7 +118,9 @@ export default async function ProductsPage({
                   ? "Nothing archived."
                   : filter === "low"
                     ? "Nothing is running low."
-                    : "No products yet."
+                    : filter === "no-cost"
+                      ? "Every product has a cost price."
+                      : "No products yet."
             }
             body={
               filter === "all" && !search
@@ -124,6 +141,7 @@ export default async function ProductsPage({
               const variants = product.variants.filter((v) => v.isActive);
               const units = variants.reduce((sum, v) => sum + v.stock, 0);
               const runningLow = variants.some(isLowStock);
+              const missingCost = variants.some((v) => v.costPrice == null);
               const prices = variants.map((v) => v.price);
               const price =
                 prices.length === 0
@@ -166,8 +184,18 @@ export default async function ProductsPage({
 
                     <div className="flex min-w-0 flex-1 flex-col gap-1.25">
                       <div className="flex items-baseline justify-between gap-2.5">
-                        <span className="truncate text-sm">
-                          {product.name}
+                        <span className="flex min-w-0 items-center gap-1.5">
+                          <span className="truncate text-sm">
+                            {product.name}
+                          </span>
+                          {missingCost && (
+                            <span
+                              title="Add a cost price to include this product in profit reports"
+                              className="rounded-full border border-nk-neutral-800 px-1.5 py-0.5 text-xs font-medium whitespace-nowrap text-nk-neutral-400"
+                            >
+                              No cost
+                            </span>
+                          )}
                         </span>
                         <span className="flex-none text-sm font-medium">
                           {price}

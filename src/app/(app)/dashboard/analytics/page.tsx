@@ -1,3 +1,7 @@
+import type { ReactNode } from "react";
+
+import Link from "next/link";
+
 import { TopBar } from "@/components/dashboard/nocturne/top-bar";
 import {
   Bar,
@@ -45,13 +49,30 @@ export default async function AnalyticsPage() {
 
   const bestSellerMax = Math.max(...bestSellers.map((item) => item.sold), 1);
 
-  const cards = [
+  // DEV-6 (Phase 15) — coverage matters more than the profit number itself
+  // here: without it a merchant can't tell whether a low profit means low
+  // margins or just missing cost data.
+  const coveragePct = Math.round(kpis.profit.coverage * 100);
+  const profitSub =
+    kpis.profit.coverage < 1 ? (
+      <Link
+        href="/dashboard/products?filter=no-cost"
+        className="underline underline-offset-4 hover:text-nk-text"
+      >
+        Based on {coveragePct}% of sales — add cost prices to see the rest
+      </Link>
+    ) : (
+      "Last 12 months"
+    );
+
+  const cards: { label: string; value: string; sub: ReactNode }[] = [
     { label: "Revenue 12 months", value: formatGhs(kpis.revenue), sub: "Last 12 months" },
+    { label: "Profit 12 months", value: formatGhs(kpis.profit.netProfit), sub: profitSub },
     { label: "Orders", value: String(kpis.orders), sub: "Last 12 months" },
     { label: "Repeat rate", value: `${Math.round(kpis.repeatRate * 100)}%`, sub: "Last 12 months" },
     { label: "Refunds", value: String(kpis.refunds), sub: "Last 12 months" },
     // Current stock value (12.3) — a snapshot, not a trailing window, unlike
-    // the four cards above.
+    // the five cards above.
     { label: "Current stock value", value: formatGhs(overviewKpis.stockValue), sub: "Right now" },
   ];
 
@@ -65,7 +86,7 @@ export default async function AnalyticsPage() {
       />
 
       <div className="flex flex-col gap-3.5 px-6 pt-5 pb-10">
-        <div className="grid gap-3.5 sm:grid-cols-2 xl:grid-cols-5">
+        <div className="grid gap-3.5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
           {cards.map((card) => (
             <Card key={card.label} className="flex flex-col gap-1.5 px-4 py-3.5">
               <Kicker className="text-nk-neutral-500">{card.label}</Kicker>

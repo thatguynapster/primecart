@@ -7,10 +7,28 @@ import { getRootDomain, getStorefrontOrigin } from "@/lib/domain";
 import { formatGhs, formatRelativeDate } from "@/lib/format";
 import { requireMerchant } from "@/lib/merchant/current";
 import { getOrder } from "@/lib/orders/queries";
+import {
+  STOREFRONT_FEE_CAP_PESEWAS,
+  STOREFRONT_FEE_RATE,
+} from "@/lib/paystack";
 import { OrderActions } from "./order-actions";
 
 function titleCase(value: string): string {
   return value.charAt(0) + value.slice(1).toLowerCase();
+}
+
+/**
+ * DEV-6 (Phase 15) — dashboard-only, never the storefront order page (§A.6).
+ *
+ * The same fallback `getProfitSummary` uses for a pre-D-16 storefront order
+ * missing `platformFee`, applied per-order here for consistency: current
+ * rate/cap, possibly off by the cap for an order placed before it existed.
+ */
+function orderPlatformFee(order: { platformFee: number | null; source: string; total: number }): number {
+  if (order.platformFee != null) return order.platformFee;
+  if (order.source !== "STOREFRONT") return 0;
+  const feeCapGhs = STOREFRONT_FEE_CAP_PESEWAS / 100;
+  return Math.min(order.total * STOREFRONT_FEE_RATE, feeCapGhs);
 }
 
 export const metadata = { title: "Order — PrimeCart" };
@@ -42,6 +60,21 @@ export default async function OrderDetailPage({
   const shipping = order.shippingAddress;
   const contactName = shipping?.name ?? order.customer?.name ?? "Guest";
   const contactPhone = shipping?.phone ?? order.customer?.phone ?? null;
+
+  // DEV-6 (Phase 15), §A.6 — dashboard only. Lines with an unknown cost
+  // (null costPrice) are simply left out, same rule the analytics coverage
+  // figure follows: never guess a cost, never show a false 100% margin.
+  const costedLines = order.lineItems.filter((item) => item.costPrice != null);
+  const costedRevenue = costedLines.reduce((sum, item) => sum + item.subtotal, 0);
+  const cost = costedLines.reduce(
+    (sum, item) => sum + item.costPrice! * item.quantity,
+    0
+  );
+  const grossProfit = costedRevenue - cost;
+  const fee = orderPlatformFee(order);
+  const netProfit = grossProfit - fee;
+  const hasAnyCost = costedLines.length > 0;
+  const fullyCosted = costedLines.length === order.lineItems.length;
 
   return (
     <>
@@ -122,6 +155,25 @@ export default async function OrderDetailPage({
                   {item.variantName}
                   {item.sku ? ` · ${item.sku}` : ""} · qty {item.quantity}
                 </p>
+                {item.costPrice != null ? (
+                  <p className="mt-0.5 text-xs text-nk-neutral-600">
+                    Cost {formatGhs(item.costPrice * item.quantity)} · Margin{" "}
+                    {formatGhs(item.subtotal - item.costPrice * item.quantity)}{" "}
+                    (
+                    {item.subtotal > 0
+                      ? Math.round(
+                          ((item.subtotal - item.costPrice * item.quantity) /
+                            item.subtotal) *
+                            100
+                        )
+                      : 0}
+                    %)
+                  </p>
+                ) : (
+                  <p className="mt-0.5 text-xs text-nk-neutral-600">
+                    Cost unknown
+                  </p>
+                )}
               </div>
               <p className="text-sm font-medium tabular-nums">
                 {formatGhs(item.subtotal)}
@@ -135,6 +187,22 @@ export default async function OrderDetailPage({
               {formatGhs(order.total)}
             </p>
           </div>
+
+          {hasAnyCost && (
+            <div className="flex items-center justify-between px-5 py-4">
+              <p className="text-sm font-medium">
+                Profit
+                {!fullyCosted && (
+                  <span className="ml-1.5 font-normal text-nk-neutral-500">
+                    ({costedLines.length} of {order.lineItems.length} items)
+                  </span>
+                )}
+              </p>
+              <p className="text-base font-semibold tabular-nums">
+                {formatGhs(netProfit)}
+              </p>
+            </div>
+          )}
         </div>
       </Card>
 

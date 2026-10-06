@@ -1,4 +1,5 @@
 import { aggregate, isoDate, oid } from "@/lib/db/aggregate";
+import { STOREFRONT_FEE_CAP_PESEWAS, STOREFRONT_FEE_RATE } from "@/lib/paystack";
 
 /**
  * Dashboard reporting.
@@ -445,11 +446,130 @@ export async function listCustomers(
 // Analytics
 // ---------------------------------------------------------------------------
 
+// DEV-6 (Phase 15), §A.5. `platformFee`/`lineItems.costPrice` are both
+// optional — null means "unknown cost" or "pre-D-16 order", never 0 (see
+// docs/PROFIT_AND_CUSTOMIZATION.md §0). Revenue, cost and coverage describe
+// only the subset of paid line items with a known cost; fees are subtracted
+// across every paid order regardless of coverage, which understates net
+// profit slightly rather than overstating it — the safer direction.
+export type ProfitSummary = {
+	revenue: number; // all paid line revenue
+	costedRevenue: number; // revenue from lines with a known cost
+	cost: number; // cost of those lines only
+	grossProfit: number; // costedRevenue − cost
+	platformFees: number; // PrimeCart's cut across all paid orders
+	netProfit: number; // grossProfit − platformFees
+	coverage: number; // costedRevenue / revenue, 0..1
+};
+
+type ProfitFacetResult = {
+	fees?: { fees: number }[];
+	lines?: { revenue: number; costedRevenue: number; cost: number }[];
+};
+
+export async function getProfitSummary(
+	merchantId: string,
+	sinceDate: Date
+): Promise<ProfitSummary> {
+	// In GHS, matching Order.total/platformFee — STOREFRONT_FEE_CAP_PESEWAS is
+	// defined in pesewas for the Paystack API.
+	const feeCapGhs = STOREFRONT_FEE_CAP_PESEWAS / 100;
+
+	const [result] = await aggregate<ProfitFacetResult>("Order", [
+		{
+			$match: {
+				merchantId: oid(merchantId),
+				paymentStatus: "PAID",
+				createdAt: { $gte: isoDate(sinceDate) }
+			}
+		},
+		// Order-level fee first, before $unwind multiplies orders into lines.
+		// Falls back to today's rate/cap for storefront orders placed before
+		// `platformFee` existed — correct for every order since D-16, possibly
+		// off by the cap for earlier, uncapped ones. Acceptable (see §A.5).
+		{
+			$set: {
+				fee: {
+					$ifNull: [
+						"$platformFee",
+						{
+							$cond: [
+								{ $eq: ["$source", "STOREFRONT"] },
+								{
+									$min: [
+										{ $multiply: ["$total", STOREFRONT_FEE_RATE] },
+										feeCapGhs
+									]
+								},
+								0
+							]
+						}
+					]
+				}
+			}
+		},
+		{
+			$facet: {
+				fees: [{ $group: { _id: null, fees: { $sum: "$fee" } } }],
+				lines: [
+					{ $unwind: "$lineItems" },
+					{
+						$group: {
+							_id: null,
+							revenue: { $sum: "$lineItems.subtotal" },
+							costedRevenue: {
+								$sum: {
+									$cond: [
+										{
+											$ne: [
+												{ $ifNull: ["$lineItems.costPrice", null] },
+												null
+											]
+										},
+										"$lineItems.subtotal",
+										0
+									]
+								}
+							},
+							cost: {
+								$sum: {
+									$multiply: [
+										{ $ifNull: ["$lineItems.costPrice", 0] },
+										"$lineItems.quantity"
+									]
+								}
+							}
+						}
+					}
+				]
+			}
+		}
+	]);
+
+	const platformFees = result?.fees?.[0]?.fees ?? 0;
+	const lines = result?.lines?.[0];
+	const revenue = lines?.revenue ?? 0;
+	const costedRevenue = lines?.costedRevenue ?? 0;
+	const cost = lines?.cost ?? 0;
+	const grossProfit = costedRevenue - cost;
+
+	return {
+		revenue,
+		costedRevenue,
+		cost,
+		grossProfit,
+		platformFees,
+		netProfit: grossProfit - platformFees,
+		coverage: revenue > 0 ? costedRevenue / revenue : 0
+	};
+}
+
 export type AnalyticsKpis = {
 	revenue: number;
 	orders: number;
 	repeatRate: number;
 	refunds: number;
+	profit: ProfitSummary;
 };
 
 export async function getAnalyticsKpis(
@@ -457,7 +577,9 @@ export async function getAnalyticsKpis(
 ): Promise<AnalyticsKpis> {
 	const since = isoDate(daysAgo(365));
 
-	const [totals, repeat, refunds] = await Promise.all([
+	// Bundled into this Promise.all, not awaited separately, so the analytics
+	// page stays one round-trip (§A.5).
+	const [totals, repeat, refunds, profit] = await Promise.all([
 		aggregate<{ revenue: number; orders: number }>("Order", [
 			{
 				$match: {
@@ -502,7 +624,9 @@ export async function getAnalyticsKpis(
 				}
 			},
 			{ $count: "count" }
-		])
+		]),
+
+		getProfitSummary(merchantId, daysAgo(365))
 	]);
 
 	const repeatRow = repeat[0];
@@ -514,7 +638,8 @@ export async function getAnalyticsKpis(
 			repeatRow && repeatRow.total > 0
 				? repeatRow.repeat / repeatRow.total
 				: 0,
-		refunds: refunds[0]?.count ?? 0
+		refunds: refunds[0]?.count ?? 0,
+		profit
 	};
 }
 
