@@ -163,7 +163,7 @@ export function CartView({ subdomain }: { subdomain: string }) {
             const repriced = current ? current.price !== line.price : false;
 
             return (
-              <div key={line.variantId} className="flex gap-4 p-4">
+              <div key={line.lineKey} className="flex gap-4 p-4">
                 <div className="relative size-20 shrink-0 overflow-hidden rounded-lg border border-neutral-200 bg-neutral-50">
                   {line.imageUrl ? (
                     <Image
@@ -208,7 +208,7 @@ export function CartView({ subdomain }: { subdomain: string }) {
                       <button
                         type="button"
                         onClick={() =>
-                          setQuantity(line.variantId, line.quantity - 1)
+                          setQuantity(line.lineKey, line.quantity - 1)
                         }
                         aria-label="Less"
                         className="px-2.5 py-1 text-[14px]"
@@ -221,7 +221,7 @@ export function CartView({ subdomain }: { subdomain: string }) {
                       <button
                         type="button"
                         onClick={() =>
-                          setQuantity(line.variantId, line.quantity + 1)
+                          setQuantity(line.lineKey, line.quantity + 1)
                         }
                         aria-label="More"
                         disabled={current ? line.quantity >= current.stock : false}
@@ -233,7 +233,7 @@ export function CartView({ subdomain }: { subdomain: string }) {
 
                     <button
                       type="button"
-                      onClick={() => remove(line.variantId)}
+                      onClick={() => remove(line.lineKey)}
                       className="text-[12.5px] text-neutral-500 underline underline-offset-4 hover:text-neutral-900"
                     >
                       Remove

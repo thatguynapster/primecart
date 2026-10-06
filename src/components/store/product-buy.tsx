@@ -9,7 +9,7 @@ import {
   type PublicProduct,
   type PublicVariant,
 } from "@/lib/storefront/catalogue";
-import { useCartStore } from "@/lib/storefront/cart";
+import { lineKeyOf, useCartStore } from "@/lib/storefront/cart";
 
 /**
  * Option picker, gallery and add-to-cart.
@@ -46,8 +46,11 @@ export function ProductBuy({
     [product, variant]
   );
 
+  // No customization input exists yet (§B.6), so this always looks up the
+  // uncustomized line — same key `lineKeyOf` gives an empty/absent text.
   const alreadyInCart =
-    inCart.find((line) => line.variantId === variant.id)?.quantity ?? 0;
+    inCart.find((line) => line.lineKey === lineKeyOf(variant.id))?.quantity ??
+    0;
   // Never let the cart promise more than the shop has.
   const remaining = Math.max(0, variant.stock - alreadyInCart);
   const soldOut = variant.stock === 0;
