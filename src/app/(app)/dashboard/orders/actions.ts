@@ -177,6 +177,7 @@ export async function createManualOrder(
     price: number;
     quantity: number;
     subtotal: number;
+    costPrice: number | null;
   }[] = [];
 
   for (const line of requestedLines) {
@@ -194,6 +195,7 @@ export async function createManualOrder(
       price: variant.price,
       quantity: line.quantity,
       subtotal: variant.price * line.quantity,
+      costPrice: variant.costPrice ?? null,
     });
   }
 
@@ -224,6 +226,10 @@ export async function createManualOrder(
       paymentStatus: markPaid ? "PAID" : "UNPAID",
       subtotal,
       total: subtotal,
+      // 0, not null — this order was never subject to the storefront fee, as
+      // opposed to a pre-D-16 storefront order where it's genuinely unknown
+      // (see getProfitSummary's fallback in src/lib/dashboard/queries.ts).
+      platformFee: 0,
       lineItems,
       shippingAddress: address || city
         ? { name, phone, address, city, region: region || null }

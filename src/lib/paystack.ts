@@ -190,6 +190,21 @@ export const STOREFRONT_FEE_RATE = 0.03;
  */
 export const STOREFRONT_FEE_CAP_PESEWAS = 100 * 100;
 
+/**
+ * PrimeCart's cut of a storefront sale, in pesewas, at the current rate/cap.
+ *
+ * Exported so the order and Paystack can never disagree about the fee: both
+ * `initializeTransaction` (the `transaction_charge` Paystack actually
+ * deducts) and `checkout`'s snapshot onto the order (`Order.platformFee`,
+ * DEV-6) compute it through this one function.
+ */
+export function storefrontFeePesewas(amountInPesewas: number): number {
+  return Math.min(
+    Math.round(amountInPesewas * STOREFRONT_FEE_RATE),
+    STOREFRONT_FEE_CAP_PESEWAS
+  );
+}
+
 type InitializeTransactionParams = {
   /** Where the receipt/Paystack notifications go — the guest's own email. */
   email: string;
@@ -229,10 +244,7 @@ export async function initializeTransaction(
         email: params.email,
         amount: params.amountInPesewas,
         subaccount: params.subaccount,
-        transaction_charge: Math.min(
-          Math.round(params.amountInPesewas * STOREFRONT_FEE_RATE),
-          STOREFRONT_FEE_CAP_PESEWAS
-        ),
+        transaction_charge: storefrontFeePesewas(params.amountInPesewas),
         bearer: "account",
         reference: params.reference,
         callback_url: params.callbackUrl,

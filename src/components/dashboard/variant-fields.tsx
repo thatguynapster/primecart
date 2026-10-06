@@ -68,6 +68,7 @@ export function VariantFields({
           htmlFor={ids.variantName}
           hint="e.g. Black, Large"
           error={fieldErrors.variantName}
+          className="sm:col-span-2"
         >
           <input
             id={ids.variantName}
@@ -77,7 +78,9 @@ export function VariantFields({
             className={inputClass}
           />
         </Field>
+      </div>
 
+      <div className="grid gap-5 sm:grid-cols-2">
         <Field
           label="Price (GHS)"
           htmlFor={ids.price}
@@ -93,9 +96,7 @@ export function VariantFields({
             onChange={(event) => setPriceText(event.target.value)}
           />
         </Field>
-      </div>
 
-      <div className="grid gap-5 sm:grid-cols-2">
         <Field
           label="Cost price (what you paid)"
           htmlFor={ids.costPrice}

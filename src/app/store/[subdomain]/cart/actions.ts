@@ -6,7 +6,11 @@ import { getMerchantBySubdomain } from "@/lib/merchant/lookup";
 import { generateOrderNumber } from "@/lib/orders/order-number";
 import { expireOrder } from "@/lib/orders/expire";
 import { OversellError, reserveStock, restoreStock } from "@/lib/orders/stock";
-import { initializeTransaction, PaystackError } from "@/lib/paystack";
+import {
+  initializeTransaction,
+  PaystackError,
+  storefrontFeePesewas,
+} from "@/lib/paystack";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -106,6 +110,7 @@ export async function checkout(
     variantName: string;
     sku: string | null;
     price: number;
+    costPrice: number | null;
   }[] = [];
 
   for (const line of input.lines) {
@@ -127,6 +132,7 @@ export async function checkout(
       variantName: variant.name,
       sku: variant.sku,
       price: variant.price,
+      costPrice: variant.costPrice ?? null,
     });
   }
 
@@ -148,8 +154,13 @@ export async function checkout(
     price: line.price,
     quantity: line.quantity,
     subtotal: line.price * line.quantity,
+    costPrice: line.costPrice,
   }));
   const subtotal = lineItems.reduce((sum, item) => sum + item.subtotal, 0);
+  // Snapshotted at the rate/cap in force now (DEV-6) — the same figure
+  // `initializeTransaction` below will deduct as `transaction_charge`, via
+  // the one shared `storefrontFeePesewas` helper, so the two can never disagree.
+  const platformFee = storefrontFeePesewas(Math.round(subtotal * 100)) / 100;
 
   let orderId: string;
   try {
@@ -165,6 +176,7 @@ export async function checkout(
         paymentStatus: "UNPAID",
         subtotal,
         total: subtotal, // MVP has no delivery fee or discount to add on top.
+        platformFee,
         lineItems,
         shippingAddress: { name, phone, address, city, region },
         reservedUntil: new Date(Date.now() + RESERVATION_MINUTES * 60 * 1000),
