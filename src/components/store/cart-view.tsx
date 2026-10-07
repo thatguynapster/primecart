@@ -31,6 +31,7 @@ export function CartView({ subdomain }: { subdomain: string }) {
   const setQuantity = useStore((state) => state.setQuantity);
   const remove = useStore((state) => state.remove);
   const clear = useStore((state) => state.clear);
+  const closeCart = useStore((state) => state.closeCart);
 
   const isClient = useIsClient();
   const [live, setLive] = useState<StockMap | null>(null);
@@ -136,6 +137,7 @@ export function CartView({ subdomain }: { subdomain: string }) {
         <p className="text-[15px] font-medium">Your cart is empty.</p>
         <Link
           href="/"
+          onClick={closeCart}
           className="mt-4 inline-block rounded-full px-5 py-2.5 text-[13.5px] font-medium"
           style={{ background: "var(--brand)", color: "var(--on-brand)" }}
         >
