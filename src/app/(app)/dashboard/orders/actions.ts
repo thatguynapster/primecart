@@ -9,6 +9,7 @@ import { requireMerchant } from "@/lib/merchant/current";
 import { generateOrderNumber } from "@/lib/orders/order-number";
 import { OversellError, reserveStock, restoreStock, type StockLine } from "@/lib/orders/stock";
 import { canCancel, holdsReservedStock, nextStatus } from "@/lib/orders/transitions";
+import { validateCustomization } from "@/lib/products/customization";
 import { prisma } from "@/lib/prisma";
 
 const RESERVATION_MINUTES = 30;
@@ -114,12 +115,23 @@ export type FormState = {
   fieldErrors?: Record<string, string>;
 };
 
-type ManualLine = { productId: string; variantId: string; quantity: number };
+type ManualLine = {
+  productId: string;
+  variantId: string;
+  quantity: number;
+  customization?: string;
+};
 
 function parseLines(formData: FormData): ManualLine[] {
   const productIds = formData.getAll("lineProductId").map(String);
   const variantIds = formData.getAll("lineVariantId").map(String);
   const quantities = formData.getAll("lineQuantity").map(String);
+  // Parallel array — not every line has a customization input shown (only
+  // products with allowCustomization get one, §B.5), but FormData.getAll
+  // only returns entries for inputs the form actually rendered, so the
+  // indices would drift from productIds/variantIds without a matching empty
+  // slot per line. The form is expected to always submit one entry per line.
+  const customizations = formData.getAll("lineCustomization").map(String);
 
   const lines: ManualLine[] = [];
   for (let i = 0; i < productIds.length; i += 1) {
@@ -127,7 +139,12 @@ function parseLines(formData: FormData): ManualLine[] {
     if (!productIds[i] || !variantIds[i] || !Number.isInteger(quantity) || quantity <= 0) {
       continue;
     }
-    lines.push({ productId: productIds[i], variantId: variantIds[i], quantity });
+    lines.push({
+      productId: productIds[i],
+      variantId: variantIds[i],
+      quantity,
+      customization: customizations[i],
+    });
   }
   return lines;
 }
@@ -178,6 +195,9 @@ export async function createManualOrder(
     quantity: number;
     subtotal: number;
     costPrice: number | null;
+    customization: string | null;
+    customizationLabel: string | null;
+    customizationFee: number | null;
   }[] = [];
 
   for (const line of requestedLines) {
@@ -186,6 +206,13 @@ export async function createManualOrder(
     if (!product || !variant) {
       return { error: "One of the selected items no longer exists." };
     }
+
+    const customization = validateCustomization(product, line.customization);
+    if (!customization.ok) {
+      return { error: customization.error };
+    }
+    const fee = customization.fee ?? 0;
+
     lineItems.push({
       productId: product.id,
       variantId: variant.id,
@@ -194,8 +221,13 @@ export async function createManualOrder(
       sku: variant.sku ?? null,
       price: variant.price,
       quantity: line.quantity,
-      subtotal: variant.price * line.quantity,
+      // Includes the per-unit customization surcharge (DEV-7), same rule
+      // the storefront checkout follows.
+      subtotal: (variant.price + fee) * line.quantity,
       costPrice: variant.costPrice ?? null,
+      customization: customization.text,
+      customizationLabel: customization.label,
+      customizationFee: customization.fee,
     });
   }
 

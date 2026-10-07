@@ -63,7 +63,27 @@ export async function reserveStock(
         "One of the items in your cart is no longer available."
       );
     }
-    if (variant.stock < line.quantity) {
+  }
+
+  // DEV-7 (Phase 15), §B.3. Two lines can now share a variant — the same
+  // ring engraved for two different people (B.2's lineKey). Checked
+  // separately, both could pass against a single unit of stock; summed by
+  // variant first, a request for more than exists is caught here instead of
+  // surfacing as phase 2's confusing "just sold out" after both "succeeded".
+  const requestedByVariant = new Map<string, number>();
+  for (const line of lines) {
+    requestedByVariant.set(
+      line.variantId,
+      (requestedByVariant.get(line.variantId) ?? 0) + line.quantity
+    );
+  }
+
+  for (const [variantId, requested] of requestedByVariant) {
+    const line = lines.find((candidate) => candidate.variantId === variantId)!;
+    const product = productById.get(line.productId)!;
+    const variant = product.variants.find((v) => v.id === variantId)!;
+
+    if (variant.stock < requested) {
       throw new OversellError(
         `Sorry, only ${variant.stock} of ${product.name} (${variant.name}) available.`
       );

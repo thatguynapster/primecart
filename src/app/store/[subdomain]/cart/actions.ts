@@ -4,6 +4,7 @@ import { findOrCreateCustomer } from "@/lib/customers/find-or-create";
 import { getStorefrontOrigin } from "@/lib/domain";
 import { getMerchantBySubdomain } from "@/lib/merchant/lookup";
 import { generateOrderNumber } from "@/lib/orders/order-number";
+import { validateCustomization } from "@/lib/products/customization";
 import { expireOrder } from "@/lib/orders/expire";
 import { OversellError, reserveStock, restoreStock } from "@/lib/orders/stock";
 import {
@@ -30,6 +31,8 @@ export type CheckoutLine = {
   productId: string;
   variantId: string;
   quantity: number;
+  /** DEV-7. Free text for a product that allows personalisation. */
+  customization?: string | null;
 };
 
 export type CheckoutInput = {
@@ -111,6 +114,9 @@ export async function checkout(
     sku: string | null;
     price: number;
     costPrice: number | null;
+    customization: string | null;
+    customizationLabel: string | null;
+    customizationFee: number | null;
   }[] = [];
 
   for (const line of input.lines) {
@@ -124,6 +130,12 @@ export async function checkout(
         error: "One of the items in your cart is no longer available.",
       };
     }
+
+    const customization = validateCustomization(product, line.customization);
+    if (!customization.ok) {
+      return { ok: false, error: customization.error };
+    }
+
     matched.push({
       productId: product.id,
       variantId: variant.id,
@@ -133,6 +145,9 @@ export async function checkout(
       sku: variant.sku,
       price: variant.price,
       costPrice: variant.costPrice ?? null,
+      customization: customization.text,
+      customizationLabel: customization.label,
+      customizationFee: customization.fee,
     });
   }
 
@@ -153,8 +168,14 @@ export async function checkout(
     sku: line.sku,
     price: line.price,
     quantity: line.quantity,
-    subtotal: line.price * line.quantity,
+    // Includes the per-unit customization surcharge (DEV-7) — order totals,
+    // the Paystack amount and the platform fee all derive from subtotal, so
+    // they include it automatically with no other changes.
+    subtotal: (line.price + (line.customizationFee ?? 0)) * line.quantity,
     costPrice: line.costPrice,
+    customization: line.customization,
+    customizationLabel: line.customizationLabel,
+    customizationFee: line.customizationFee,
   }));
   const subtotal = lineItems.reduce((sum, item) => sum + item.subtotal, 0);
   // Snapshotted at the rate/cap in force now (DEV-6) — the same figure

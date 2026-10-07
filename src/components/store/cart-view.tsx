@@ -93,6 +93,7 @@ export function CartView({ subdomain }: { subdomain: string }) {
           productId: line.productId,
           variantId: line.variantId,
           quantity: line.quantity,
+          customization: line.customization,
         })),
         name: String(data.get("name") ?? ""),
         email: String(data.get("email") ?? ""),
