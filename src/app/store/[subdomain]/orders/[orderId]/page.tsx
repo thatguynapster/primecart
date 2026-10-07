@@ -102,6 +102,12 @@ export default async function OrderStatusPage({
               <p className="text-[12.5px] text-neutral-500">
                 {item.variantName} · qty {item.quantity}
               </p>
+              {item.customization && (
+                <p className="mt-1 text-[12.5px] text-neutral-700">
+                  {item.customizationLabel ?? "Personalisation"}:{" "}
+                  &ldquo;{item.customization}&rdquo;
+                </p>
+              )}
             </div>
             <p className="text-[14px] font-medium tabular-nums">
               {formatGhs(item.subtotal)}

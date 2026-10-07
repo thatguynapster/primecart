@@ -25,6 +25,21 @@ function layout(title: string, bodyHtml: string): string {
 }
 
 /**
+ * These emails are template strings, not React — nothing here is escaped by
+ * default the way JSX escapes text content. Any value that came from a
+ * shopper or merchant (a name, a customization) must go through this before
+ * it reaches an email body.
+ */
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+/**
  * Event 1 — a storefront order's payment just confirmed (webhook's
  * settleFromPending / settleFromExpired success path only — never on order
  * creation, which would fire on every abandoned checkout).
@@ -35,15 +50,42 @@ export async function notifyNewOrder(params: {
   orderNumber: string;
   customerName: string;
   total: number;
+  /**
+   * DEV-7 (Phase 15), §B.7 — so the merchant sees what to engrave without
+   * opening the dashboard. Only lines carrying customization text are shown;
+   * an uncustomized order renders no list at all.
+   */
+  lines: {
+    productName: string;
+    variantName: string;
+    customization: string | null;
+    customizationLabel: string | null;
+  }[];
 }): Promise<void> {
   const url = `${getDashboardOrigin()}/dashboard/orders/${params.orderId}`;
+
+  const customizedLines = params.lines.filter(
+    (line): line is typeof line & { customization: string } =>
+      Boolean(line.customization)
+  );
+  const customizationHtml =
+    customizedLines.length > 0
+      ? `<ul style="margin:12px 0 0;padding-left:20px;">${customizedLines
+          .map(
+            (line) =>
+              `<li><strong>${escapeHtml(line.customizationLabel ?? "Personalisation")}</strong> — ${escapeHtml(line.productName)} (${escapeHtml(line.variantName)}): ${escapeHtml(line.customization)}</li>`
+          )
+          .join("")}</ul>`
+      : "";
+
   try {
     await sendEmail({
       to: params.merchantEmail,
       subject: `New order ${params.orderNumber} — ${formatGhs(params.total)}`,
       html: layout(
         "You've got a new paid order",
-        `<p><strong>${params.orderNumber}</strong> from ${params.customerName}, ${formatGhs(params.total)}.</p>
+        `<p><strong>${params.orderNumber}</strong> from ${escapeHtml(params.customerName)}, ${formatGhs(params.total)}.</p>
+         ${customizationHtml}
          <a href="${url}" style="${BUTTON}">View order</a>`
       ),
     });

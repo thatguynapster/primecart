@@ -46,10 +46,24 @@ export function toPublicVariant(variant: ProductVariant): PublicVariant {
   };
 }
 
-/** The shape of a product that is safe to serialize to a shopper's browser. */
+/**
+ * The shape of a product that is safe to serialize to a shopper's browser.
+ *
+ * Includes the DEV-7 customization config — those fields are the prompt a
+ * shopper sees, not merchant-sensitive data, unlike `costPrice` on the
+ * variant side.
+ */
 export type PublicProduct = Pick<
   Product,
-  "id" | "name" | "description" | "images"
+  | "id"
+  | "name"
+  | "description"
+  | "images"
+  | "allowCustomization"
+  | "customizationLabel"
+  | "customizationMaxLength"
+  | "customizationRequired"
+  | "customizationFee"
 >;
 
 export function toPublicProduct(product: Product): PublicProduct {
@@ -58,6 +72,11 @@ export function toPublicProduct(product: Product): PublicProduct {
     name: product.name,
     description: product.description,
     images: product.images,
+    allowCustomization: product.allowCustomization,
+    customizationLabel: product.customizationLabel,
+    customizationMaxLength: product.customizationMaxLength,
+    customizationRequired: product.customizationRequired,
+    customizationFee: product.customizationFee,
   };
 }
 

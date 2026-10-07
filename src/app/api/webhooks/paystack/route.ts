@@ -52,6 +52,16 @@ function customerNameOf(order: Order): string {
   return order.shippingAddress?.name ?? "Guest";
 }
 
+/** DEV-7 (Phase 15), §B.7 — shared by both notifyNewOrder call sites below. */
+function notificationLinesOf(order: Order) {
+  return order.lineItems.map((item) => ({
+    productName: item.productName,
+    variantName: item.variantName,
+    customization: item.customization,
+    customizationLabel: item.customizationLabel,
+  }));
+}
+
 /**
  * A payment confirmed while its order was still PENDING — the ordinary case.
  * The `where` clause is the whole guard: idempotent against a redelivered
@@ -74,6 +84,7 @@ async function settleFromPending(order: Order): Promise<boolean> {
         orderNumber: order.orderNumber,
         customerName: customerNameOf(order),
         total: order.total,
+        lines: notificationLinesOf(order),
       });
     }
   }
@@ -156,6 +167,7 @@ async function settleFromExpired(order: Order): Promise<void> {
       orderNumber: order.orderNumber,
       customerName: customerNameOf(order),
       total: order.total,
+      lines: notificationLinesOf(order),
     });
   }
 }

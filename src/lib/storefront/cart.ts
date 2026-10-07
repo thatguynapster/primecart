@@ -32,6 +32,8 @@ export type CartLine = {
   quantity: number;
   /** DEV-7. Free text the shopper entered, e.g. a name to engrave. */
   customization?: string | null;
+  /** DEV-7. Snapshotted alongside the text, so the cart can show what was asked ("Name to engrave: …") rather than a hardcoded word. */
+  customizationLabel?: string | null;
   /** DEV-7. Display only — the server re-reads the product's real fee. */
   customizationFee?: number | null;
 };

@@ -155,6 +155,14 @@ export default async function OrderDetailPage({
                   {item.variantName}
                   {item.sku ? ` · ${item.sku}` : ""} · qty {item.quantity}
                 </p>
+                {item.customization && (
+                  <p className="mt-1 rounded-sm border border-nk-accent-700 bg-nk-accent-900 px-2.5 py-1.5 text-sm text-nk-accent-100">
+                    <span className="font-medium">
+                      {item.customizationLabel ?? "Personalisation"}:
+                    </span>{" "}
+                    &ldquo;{item.customization}&rdquo;
+                  </p>
+                )}
                 {item.costPrice != null ? (
                   <p className="mt-0.5 text-xs text-nk-neutral-600">
                     Cost {formatGhs(item.costPrice * item.quantity)} · Margin{" "}

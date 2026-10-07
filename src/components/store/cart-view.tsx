@@ -182,9 +182,18 @@ export function CartView({ subdomain }: { subdomain: string }) {
                   <p className="text-[12.5px] text-neutral-500">
                     {line.variantName}
                   </p>
+                  {line.customization && (
+                    <p className="mt-0.5 text-[12.5px] text-neutral-600">
+                      {line.customizationLabel ?? "Personalisation"}:{" "}
+                      &ldquo;{line.customization}&rdquo;
+                    </p>
+                  )}
 
                   <p className="mt-1 text-[13.5px]">
-                    {formatGhs(current?.price ?? line.price)}
+                    {formatGhs(
+                      (current?.price ?? line.price) +
+                        (line.customizationFee ?? 0)
+                    )}
                     {repriced && (
                       <span className="ml-2 text-[12px] text-neutral-500">
                         price changed from {formatGhs(line.price)}
@@ -243,7 +252,11 @@ export function CartView({ subdomain }: { subdomain: string }) {
                 </div>
 
                 <p className="text-[14px] font-medium tabular-nums">
-                  {formatGhs((current?.price ?? line.price) * line.quantity)}
+                  {formatGhs(
+                    ((current?.price ?? line.price) +
+                      (line.customizationFee ?? 0)) *
+                      line.quantity
+                  )}
                 </p>
               </div>
             );

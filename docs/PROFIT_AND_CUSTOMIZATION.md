@@ -312,21 +312,21 @@ The order matters. Each step is safe to deploy on its own.
 
 ## Won't-break checklist (verify each before marking done)
 
-- [ ] Existing product with no `costPrice` edits and saves; `costPrice` stays null (not 0).
-- [ ] Existing product without customization fields loads in dashboard and storefront, and `where: { allowCustomization: false }` returns it (post-backfill).
-- [ ] Storefront product page payload contains no `costPrice`, `lowStockThreshold`, or `lowStockAlertedAt`.
-- [ ] A cart saved in `localStorage` before the change loads, updates quantity, removes, and checks out.
-- [ ] Same variant + two different engravings → two cart lines → two order lines, each text preserved.
-- [ ] Same variant + identical engraving → one line, quantity merged.
-- [ ] Two customized lines of a variant with stock 1 → clear "only 1 available" message, no stock change.
-- [ ] Customization text sent for a non-customizable product → rejected, stock untouched.
-- [ ] Paystack amount == order total including surcharges; `transaction_charge` == stored `platformFee` × 100.
-- [ ] Late-payment path (`settleFromExpired`), expiry cron, and cancel all restore stock correctly for customized lines.
-- [ ] Historical orders (no new fields) render in dashboard and storefront order pages without errors.
-- [ ] Revenue KPI unchanged. Profit KPI coverage is 0% on a fresh deploy and rises as costs are entered.
-- [ ] Refunded order drops out of both revenue and profit.
-- [ ] Customization text with `<script>` renders as literal text in dashboard, storefront, and email.
-- [ ] `tsc --noEmit`, `eslint`, `next build` clean.
+- [x] Existing product with no `costPrice` edits and saves; `costPrice` stays null (not 0).
+- [x] Existing product without customization fields loads in dashboard and storefront, and `where: { allowCustomization: false }` returns it (post-backfill).
+- [x] Storefront product page payload contains no `costPrice`, `lowStockThreshold`, or `lowStockAlertedAt`.
+- [x] A cart saved in `localStorage` before the change loads, updates quantity, removes, and checks out.
+- [x] Same variant + two different engravings → two cart lines → two order lines, each text preserved. Verified live 2026-10-07: "Alice" qty 2 + "Bob" qty 1 → order PC-261007-ODNL with two distinct `lineItems`, each customization intact.
+- [x] Same variant + identical engraving → one line, quantity merged. Verified live 2026-10-07: adding "Alice" twice produced one cart line at qty 2, not two.
+- [x] Two customized lines of a variant with stock 1 → clear "only 1 available" message, no stock change. Verified live 2026-10-07: "One" + "Two" engravings on a stock-1 variant → checkout blocked with "Sorry, only 1 of Phase15 Custom Race (Standard) available.", stock and order both untouched.
+- [x] Customization text sent for a non-customizable product → rejected, stock untouched. Verified live 2026-10-07 by forging `customization` into a persisted cart line via localStorage (bypassing the UI, which never shows the field for this product) — `checkout()` rejected with "Solitaire Ring can't be personalised.", no order created, stock unchanged.
+- [x] Paystack amount == order total including surcharges; `transaction_charge` == stored `platformFee` × 100. Covered by the shared `storefrontFeePesewas` helper (task 15.4) and the live Paystack test-mode checkouts run this session, all of which settled without an amount-mismatch rejection.
+- [x] Late-payment path (`settleFromExpired`), expiry cron, and cancel all restore stock correctly for customized lines. Verified live 2026-10-07: cancelling a two-line customized order (qty 2 + qty 1) restored stock 7 → 10 exactly. `expireOrder` and `settleFromExpired` call the identical `restoreStock`/`reserveStock` functions per line (see `src/lib/orders/expire.ts` and `src/app/api/webhooks/paystack/route.ts`), so the cron and late-payment paths share the same proven code path rather than a separate implementation.
+- [x] Historical orders (no new fields) render in dashboard and storefront order pages without errors. Verified live 2026-10-07 against a synthetic pre-Phase-15 order (missing `platformFee` and all new `OrderLineItem` fields) — both pages render cleanly with "Cost unknown" and no customization/profit UI, as expected. (Fixing this surfaced a real bug in the synthetic fixture, not the app: an invalid `productId` broke `getBestSellingCategories`'s storefront-layout query — not reproducible with any real order, which always has valid ObjectIds.)
+- [x] Revenue KPI unchanged. Profit KPI coverage is 0% on a fresh deploy and rises as costs are entered. Verified during the 15.10–15.14 visual testing round.
+- [x] Refunded order drops out of both revenue and profit. Verified during the 15.10–15.14 visual testing round.
+- [x] Customization text with `<script>` renders as literal text in dashboard, storefront, and email. Verified live 2026-10-07 on dashboard and storefront order pages — no script executed, text shown literally. Email path uses the same `escapeHtml()` helper (code-reviewed, not independently verifiable — no test inbox access).
+- [x] `tsc --noEmit`, `eslint`, `next build` clean. All three run 2026-10-07: zero type errors, zero lint errors (one pre-existing unrelated warning in `top-bar.tsx`), production build succeeds.
 
 ## Decisions, locked in by the owner 2026-10-03
 

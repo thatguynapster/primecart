@@ -17,6 +17,8 @@ export default async function NewOrderPage() {
     .map((product) => ({
       id: product.id,
       name: product.name,
+      allowCustomization: product.allowCustomization,
+      customizationLabel: product.customizationLabel,
       variants: product.variants
         .filter((variant) => variant.isActive && variant.stock > 0)
         .map((variant) => ({

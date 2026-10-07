@@ -11,9 +11,21 @@ import { formatGhs } from "@/lib/format";
 import { createManualOrder, type FormState } from "../actions";
 
 type PickableVariant = { id: string; name: string; price: number; stock: number };
-type PickableProduct = { id: string; name: string; variants: PickableVariant[] };
+type PickableProduct = {
+  id: string;
+  name: string;
+  allowCustomization: boolean;
+  customizationLabel: string | null;
+  variants: PickableVariant[];
+};
 
-type Row = { key: number; productId: string; variantId: string; quantity: number };
+type Row = {
+  key: number;
+  productId: string;
+  variantId: string;
+  quantity: number;
+  customization: string;
+};
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -36,7 +48,7 @@ export function NewOrderForm({ products }: { products: PickableProduct[] }) {
   const fieldErrors = state.fieldErrors ?? {};
 
   const [rows, setRows] = useState<Row[]>([
-    { key: 0, productId: "", variantId: "", quantity: 1 },
+    { key: 0, productId: "", variantId: "", quantity: 1, customization: "" },
   ]);
   const [nextKey, setNextKey] = useState(1);
 
@@ -65,7 +77,7 @@ export function NewOrderForm({ products }: { products: PickableProduct[] }) {
   function addRow() {
     setRows((current) => [
       ...current,
-      { key: nextKey, productId: "", variantId: "", quantity: 1 },
+      { key: nextKey, productId: "", variantId: "", quantity: 1, customization: "" },
     ]);
     setNextKey((n) => n + 1);
   }
@@ -95,9 +107,14 @@ export function NewOrderForm({ products }: { products: PickableProduct[] }) {
             {rows.map((row) => {
               const variants = variantsFor(row.productId);
               const selectedVariant = variants.find((v) => v.id === row.variantId);
+              const selectedProduct = products.find((p) => p.id === row.productId);
+              const showCustomization = selectedProduct?.allowCustomization ?? false;
+              const customizationLabel =
+                selectedProduct?.customizationLabel?.trim() || "Personalisation";
 
               return (
-                <div key={row.key} className="flex flex-wrap items-end gap-3">
+                <div key={row.key} className="space-y-2">
+                <div className="flex flex-wrap items-end gap-3">
                   <div className="min-w-48 flex-1">
                     <label className="block text-xs text-nk-neutral-400">
                       Product
@@ -109,6 +126,7 @@ export function NewOrderForm({ products }: { products: PickableProduct[] }) {
                         updateRow(row.key, {
                           productId: event.target.value,
                           variantId: "",
+                          customization: "",
                         })
                       }
                     >
@@ -168,6 +186,29 @@ export function NewOrderForm({ products }: { products: PickableProduct[] }) {
                   >
                     Remove
                   </button>
+                </div>
+
+                {showCustomization ? (
+                  <div className="max-w-sm">
+                    <label className="block text-xs text-nk-neutral-400">
+                      {customizationLabel}
+                    </label>
+                    <input
+                      className={`mt-1.5 ${inputClass}`}
+                      name="lineCustomization"
+                      value={row.customization}
+                      placeholder={customizationLabel}
+                      onChange={(event) =>
+                        updateRow(row.key, { customization: event.target.value })
+                      }
+                    />
+                  </div>
+                ) : (
+                  // Keeps lineCustomization's indices aligned with
+                  // lineProductId/lineVariantId server-side (parseLines),
+                  // even for a row whose product doesn't take one.
+                  <input type="hidden" name="lineCustomization" value="" />
+                )}
                 </div>
               );
             })}

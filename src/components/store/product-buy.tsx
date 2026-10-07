@@ -39,6 +39,9 @@ export function ProductBuy({
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
   const [imageIndex, setImageIndex] = useState(0);
+  // DEV-7 (Phase 15), §B.6. One input for the whole product, not per
+  // variant — engraving text doesn't depend on which size/colour is picked.
+  const [customization, setCustomization] = useState("");
 
   const variant = variants.find((v) => v.id === variantId) ?? variants[0];
   const gallery = useMemo(
@@ -46,11 +49,25 @@ export function ProductBuy({
     [product, variant]
   );
 
-  // No customization input exists yet (§B.6), so this always looks up the
-  // uncustomized line — same key `lineKeyOf` gives an empty/absent text.
+  const customizationLabel =
+    product.customizationLabel?.trim() || "Personalisation";
+  const customizationMax = Math.min(
+    product.customizationMaxLength ?? 30,
+    200
+  );
+  const customizationText = customization.trim();
+  const customizationFee = customizationText
+    ? (product.customizationFee ?? 0)
+    : 0;
+  const customizationMissing =
+    product.allowCustomization &&
+    product.customizationRequired &&
+    !customizationText;
+
   const alreadyInCart =
-    inCart.find((line) => line.lineKey === lineKeyOf(variant.id))?.quantity ??
-    0;
+    inCart.find(
+      (line) => line.lineKey === lineKeyOf(variant.id, customizationText)
+    )?.quantity ?? 0;
   // Never let the cart promise more than the shop has.
   const remaining = Math.max(0, variant.stock - alreadyInCart);
   const soldOut = variant.stock === 0;
@@ -73,6 +90,11 @@ export function ProductBuy({
         variantName: variant.name,
         price: variant.price,
         imageUrl: gallery[0] ?? null,
+        customization: customizationText || null,
+        customizationLabel: customizationText ? customizationLabel : null,
+        // Display only — the server re-reads the product's real fee at
+        // checkout (§B.3) and rejects a tampered cart's figure outright.
+        customizationFee: customizationText ? customizationFee : null,
       },
       Math.min(quantity, remaining)
     );
@@ -128,7 +150,9 @@ export function ProductBuy({
           {product.name}
         </h1>
 
-        <p className="mt-3 text-xl font-semibold">{formatGhs(variant.price)}</p>
+        <p className="mt-3 text-xl font-semibold">
+          {formatGhs(variant.price + customizationFee)}
+        </p>
 
         {product.description && (
           <p className="mt-5 text-[14.5px] leading-relaxed text-neutral-600">
@@ -166,6 +190,42 @@ export function ProductBuy({
                 );
               })}
             </div>
+          </div>
+        )}
+
+        {product.allowCustomization && (
+          <div className="mt-7">
+            <div className="flex items-baseline justify-between gap-2">
+              <label
+                htmlFor="customization"
+                className="text-[13px] font-medium text-neutral-500"
+              >
+                {customizationLabel}
+                {product.customizationRequired && (
+                  <span className="ml-1 text-neutral-400">(required)</span>
+                )}
+                {(product.customizationFee ?? 0) > 0 && (
+                  <span className="ml-1.5 text-neutral-400">
+                    (+{formatGhs(product.customizationFee ?? 0)})
+                  </span>
+                )}
+              </label>
+              <span className="text-[11.5px] text-neutral-400 tabular-nums">
+                {customization.length}/{customizationMax}
+              </span>
+            </div>
+            <input
+              id="customization"
+              value={customization}
+              onChange={(event) =>
+                setCustomization(event.target.value.slice(0, customizationMax))
+              }
+              placeholder={customizationLabel}
+              className="mt-2 w-full rounded-xl border border-neutral-300 px-4 py-2.5 text-[14px] outline-none focus:border-neutral-900"
+            />
+            <p className="mt-2 text-[12px] text-neutral-500">
+              Personalised items can&rsquo;t be changed once ordered.
+            </p>
           </div>
         )}
 
@@ -214,7 +274,8 @@ export function ProductBuy({
                 <button
                   type="button"
                   onClick={addToCart}
-                  className="flex-1 rounded-xl px-6 py-3 text-[14px] font-medium"
+                  disabled={customizationMissing}
+                  className="flex-1 rounded-xl px-6 py-3 text-[14px] font-medium disabled:opacity-50"
                   style={{
                     background: "var(--brand)",
                     color: "var(--on-brand)",

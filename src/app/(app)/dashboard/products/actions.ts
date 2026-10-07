@@ -215,7 +215,47 @@ export async function updateProductDetails(
   const category = String(formData.get("category") ?? "").trim();
   const isFeatured = formData.get("isFeatured") === "on";
 
-  if (!name) return { fieldErrors: { name: "Enter a product name." } };
+  const allowCustomization = formData.get("allowCustomization") === "on";
+  const customizationLabelRaw = String(
+    formData.get("customizationLabel") ?? ""
+  ).trim();
+  const customizationMaxLengthRaw = String(
+    formData.get("customizationMaxLength") ?? ""
+  ).trim();
+  const customizationRequired = formData.get("customizationRequired") === "on";
+  const customizationFeeRaw = String(
+    formData.get("customizationFee") ?? ""
+  ).trim();
+
+  const fieldErrors: Record<string, string> = {};
+  if (!name) fieldErrors.name = "Enter a product name.";
+
+  if (customizationLabelRaw.length > 40) {
+    fieldErrors.customizationLabel = "Use at most 40 characters.";
+  }
+
+  const customizationMaxLength =
+    customizationMaxLengthRaw === "" ? null : Number(customizationMaxLengthRaw);
+  if (
+    customizationMaxLength !== null &&
+    (!Number.isInteger(customizationMaxLength) ||
+      customizationMaxLength < 1 ||
+      customizationMaxLength > 200)
+  ) {
+    fieldErrors.customizationMaxLength =
+      "Enter a whole number from 1 to 200, or leave it blank for the default of 30.";
+  }
+
+  const customizationFee =
+    customizationFeeRaw === "" ? null : Number(customizationFeeRaw);
+  if (
+    customizationFee !== null &&
+    (!Number.isFinite(customizationFee) || customizationFee < 0)
+  ) {
+    fieldErrors.customizationFee = "Enter a fee of 0 or more, or leave it blank.";
+  }
+
+  if (Object.keys(fieldErrors).length > 0) return { fieldErrors };
 
   // merchantId in the filter is what makes a guessed productId harmless.
   const { count } = await prisma.product.updateMany({
@@ -225,6 +265,16 @@ export async function updateProductDetails(
       description: description || null,
       category: category || null,
       isFeatured,
+      allowCustomization,
+      // Blank clears it — toggling customization off doesn't clear these
+      // (the form keeps submitting whatever was last saved, see
+      // DetailsForm), but a merchant explicitly blanking the label field
+      // while customization is on should fall back to "Personalisation",
+      // not store an empty string forever.
+      customizationLabel: customizationLabelRaw || null,
+      customizationMaxLength,
+      customizationRequired,
+      customizationFee,
     },
   });
 

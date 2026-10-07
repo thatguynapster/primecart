@@ -48,8 +48,23 @@ function DetailsForm({
     updateProductDetails,
     {}
   );
-  const ids = { name: useId(), description: useId(), category: useId() };
+  const ids = {
+    name: useId(),
+    description: useId(),
+    category: useId(),
+    customizationLabel: useId(),
+    customizationMaxLength: useId(),
+    customizationFee: useId(),
+  };
   const fieldErrors = state.fieldErrors ?? {};
+
+  // DEV-7 (Phase 15). Controls only whether the config fields are visible —
+  // they stay in the form (just hidden) so turning the toggle off and saving
+  // does not lose the label/max length/fee a merchant already set; turning
+  // it back on restores exactly what was there.
+  const [allowCustomization, setAllowCustomization] = useState(
+    product.allowCustomization
+  );
 
   return (
     <form
@@ -105,6 +120,82 @@ function DetailsForm({
           — shows in the Featured Collection section
         </span>
       </label>
+
+      <div className="border-t border-nk-neutral-800 pt-5">
+        <label className="flex items-center gap-2.5 text-sm">
+          <input
+            type="checkbox"
+            name="allowCustomization"
+            checked={allowCustomization}
+            onChange={(event) => setAllowCustomization(event.target.checked)}
+            className="size-4 rounded-sm border-nk-neutral-700 bg-transparent accent-nk-accent"
+          />
+          Let customers personalise this
+          <span className="text-nk-neutral-500">
+            — e.g. engrave a name
+          </span>
+        </label>
+
+        <div className={allowCustomization ? "mt-4 space-y-4" : "hidden"}>
+          <Field
+            label="Prompt"
+            htmlFor={ids.customizationLabel}
+            hint="Optional"
+            error={fieldErrors.customizationLabel}
+          >
+            <input
+              id={ids.customizationLabel}
+              name="customizationLabel"
+              defaultValue={product.customizationLabel ?? ""}
+              placeholder="e.g. Name to engrave"
+              className={inputClass}
+            />
+          </Field>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field
+              label="Max characters"
+              htmlFor={ids.customizationMaxLength}
+              error={fieldErrors.customizationMaxLength}
+            >
+              <input
+                id={ids.customizationMaxLength}
+                name="customizationMaxLength"
+                inputMode="numeric"
+                defaultValue={product.customizationMaxLength ?? ""}
+                placeholder="30"
+                className={inputClass}
+              />
+            </Field>
+
+            <Field
+              label="Extra charge (GHS)"
+              htmlFor={ids.customizationFee}
+              hint="Optional"
+              error={fieldErrors.customizationFee}
+            >
+              <input
+                id={ids.customizationFee}
+                name="customizationFee"
+                inputMode="decimal"
+                defaultValue={product.customizationFee ?? ""}
+                placeholder="Leave blank if free"
+                className={inputClass}
+              />
+            </Field>
+          </div>
+
+          <label className="flex items-center gap-2.5 text-sm">
+            <input
+              type="checkbox"
+              name="customizationRequired"
+              defaultChecked={product.customizationRequired}
+              className="size-4 rounded-sm border-nk-neutral-700 bg-transparent accent-nk-accent"
+            />
+            Required — can&rsquo;t add to cart without it
+          </label>
+        </div>
+      </div>
 
       <Saving label="Save changes" />
     </form>
