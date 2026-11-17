@@ -226,13 +226,13 @@ export default function LandingPage() {
                         3%
                       </span>
                       <span className="text-sm text-neutral-400">
-                        / storefront sale, capped at GHS 100
+                        / storefront sale, capped at GHS 500
                       </span>
                     </div>
                     <p className="mt-3 max-w-sm text-[14px] leading-relaxed text-neutral-300">
                       No monthly fee, no trial that runs out. You only pay
                       when a storefront sale actually happens — and never
-                      more than GHS 100 on any single order. Manual orders
+                      more than GHS 500 on any single order. Manual orders
                       are always free. Nothing to cancel, because there is
                       nothing recurring.
                     </p>

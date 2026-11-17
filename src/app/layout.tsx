@@ -33,7 +33,7 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "PrimeCart — stock, orders and your own shop link",
   description:
-    "Keep inventory, orders and an online storefront in one place. Built for shops in Ghana. No subscription — 3% per sale, capped at GHS 100.",
+    "Keep inventory, orders and an online storefront in one place. Built for shops in Ghana. No subscription — 3% per sale, capped at GHS 500.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

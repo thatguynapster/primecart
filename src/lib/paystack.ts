@@ -184,11 +184,12 @@ export async function updateSubaccount(
 export const STOREFRONT_FEE_RATE = 0.03;
 
 /**
- * D-16: the 3% is capped at GHS 100 per order, so an unusually large single
- * sale doesn't cost the merchant disproportionately. In pesewas, matching
+ * D-16 (raised to GHS 500 2026-10-08, better margin at the same low-friction
+ * principle): the 3% is capped per order, so an unusually large single sale
+ * doesn't cost the merchant disproportionately. In pesewas, matching
  * `amountInPesewas` below.
  */
-export const STOREFRONT_FEE_CAP_PESEWAS = 100 * 100;
+export const STOREFRONT_FEE_CAP_PESEWAS = 500 * 100;
 
 /**
  * PrimeCart's cut of a storefront sale, in pesewas, at the current rate/cap.
