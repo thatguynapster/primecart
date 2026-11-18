@@ -30,7 +30,7 @@ import { getMerchantBySubdomain } from "@/lib/merchant/lookup";
  * page, route handler and Server Action that touches merchant data must
  * re-derive the merchant from the session and authorize independently.
  */
-const PUBLIC_EXACT = new Set(["/", "/store-unavailable"]);
+const PUBLIC_EXACT = new Set(["/", "/store-unavailable", "/privacy", "/terms"]);
 const PUBLIC_PREFIXES = [
   "/sign-in",
   "/sign-up",

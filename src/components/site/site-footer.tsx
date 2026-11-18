@@ -20,12 +20,18 @@ export function SiteFooter() {
         </div>
 
         <nav className="flex flex-wrap items-center gap-x-6 gap-y-2 text-[13px] text-neutral-500">
-          <a href="#features" className="hover:text-neutral-900">
+          <a href="/#features" className="hover:text-neutral-900">
             Features
           </a>
-          <a href="#pricing" className="hover:text-neutral-900">
+          <a href="/#pricing" className="hover:text-neutral-900">
             Pricing
           </a>
+          <Link href="/privacy" className="hover:text-neutral-900">
+            Privacy
+          </Link>
+          <Link href="/terms" className="hover:text-neutral-900">
+            Terms
+          </Link>
           <Link href="/sign-in" className="hover:text-neutral-900">
             Sign in
           </Link>

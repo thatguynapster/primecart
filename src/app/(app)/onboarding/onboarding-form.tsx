@@ -210,7 +210,16 @@ export function OnboardingForm({
 
       <p className="text-center text-[13px] text-neutral-500">
         Your shop goes live straight away, and your 14-day free trial starts
-        today. No payment details needed.
+        today. No payment details needed. By opening your shop you agree to
+        the{" "}
+        <a href="/terms" className="underline underline-offset-2">
+          Terms
+        </a>{" "}
+        and{" "}
+        <a href="/privacy" className="underline underline-offset-2">
+          Privacy Policy
+        </a>
+        .
       </p>
     </form>
   );
