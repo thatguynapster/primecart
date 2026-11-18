@@ -6,6 +6,7 @@ import {
   CaretLeft,
   CaretRight,
   ChartBar,
+  CreditCard,
   Gear,
   House,
   Package,
@@ -54,6 +55,7 @@ export function SideRail({
     { href: "/dashboard/customers", label: "Customers", icon: Users },
     { href: "/dashboard/analytics", label: "Analytics", icon: ChartBar },
     { href: "/dashboard/settings", label: "Shop settings", icon: Gear },
+    { href: "/dashboard/billing", label: "Billing", icon: CreditCard },
   ];
 
   const expanded = !collapsed;

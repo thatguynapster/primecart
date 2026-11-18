@@ -3,7 +3,12 @@ import { NextResponse } from "next/server";
 import type { Order } from "@prisma/client";
 
 import { notifyNeedsReview, notifyNewOrder } from "@/lib/notifications/events";
+import {
+  SUBSCRIPTION_REFERENCE_PREFIX,
+  verifyAndApplySubscriptionPayment,
+} from "@/lib/billing/subscription";
 import { OversellError, reserveStock, restoreStock } from "@/lib/orders/stock";
+import { metadataOf } from "@/lib/paystack";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -46,20 +51,6 @@ type PaystackEvent = {
     metadata?: unknown;
   };
 };
-
-/** Paystack metadata as an object, whether it arrived as one or as a JSON string. */
-function metadataOf(raw: unknown): Record<string, unknown> {
-  if (raw && typeof raw === "object") return raw as Record<string, unknown>;
-  if (typeof raw === "string") {
-    try {
-      const parsed: unknown = JSON.parse(raw);
-      if (parsed && typeof parsed === "object") return parsed as Record<string, unknown>;
-    } catch {
-      // fall through
-    }
-  }
-  return {};
-}
 
 /**
  * Storefront references are `PCART-<orderId>` for the first payment link and
@@ -326,8 +317,21 @@ async function confirmPaidOrder(reference: string, amountPesewas?: number | stri
 }
 
 // ---------------------------------------------------------------------------
-// Subscriptions (Phase 13)
+// Subscriptions (D-18)
 // ---------------------------------------------------------------------------
+
+/**
+ * A subscription payment, not a storefront order: branched on *before*
+ * `confirmPaidOrder`, so it never touches orders, and storefront payments
+ * never reach this. Identified by metadata, with the reference prefix as a
+ * fallback in case metadata ever arrives unparseable.
+ */
+function isSubscriptionEvent(data: NonNullable<PaystackEvent["data"]>): boolean {
+  return (
+    metadataOf(data.metadata).type === "subscription" ||
+    (data.reference?.startsWith(SUBSCRIPTION_REFERENCE_PREFIX) ?? false)
+  );
+}
 
 export async function POST(request: Request) {
   // Logged before any validation, deliberately — this is the one line that
@@ -374,7 +378,17 @@ export async function POST(request: Request) {
   );
 
   if (event.event === "charge.success" && event.data?.reference) {
-    await confirmPaidOrder(event.data.reference, event.data.amount);
+    if (isSubscriptionEvent(event.data)) {
+      // Re-verified server-side against Paystack, idempotent on the
+      // reference. A mismatch is logged and acknowledged (200), so the
+      // billing page's return path and "Check payment" are the second chance
+      // for anything this doesn't apply. A thrown error (e.g. the database
+      // is down) returns 500, which earns a Paystack retry.
+      const outcome = await verifyAndApplySubscriptionPayment(event.data.reference);
+      console.log(`Paystack webhook: subscription ${event.data.reference} -> ${outcome}`);
+    } else {
+      await confirmPaidOrder(event.data.reference, event.data.amount);
+    }
   }
 
   // Every other event is acknowledged without action — nothing else needs a
