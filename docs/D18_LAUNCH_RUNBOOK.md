@@ -25,10 +25,29 @@ Everything in the brief (T0–T14, plus §6's lapsed gate and billing emails) is
 
 | Name | Where | Value |
 | --- | --- | --- |
-| `FOUNDING_MERCHANT_IDS` | **Production only** | The two founding merchants' Merchant `_id`s, comma-separated. Ask me to look them up if you don't have them. A malformed id fails the build on purpose. |
+| `FOUNDING_MERCHANT_IDS` | **Production only** | The founding merchants' Merchant `_id`s, comma-separated. Can be added after launch: see "Founding merchants" below. A malformed id fails the build on purpose. |
 | `SUPPORT_EMAIL` | Production + Preview | The address shown on `/privacy` and `/terms`. **The mailbox must exist.** Defaults to `support@primecart.app`. |
 
 **Check:** Preview and Production use **different** `DATABASE_URL`s (Phase 15 note). Otherwise every branch build migrates production.
+
+## 2a. Founding merchants (can be done after launch)
+
+Launching without `FOUNDING_MERCHANT_IDS` is fine: founding merchants start on the normal trial like everyone else, and get the deal on the first deploy after the ids are set.
+
+1. **Find the ids** (read-only, no emails printed), from a machine that can reach Atlas, with `DATABASE_URL` pointing at **production**:
+   ```
+   npm run db:list-merchants
+   ```
+   Or in Atlas → Browse Collections → `Merchant`, filter `{ "storefront.subdomain": { "$exists": true } }`, project `{ "_id": 1, "storefront.subdomain": 1, "storefront.businessName": 1 }`.
+2. Vercel → Environment Variables → **Production only**: `FOUNDING_MERCHANT_IDS=<id>,<id>`.
+3. **Redeploy** production (env var changes only apply on a new deploy; the backfill runs in `vercel-build`).
+4. Build log: `"foundingIdsConfigured":2,"foundingIdsFound":2`. Found fewer = a wrong id or a dev id; the build still passes but that merchant pays list price.
+5. Each founding merchant's Billing page shows "Founding price until <deploy date + 12 months>" and 50% prices.
+
+What happens to them in the meantime, and after:
+- **The 12 months start on the deploy that applies the ids**, not at launch. Adding a second id later never moves the first one's end date. Their trial dates are untouched.
+- **A payment they start at list price before the ids are applied still counts** if they finish it afterwards (a payment is accepted when it covers at least the current price). It is not refunded down to 50%: if that happens, refund the difference from the Paystack dashboard.
+- Payments already made at list price are not adjusted automatically.
 
 ## 3. Test on dev first (`dev.primecart.app`)
 
@@ -73,7 +92,7 @@ Record the date in TASKS.md's Phase 18 "Restore drills" table. (The backup → r
 ## 6. Acceptance checklist on dev (brief T13)
 
 Already verified offline (no database needed):
-- [x] Prices, intervals, founding 50% on all intervals, period stacking, pay-during-trial starts at `trialEndsAt`, pay-while-lapsed starts now, month-end clamping, Ghana phone normalisation (`npm test`, 18 checks)
+- [x] Prices, intervals, founding 50% on all intervals, period stacking, pay-during-trial starts at `trialEndsAt`, pay-while-lapsed starts now, month-end clamping, Ghana phone normalisation (`npm test`, 21 checks)
 - [x] `db:backfill-d18` run twice: second run changes nothing; checkout-on merchant stays on; founding end date doesn't move; open Paystack orders untouched (`npm run test:db`)
 - [x] Merchants who signed up 13–24 Aug 2026 (stale Phase 13 `subscriptionStatus`, no D-18 dates) get a fresh 14-day trial, not "Expired" (`npm run test:db`; found on dev, see below)
 - [x] Backup → restore keeps every BSON type and the unique subdomain index; restore refuses a non-empty target (`npm run test:db`)

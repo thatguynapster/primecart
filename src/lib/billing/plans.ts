@@ -89,6 +89,18 @@ export function pricePesewas(
   return list;
 }
 
+/**
+ * Whether a paid quote buys the time it was quoted for. Paying at least the
+ * current price is accepted: a merchant who started a payment at list price
+ * and became founding before paying (FOUNDING_MERCHANT_IDS added after
+ * launch) must still get their time, not a REVIEW flag. Paying less is
+ * rejected — a tampered amount, or a founding quote paid after the deal
+ * ended.
+ */
+export function quoteCovers(quotedPesewas: number, expectedPesewas: number): boolean {
+  return Number.isInteger(quotedPesewas) && quotedPesewas >= expectedPesewas;
+}
+
 export function discountApplies(
   merchant: Pick<BillingFields, "priceOverridePercent" | "priceOverrideEndsAt">,
   periodStart: Date

@@ -5,6 +5,7 @@ import {
   parseInterval,
   periodFor,
   pricePesewas,
+  quoteCovers,
 } from "@/lib/billing/plans";
 import { PaystackError, metadataOf, verifyTransaction } from "@/lib/paystack";
 import { prisma } from "@/lib/prisma";
@@ -179,10 +180,12 @@ export async function verifyAndApplySubscriptionPayment(
   if (record.interval !== interval) return markReview(reference, `record interval ${record.interval}, metadata ${interval}`);
   if (Math.round(record.amount * 100) !== quotedPesewas) return markReview(reference, "record amount differs from the quote");
 
-  // The quote must be the real price for the period start it was priced for.
-  // Stops a tampered or stale quote, e.g. a founding price after the deal ended.
+  // The quote must cover the real price for the period start it was priced
+  // for. Stops a tampered or stale quote (e.g. a founding price after the
+  // deal ended), but accepts a list-price quote for a merchant who became
+  // founding before paying it.
   const expected = pricePesewas(merchant, interval, record.quotedPeriodStart);
-  if (expected !== quotedPesewas) {
+  if (!quoteCovers(quotedPesewas, expected)) {
     return markReview(reference, `quote ${quotedPesewas} but price for that period start is ${expected}`);
   }
 

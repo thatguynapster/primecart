@@ -123,6 +123,22 @@ check(openOrderBefore === openOrderAfter, "open Paystack order untouched");
 const bad = run("scripts/backfill-d18.mjs", [], { ...env, FOUNDING_MERCHANT_IDS: "not-an-id" });
 check(bad.code !== 0, "invalid FOUNDING_MERCHANT_IDS fails the build");
 
+const listed = run("scripts/list-merchants.mjs", [], { DATABASE_URL: SRC });
+check(listed.code === 0 && listed.out.includes(ids.founding.toHexString()) && /FOUNDING until \d{4}-\d{2}-\d{2}/.test(listed.out), "db:list-merchants shows ids and the founding plan");
+check(!listed.out.includes(ids.notOnboarded.toHexString()), "db:list-merchants lists only merchants with a shop");
+check(!/@x\.test/.test(listed.out), "db:list-merchants prints no emails");
+
+// Founding added after launch: a second id on a later deploy gets the deal,
+// the first one's end date doesn't move.
+const lateId = ids.legacy.toHexString();
+const foundingEndBefore = (await src.collection("Merchant").findOne({ _id: ids.founding })).priceOverrideEndsAt.toISOString();
+const late = run("scripts/backfill-d18.mjs", [], { ...env, FOUNDING_MERCHANT_IDS: `${ids.founding.toHexString()},${lateId}` });
+const lateM = await src.collection("Merchant").findOne({ _id: ids.legacy });
+const foundingAfter = await src.collection("Merchant").findOne({ _id: ids.founding });
+check(late.code === 0 && lateM.plan === "FOUNDING" && lateM.priceOverridePercent === 50 && lateM.priceOverrideEndsAt > new Date(), "founding id added later gets 50% for 12 months on the next deploy");
+check(lateM.trialEndsAt.toISOString() === L.trialEndsAt.toISOString(), "late founding merchant keeps their trial date");
+check(foundingAfter.priceOverrideEndsAt.toISOString() === foundingEndBefore, "existing founding end date unchanged when another id is added");
+
 // ---------------------------------------------------------------- backup -> restore
 if (existsSync(BACKUP)) unlinkSync(BACKUP);
 const skip = run("scripts/backup-db.mjs", [], { DATABASE_URL: SRC, VERCEL_ENV: "preview" });
