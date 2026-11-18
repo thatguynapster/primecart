@@ -87,7 +87,7 @@ Needs the deployed dev environment (ticked = verified on `aura-stone`, 2026-11-1
 - [x] Two checkout-off orders for the last unit: both accepted; confirming the second is blocked with "Only 0 left of …"
 - [x] Cancel a checkout-off order before confirming: stock unchanged. After confirming: stock restored
 - [x] Unpaid manual order: stock deducted; still open after the cron runs. Checkout-off order also still open (verified on dev 2026-11-18 with the cron re-enabled, after the fix below)
-- [x] Settings: with a subaccount → on at once. (Without a subaccount → payout form, and Off → immediate: not yet exercised on dev)
+- [x] Settings: with a subaccount → on at once; Off → storefront button back to "Place order" immediately. (Without a subaccount → payout form: not exercised on dev, aura-stone has one)
 - [x] Checkout on: GHS 6,038 order → stock taken at once, 24 h hold shown to the buyer, "Pay now · GH₵6,038.00". Owner: confirm the Paystack split is GH₵181.14 (no cap)
 - [ ] Reminder email ~30 min after an unpaid checkout-on order, once (run the cron twice)
 - [x] Pay now issues a new link; paying the **old** link still settles the order (stock not deducted twice)
