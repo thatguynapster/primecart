@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import type { OrderStatus } from "@prisma/client";
+import type { Order, OrderStatus } from "@prisma/client";
 
 import { findOrCreateCustomer } from "@/lib/customers/find-or-create";
 import { requireMerchant } from "@/lib/merchant/current";
@@ -12,7 +12,71 @@ import { canCancel, holdsReservedStock, nextStatus } from "@/lib/orders/transiti
 import { validateCustomization } from "@/lib/products/customization";
 import { prisma } from "@/lib/prisma";
 
-const RESERVATION_MINUTES = 30;
+export type OrderActionResult = { error?: string };
+
+/** "How was it paid?" (T12). Optional; anything else is stored as null. */
+const MANUAL_PAYMENT_METHODS = ["MOMO", "CASH", "BANK", "OTHER"] as const;
+type ManualPaymentMethod = (typeof MANUAL_PAYMENT_METHODS)[number];
+
+function parsePaymentMethod(value: unknown): ManualPaymentMethod | null {
+  return MANUAL_PAYMENT_METHODS.find((method) => method === value) ?? null;
+}
+
+function stockLinesOf(order: Order): StockLine[] {
+  return order.lineItems.map((item) => ({
+    productId: item.productId,
+    variantId: item.variantId,
+    quantity: item.quantity,
+  }));
+}
+
+/** Merchant-facing wording for a stock shortfall at confirm time (D-18c). */
+function confirmBlockedMessage(error: OversellError): string {
+  const detail = error.detail;
+  if (detail.kind === "short") {
+    return `Only ${detail.available} left of ${detail.productName} (${detail.variantName}) — update your stock or cancel this order.`;
+  }
+  if (detail.kind === "unavailable") {
+    return "An item in this order is no longer active in your catalogue — reactivate it or cancel this order.";
+  }
+  return "An item in this order just sold out — update your stock or cancel this order.";
+}
+
+/**
+ * D-18c: a checkout-off order (`stockReserved: false`) takes its stock at the
+ * moment the merchant confirms it or marks it paid. Reserves through the same
+ * oversell-safe path a checkout uses (which sums quantities by variant), then
+ * runs `commit`, an updateMany that must also set `stockReserved: true`.
+ *
+ * If `commit` loses a race (count 0: someone else confirmed or cancelled the
+ * order in between), the stock just taken is put back.
+ */
+async function takeStockThen(
+  merchantId: string,
+  order: Order,
+  commit: () => Promise<{ count: number }>
+): Promise<OrderActionResult> {
+  const lines = stockLinesOf(order);
+  try {
+    await reserveStock(merchantId, lines);
+  } catch (error) {
+    if (error instanceof OversellError) return { error: confirmBlockedMessage(error) };
+    throw error;
+  }
+
+  const { count } = await commit();
+  if (count === 0) {
+    await restoreStock(merchantId, lines).catch((error: unknown) => {
+      console.error(`Order ${order.id}: failed to release stock after a lost race:`, error);
+    });
+  }
+  return {};
+}
+
+function revalidateOrder(orderId: string) {
+  revalidatePath(`/dashboard/orders/${orderId}`);
+  revalidatePath("/dashboard/orders");
+}
 
 /**
  * Advances an order to the next step in its fulfilment chain.
@@ -21,89 +85,145 @@ const RESERVATION_MINUTES = 30;
  * never accepted from the client — a stale or tampered button cannot skip a
  * step or land on EXPIRED, which is not reachable through this function at
  * all (task 10.7).
+ *
+ * Confirming a checkout-off order takes its stock, and is blocked with a
+ * clear message if the stock has run out since it was placed (D-18c).
  */
-export async function advanceOrderStatus(orderId: string): Promise<void> {
+export async function advanceOrderStatus(orderId: string): Promise<OrderActionResult> {
   const merchant = await requireMerchant();
 
   const order = await prisma.order.findFirst({
     where: { merchantId: merchant.id, id: orderId },
   });
-  if (!order) return;
+  if (!order) return { error: "Order not found." };
 
   const next = nextStatus(order.status);
-  if (!next) return;
+  if (!next) return {};
 
-  const data: { status: OrderStatus; reservedUntil?: null } = { status: next };
-  if (next === "CONFIRMED") data.reservedUntil = null;
+  let result: OrderActionResult = {};
 
-  await prisma.order.updateMany({
-    where: { id: orderId, merchantId: merchant.id, status: order.status },
-    data,
-  });
+  if (next === "CONFIRMED" && order.stockReserved === false) {
+    result = await takeStockThen(merchant.id, order, () =>
+      prisma.order.updateMany({
+        where: {
+          id: orderId,
+          merchantId: merchant.id,
+          status: order.status,
+          stockReserved: false,
+        },
+        data: { status: next, reservedUntil: null, stockReserved: true },
+      })
+    );
+  } else {
+    const data: { status: OrderStatus; reservedUntil?: null } = { status: next };
+    if (next === "CONFIRMED") data.reservedUntil = null;
 
-  revalidatePath(`/dashboard/orders/${orderId}`);
-  revalidatePath("/dashboard/orders");
+    await prisma.order.updateMany({
+      where: { id: orderId, merchantId: merchant.id, status: order.status },
+      data,
+    });
+  }
+
+  revalidateOrder(orderId);
+  return result;
 }
 
-export async function cancelOrder(orderId: string): Promise<void> {
+/**
+ * Cancels an order. Stock goes back only if this order actually holds it:
+ * `stockReserved: true`, or a legacy order (null) in a state that held
+ * stock as before. A checkout-off order cancelled before confirmation never
+ * took any, so nothing is returned (D-18c).
+ */
+export async function cancelOrder(orderId: string): Promise<OrderActionResult> {
   const merchant = await requireMerchant();
 
   const order = await prisma.order.findFirst({
     where: { merchantId: merchant.id, id: orderId },
   });
-  if (!order || !canCancel(order.status)) return;
+  if (!order) return { error: "Order not found." };
+  if (!canCancel(order.status)) return {};
 
   const { count } = await prisma.order.updateMany({
     where: { id: orderId, merchantId: merchant.id, status: order.status },
     data: { status: "CANCELLED", reservedUntil: null },
   });
 
-  // Stock reserved at creation is released back to the catalogue — a
-  // cancelled order must not keep units it will never sell.
-  if (count > 0 && holdsReservedStock(order.status)) {
-    const lines: StockLine[] = order.lineItems.map((item) => ({
-      productId: item.productId,
-      variantId: item.variantId,
-      quantity: item.quantity,
-    }));
-    await restoreStock(merchant.id, lines).catch((error: unknown) => {
+  const holdsStock =
+    order.stockReserved === true ||
+    (order.stockReserved == null && holdsReservedStock(order.status));
+
+  if (count > 0 && holdsStock) {
+    await restoreStock(merchant.id, stockLinesOf(order)).catch((error: unknown) => {
       console.error(`Order ${orderId}: failed to release stock on cancel:`, error);
     });
   }
 
-  revalidatePath(`/dashboard/orders/${orderId}`);
-  revalidatePath("/dashboard/orders");
+  revalidateOrder(orderId);
+  return {};
 }
 
 /**
- * Records a payment the merchant confirmed outside Paystack — cash on
- * delivery, or a mobile money transfer read out over WhatsApp. Only moves
- * `paymentStatus`; a PENDING order also advances to CONFIRMED since a
- * confirmed payment is exactly what that step means, mirroring the webhook's
- * own settlement. EXPIRED and CANCELLED orders are left alone — those need
- * the manual-review path already documented for the webhook, not a silent
- * status flip.
+ * Records a payment the merchant confirmed outside Paystack — MoMo sent
+ * directly, cash on delivery, a bank transfer. A PENDING order also advances
+ * to CONFIRMED since a confirmed payment is exactly what that step means,
+ * mirroring the webhook's own settlement — and for a checkout-off order that
+ * takes its stock (D-18c), blocked if it has run out.
+ *
+ * `method` is the optional "How was it paid?" answer (T12): lets the merchant
+ * look up a disputed payment later and shows the owner how much money moves
+ * outside checkout. Skipping it still marks the order paid.
+ *
+ * EXPIRED and CANCELLED orders are left alone: those need the manual-review
+ * path already documented for the webhook, not a silent status flip.
  */
-export async function markOrderPaid(orderId: string): Promise<void> {
+export async function markOrderPaid(
+  orderId: string,
+  method?: string | null
+): Promise<OrderActionResult> {
   const merchant = await requireMerchant();
 
   const order = await prisma.order.findFirst({
     where: { merchantId: merchant.id, id: orderId },
   });
-  if (!order || order.paymentStatus !== "UNPAID") return;
-  if (order.status === "CANCELLED" || order.status === "EXPIRED") return;
+  if (!order) return { error: "Order not found." };
+  if (order.paymentStatus !== "UNPAID") return {};
+  if (order.status === "CANCELLED" || order.status === "EXPIRED") {
+    return { error: "This order is closed. It can't be marked paid." };
+  }
 
-  await prisma.order.updateMany({
-    where: { id: orderId, merchantId: merchant.id, paymentStatus: "UNPAID" },
-    data: {
-      paymentStatus: "PAID",
-      status: order.status === "PENDING" ? "CONFIRMED" : order.status,
-      reservedUntil: null,
-    },
-  });
+  const paymentMethod = parsePaymentMethod(method);
+  const status = order.status === "PENDING" ? "CONFIRMED" : order.status;
 
-  revalidatePath(`/dashboard/orders/${orderId}`);
-  revalidatePath("/dashboard/orders");
+  let result: OrderActionResult = {};
+
+  if (order.status === "PENDING" && order.stockReserved === false) {
+    result = await takeStockThen(merchant.id, order, () =>
+      prisma.order.updateMany({
+        where: {
+          id: orderId,
+          merchantId: merchant.id,
+          status: "PENDING",
+          paymentStatus: "UNPAID",
+          stockReserved: false,
+        },
+        data: {
+          paymentStatus: "PAID",
+          status,
+          reservedUntil: null,
+          stockReserved: true,
+          paymentMethod,
+        },
+      })
+    );
+  } else {
+    await prisma.order.updateMany({
+      where: { id: orderId, merchantId: merchant.id, paymentStatus: "UNPAID" },
+      data: { paymentStatus: "PAID", status, reservedUntil: null, paymentMethod },
+    });
+  }
+
+  revalidateOrder(orderId);
+  return result;
 }
 
 // ---------------------------------------------------------------------------
@@ -266,9 +386,11 @@ export async function createManualOrder(
       shippingAddress: address || city
         ? { name, phone, address, city, region: region || null }
         : undefined,
-      reservedUntil: markPaid
-        ? null
-        : new Date(Date.now() + RESERVATION_MINUTES * 60_000),
+      // D-18: manual orders take stock at creation and never expire, paid or
+      // not. The merchant agreed the sale in person; it stays open until
+      // they mark it paid or cancel it.
+      reservedUntil: null,
+      stockReserved: true,
       notes: notes || null,
     },
   });

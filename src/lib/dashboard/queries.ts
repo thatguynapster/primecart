@@ -223,7 +223,12 @@ export type SavedView =
 function viewFilter(view: SavedView): Record<string, unknown> {
 	switch (view) {
 		case "unpaid":
-			return { paymentStatus: "UNPAID" };
+			// Open orders still waiting on money. Expired/cancelled ones are
+			// unpaid too, but there is nothing left to collect on them.
+			return {
+				paymentStatus: "UNPAID",
+				status: { $nin: ["CANCELLED", "EXPIRED"] }
+			};
 		case "fulfil":
 			return { status: { $in: ["CONFIRMED", "PROCESSING"] } };
 		case "storefront":
@@ -248,6 +253,8 @@ export type OrderRow = {
 	channel: string;
 	status: string;
 	paymentStatus: string;
+	/** D-18c: false = checkout-off order whose stock isn't taken yet. */
+	stockReserved: boolean | null;
 	total: number;
 	createdAt: string;
 };
@@ -270,6 +277,7 @@ export async function listOrders(
 			source: string;
 			status: string;
 			paymentStatus: string;
+			stockReserved?: boolean | null;
 			total: number;
 			createdAt: { $date: string };
 		}>("Order", [
@@ -295,6 +303,7 @@ export async function listOrders(
 					source: 1,
 					status: 1,
 					paymentStatus: 1,
+					stockReserved: 1,
 					total: 1,
 					createdAt: 1,
 					customerName: {
@@ -320,6 +329,7 @@ export async function listOrders(
 			channel: row.source,
 			status: row.status,
 			paymentStatus: row.paymentStatus,
+			stockReserved: row.stockReserved ?? null,
 			total: row.total,
 			createdAt: row.createdAt.$date
 		})),
@@ -334,6 +344,10 @@ export async function listOrders(
  * state from task 10.8 — a paid order stuck at EXPIRED is exactly the kind of
  * thing this badge exists to surface, even though it isn't "to fulfil" in the
  * ordinary sense.
+ *
+ * D-18: plus new checkout-off storefront orders (PENDING, unpaid, stock not
+ * taken). The merchant has to message the buyer to confirm and arrange
+ * payment, and nothing else will prompt them to.
  */
 export async function countOrdersNeedingAction(
 	merchantId: string
@@ -344,7 +358,8 @@ export async function countOrdersNeedingAction(
 				merchantId: oid(merchantId),
 				$or: [
 					{ status: { $in: ["CONFIRMED", "PROCESSING"] } },
-					{ status: "EXPIRED", paymentStatus: "PAID" }
+					{ status: "EXPIRED", paymentStatus: "PAID" },
+					{ status: "PENDING", paymentStatus: "UNPAID", stockReserved: false }
 				]
 			}
 		},

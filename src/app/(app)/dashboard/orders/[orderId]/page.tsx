@@ -4,14 +4,24 @@ import { notFound } from "next/navigation";
 import { TopBar } from "@/components/dashboard/nocturne/top-bar";
 import { Card } from "@/components/dashboard/nocturne/ui";
 import { getRootDomain, getStorefrontOrigin } from "@/lib/domain";
-import { formatGhs, formatRelativeDate } from "@/lib/format";
+import { formatGhs, formatRelativeDate, isPast } from "@/lib/format";
 import { requireMerchant } from "@/lib/merchant/current";
+import { newOrderWhatsappMessage } from "@/lib/notifications/events";
 import { getOrder } from "@/lib/orders/queries";
 import {
   LEGACY_D16_FEE_CAP_PESEWAS,
   STOREFRONT_FEE_RATE,
 } from "@/lib/paystack";
+import { waMeLink } from "@/lib/phone";
 import { OrderActions } from "./order-actions";
+
+const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  PAYSTACK: "Paystack (online)",
+  MOMO: "MoMo",
+  CASH: "Cash",
+  BANK: "Bank transfer",
+  OTHER: "Other",
+};
 
 function titleCase(value: string): string {
   return value.charAt(0) + value.slice(1).toLowerCase();
@@ -60,6 +70,50 @@ export default async function OrderDetailPage({
   const shipping = order.shippingAddress;
   const contactName = shipping?.name ?? order.customer?.name ?? "Guest";
   const contactPhone = shipping?.phone ?? order.customer?.phone ?? null;
+
+  // D-18: one-tap WhatsApp to the buyer. A checkout-on order still inside its
+  // payment hold gets the storefront order page link (which has a fresh
+  // "Pay now"); a checkout-off order gets the confirm-and-arrange-payment
+  // opener; anything else a plain opener.
+  const isOpenUnpaid = order.status === "PENDING" && order.paymentStatus === "UNPAID";
+  const awaitingStock = isOpenUnpaid && order.stockReserved === false;
+  const payLinkOpen =
+    isOpenUnpaid &&
+    order.stockReserved === true &&
+    order.paymentMethod === "PAYSTACK" &&
+    order.reservedUntil != null &&
+    !isPast(order.reservedUntil);
+  const storefrontOrderUrl = `${getStorefrontOrigin(storefront.subdomain)}/orders/${order.id}`;
+  const whatsapp = contactPhone
+    ? payLinkOpen
+      ? {
+          label: "Send payment link on WhatsApp",
+          href: waMeLink(
+            contactPhone,
+            `Hi ${contactName}, here's the link to pay for your order ${order.orderNumber} from ${storefront.businessName}: ${storefrontOrderUrl}`
+          ),
+        }
+      : awaitingStock
+        ? {
+            label: "Message buyer on WhatsApp",
+            href: waMeLink(
+              contactPhone,
+              newOrderWhatsappMessage({
+                customerName: contactName,
+                orderNumber: order.orderNumber,
+                storeName: storefront.businessName,
+                total: order.total,
+              })
+            ),
+          }
+        : {
+            label: "WhatsApp",
+            href: waMeLink(
+              contactPhone,
+              `Hi ${contactName}, about your order ${order.orderNumber} from ${storefront.businessName}.`
+            ),
+          }
+    : null;
 
   // DEV-6 (Phase 15), §A.6 — dashboard only. Lines with an unknown cost
   // (null costPrice) are simply left out, same rule the analytics coverage
@@ -116,6 +170,9 @@ export default async function OrderDetailPage({
           {formatRelativeDate(order.createdAt)}
         </span>{" "}
         · {titleCase(order.source)}
+        {order.paymentStatus === "PAID" && order.paymentMethod
+          ? ` · Paid by ${PAYMENT_METHOD_LABELS[order.paymentMethod] ?? titleCase(order.paymentMethod)}`
+          : ""}
       </p>
 
       {needsReview && (
@@ -124,8 +181,8 @@ export default async function OrderDetailPage({
             Needs review — payment arrived after this order expired
           </p>
           <p className="mt-1.5 text-sm text-nk-accent-300">
-            The customer&rsquo;s payment was confirmed after the 30-minute
-            reservation lapsed, and the stock could not be automatically
+            The customer&rsquo;s payment was confirmed after the payment
+            window lapsed, and the stock could not be automatically
             re-reserved. The payment is recorded (Paid), but the order was
             left Expired rather than confirmed, since the items it needs are
             not guaranteed to be available. Check stock and either fulfil this
@@ -139,6 +196,8 @@ export default async function OrderDetailPage({
           orderId={order.id}
           status={order.status}
           paymentStatus={order.paymentStatus}
+          awaitingStock={awaitingStock}
+          whatsapp={whatsapp}
         />
       </div>
 

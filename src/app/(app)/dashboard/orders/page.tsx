@@ -24,6 +24,19 @@ const VIEWS: { key: SavedView; label: string }[] = [
 
 const PAGE_SIZE = 25;
 
+/** D-18: a checkout-off storefront order nobody has confirmed yet. */
+function isAwaitingConfirmation(order: {
+  status: string;
+  paymentStatus: string;
+  stockReserved: boolean | null;
+}): boolean {
+  return (
+    order.status === "PENDING" &&
+    order.paymentStatus === "UNPAID" &&
+    order.stockReserved === false
+  );
+}
+
 /** Status pill colours come from the handoff's status table. */
 function statusPill(status: string, paymentStatus: string): string {
   // Task 10.8: a paid order stuck at EXPIRED needs a merchant's attention,
@@ -167,11 +180,20 @@ export default async function OrdersPage({
                         {titleCase(order.channel)}
                       </td>
                       <td className="px-4 py-2.75">
-                        <span
-                          className={`inline-flex rounded-sm border px-2.5 py-0.5 text-xs ${statusPill(order.status, order.paymentStatus)}`}
-                        >
-                          {statusLabel(order.status, order.paymentStatus)}
-                        </span>
+                        {isAwaitingConfirmation(order) ? (
+                          <span
+                            className="inline-flex rounded-sm border border-nk-accent-700 bg-nk-accent-900 px-2.5 py-0.5 text-xs text-nk-accent-200"
+                            title="Message the buyer to confirm and arrange payment"
+                          >
+                            New — confirm
+                          </span>
+                        ) : (
+                          <span
+                            className={`inline-flex rounded-sm border px-2.5 py-0.5 text-xs ${statusPill(order.status, order.paymentStatus)}`}
+                          >
+                            {statusLabel(order.status, order.paymentStatus)}
+                          </span>
+                        )}
                       </td>
                       <td
                         className={`px-4 py-2.75 ${
