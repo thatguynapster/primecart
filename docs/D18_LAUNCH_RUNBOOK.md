@@ -109,6 +109,8 @@ PrimeCart is now GHS 89/month with everything included, after a 14-day free tria
 
 - **Stale Phase 13 subscription status.** The removed Aug 2026 subscription left `subscriptionStatus` (enum default `TRIAL`, sometimes `EXPIRED`) on merchants who signed up 13–24 Aug, with no D-18 dates. The first backfill skipped them (it matched `subscriptionStatus: null`), so they showed **Expired** with a read-only dashboard. On dev that was `aura-stone`; in production it would almost certainly have been the founding merchants. The backfill, onboarding and the status check now key on the D-18 dates instead, so those merchants get their 14-day trial on the next deploy.
 
+- **Vercel Build Command override.** The project's Build Command was `npm run build && npm run db:push`, so `vercel-build` never ran on any deploy: no pre-deploy backup, no `db:backfill` (Phase 15) and no `db:backfill-d18`. Changed to `npm run vercel-build` on 2026-11-18; the next dev deploy started aura-stone's trial. `npm run build` now fails on Vercel (`scripts/require-vercel-build.mjs`) so the override can't silently come back. **Before the first production deploy, check Production also builds with `npm run vercel-build`.**
+
 ## Decisions I made that weren't spelled out (tell me if you want any changed)
 
 - **Trial clock for not-yet-onboarded merchants.** The backfill gives a trial only to merchants who have a shop. Anyone mid-signup gets their 14 days when they finish onboarding, not at deploy time.
