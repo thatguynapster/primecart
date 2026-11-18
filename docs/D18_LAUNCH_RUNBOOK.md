@@ -79,19 +79,20 @@ Already verified offline (no database needed):
 - [x] Backup → restore keeps every BSON type and the unique subdomain index; restore refuses a non-empty target (`npm run test:db`)
 - [x] `tsc --noEmit`, `eslint` (0 errors), `next build`
 
-Needs the deployed dev environment:
+Needs the deployed dev environment (ticked = verified on `aura-stone`, 2026-11-18):
 - [ ] New sign-up: no payout step; trial 14 days; banner shows; storefront button says "Place order"
-- [ ] Checkout off: order unpaid, **stock unchanged**, merchant email has the WhatsApp button, order page says "Order received", never "waiting for payment"
-- [ ] Checkout off, order more than stock → rejected at checkout
-- [ ] Two checkout-off orders for the last unit: both accepted; confirming the second is blocked with "Only 0 left of …"
-- [ ] Cancel a checkout-off order before confirming: stock unchanged. After confirming: stock restored
-- [x] Unpaid manual order / checkout-off order never matched by the expiry sweep (`npm run test:db`; found on dev, see below). Still worth one manual unpaid order on dev
-- [ ] Settings: switch checkout on without a subaccount → payout form → on. With one → on at once. Off → immediate
-- [ ] Checkout on: GHS 6,000 order → Paystack `transaction_charge` 18000 pesewas (no cap); order holds 24 h
+- [x] Checkout off: order unpaid, **stock unchanged**, order page says "Order received", never "waiting for payment"
+- [ ] Merchant new-order email for a checkout-off order has the WhatsApp button (owner: check the aura-stone inbox)
+- [x] Checkout off, order more than stock → rejected at checkout (storefront caps quantity; edited cart blocked)
+- [x] Two checkout-off orders for the last unit: both accepted; confirming the second is blocked with "Only 0 left of …"
+- [x] Cancel a checkout-off order before confirming: stock unchanged. After confirming: stock restored
+- [x] Unpaid manual order: stock deducted; still open after the cron runs. Checkout-off order also still open (verified on dev 2026-11-18 with the cron re-enabled, after the fix below)
+- [x] Settings: with a subaccount → on at once; Off → storefront button back to "Place order" immediately. (Without a subaccount → payout form: not exercised on dev, aura-stone has one)
+- [x] Checkout on: GHS 6,038 order → stock taken at once, 24 h hold shown to the buyer, "Pay now · GH₵6,038.00". Owner: confirm the Paystack split is GH₵181.14 (no cap)
 - [ ] Reminder email ~30 min after an unpaid checkout-on order, once (run the cron twice)
-- [ ] Pay now issues a new link; paying the **old** link still settles the order
-- [ ] Billing: pay monthly in test mode → "Paid until …" = trial end + 1 month; replaying the webhook adds nothing
-- [ ] Existing storefront `charge.success` still settles orders (subscription branch doesn't swallow it)
+- [x] Pay now issues a new link; paying the **old** link still settles the order (stock not deducted twice)
+- [x] Billing: pay monthly in test mode → "Paid until 2 Jan 2027" = trial end + 1 month; webhook + return path both ran, time added once. "Continue payment" reopens the same checkout; a new payment hides earlier unpaid ones
+- [x] Existing storefront `charge.success` still settles orders (subscription branch doesn't swallow it)
 
 ## 7. Production deploy
 
