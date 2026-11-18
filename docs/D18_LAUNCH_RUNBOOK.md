@@ -81,7 +81,8 @@ Already verified offline (no database needed):
 
 Needs the deployed dev environment (ticked = verified on `aura-stone`, 2026-11-18):
 - [ ] New sign-up: no payout step; trial 14 days; banner shows; storefront button says "Place order"
-- [x] Checkout off: order unpaid, **stock unchanged**, merchant email has the WhatsApp button, order page says "Order received", never "waiting for payment"
+- [x] Checkout off: order unpaid, **stock unchanged**, order page says "Order received", never "waiting for payment"
+- [ ] Merchant new-order email for a checkout-off order has the WhatsApp button (owner: check the aura-stone inbox)
 - [x] Checkout off, order more than stock → rejected at checkout (storefront caps quantity; edited cart blocked)
 - [x] Two checkout-off orders for the last unit: both accepted; confirming the second is blocked with "Only 0 left of …"
 - [x] Cancel a checkout-off order before confirming: stock unchanged. After confirming: stock restored
