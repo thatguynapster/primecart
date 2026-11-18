@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import type { Order, OrderStatus } from "@prisma/client";
 
 import { findOrCreateCustomer } from "@/lib/customers/find-or-create";
+import { LAPSED_MESSAGE, isLapsed } from "@/lib/billing/state";
 import { requireMerchant } from "@/lib/merchant/current";
 import { generateOrderNumber } from "@/lib/orders/order-number";
 import { OversellError, reserveStock, restoreStock, type StockLine } from "@/lib/orders/stock";
@@ -284,6 +285,7 @@ export async function createManualOrder(
   formData: FormData
 ): Promise<FormState> {
   const merchant = await requireMerchant();
+  if (isLapsed(merchant)) return { error: LAPSED_MESSAGE };
 
   const source = formData.get("source") === "WHATSAPP" ? "WHATSAPP" : "MANUAL";
   const name = String(formData.get("name") ?? "").trim();

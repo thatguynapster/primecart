@@ -41,6 +41,17 @@ export function getBillingState(merchant: Merchant): BillingState {
   };
 }
 
+/**
+ * D-18f: a lapsed subscription locks the dashboard only. Server actions that
+ * change products, settings or create orders return this instead of acting.
+ * Still allowed while lapsed: billing; confirming, advancing, marking paid
+ * and cancelling existing orders; switching storefront checkout off; and
+ * updating payout details (both protect money that's still moving). The
+ * storefront and its checkout keep working throughout.
+ */
+export const LAPSED_MESSAGE =
+  "Your plan has expired, so changes are paused. Renew on the Billing page to make changes. Your shop is still online and taking orders.";
+
 /** Lapsed: dashboard is read-only except billing and order handling (D-18f). */
 export function isLapsed(merchant: Merchant): boolean {
   return effectiveStatus(merchant, new Date()) === "LAPSED";

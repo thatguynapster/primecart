@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { LAPSED_MESSAGE, isLapsed } from "@/lib/billing/state";
 import { requireMerchant } from "@/lib/merchant/current";
 import { invalidateStorefront } from "@/lib/merchant/lookup";
 import {
@@ -44,6 +45,7 @@ export async function updateShopDetails(
   formData: FormData
 ): Promise<SettingsState> {
   const merchant = await requireMerchant();
+  if (isLapsed(merchant)) return { error: LAPSED_MESSAGE };
   const storefront = merchant.storefront;
   if (!storefront) return { error: "Finish setting up your shop first." };
 
@@ -79,6 +81,7 @@ export async function uploadLogo(
   formData: FormData
 ): Promise<SettingsState> {
   const merchant = await requireMerchant();
+  if (isLapsed(merchant)) return { error: LAPSED_MESSAGE };
   const storefront = merchant.storefront;
   if (!storefront) return { error: "Finish setting up your shop first." };
 
@@ -108,6 +111,7 @@ export async function uploadLogo(
 
 export async function removeLogo(): Promise<void> {
   const merchant = await requireMerchant();
+  if (isLapsed(merchant)) return;
   const storefront = merchant.storefront;
   if (!storefront?.logoUrl) return;
 
@@ -126,6 +130,7 @@ export async function updateHero(
   formData: FormData
 ): Promise<SettingsState> {
   const merchant = await requireMerchant();
+  if (isLapsed(merchant)) return { error: LAPSED_MESSAGE };
   const storefront = merchant.storefront;
   if (!storefront) return { error: "Finish setting up your shop first." };
 
@@ -146,6 +151,7 @@ export async function uploadHeroImage(
   formData: FormData
 ): Promise<SettingsState> {
   const merchant = await requireMerchant();
+  if (isLapsed(merchant)) return { error: LAPSED_MESSAGE };
   const storefront = merchant.storefront;
   if (!storefront) return { error: "Finish setting up your shop first." };
 
@@ -172,6 +178,7 @@ export async function uploadHeroImage(
 
 export async function removeHeroImage(): Promise<void> {
   const merchant = await requireMerchant();
+  if (isLapsed(merchant)) return;
   const storefront = merchant.storefront;
   if (!storefront?.heroImageUrl) return;
 
@@ -190,6 +197,7 @@ export async function updateBanner(
   formData: FormData
 ): Promise<SettingsState> {
   const merchant = await requireMerchant();
+  if (isLapsed(merchant)) return { error: LAPSED_MESSAGE };
   const storefront = merchant.storefront;
   if (!storefront) return { error: "Finish setting up your shop first." };
 
@@ -210,6 +218,7 @@ export async function uploadBannerImage(
   formData: FormData
 ): Promise<SettingsState> {
   const merchant = await requireMerchant();
+  if (isLapsed(merchant)) return { error: LAPSED_MESSAGE };
   const storefront = merchant.storefront;
   if (!storefront) return { error: "Finish setting up your shop first." };
 
@@ -236,6 +245,7 @@ export async function uploadBannerImage(
 
 export async function removeBannerImage(): Promise<void> {
   const merchant = await requireMerchant();
+  if (isLapsed(merchant)) return;
   const storefront = merchant.storefront;
   if (!storefront?.bannerImageUrl) return;
 
@@ -283,6 +293,7 @@ export async function enableStorefrontPayments(
   formData: FormData
 ): Promise<SettingsState> {
   const merchant = await requireMerchant();
+  if (isLapsed(merchant)) return { error: LAPSED_MESSAGE };
   const storefront = merchant.storefront;
   if (!storefront) return { error: "Finish setting up your shop first." };
 
@@ -412,6 +423,7 @@ export async function updateSocials(
   formData: FormData
 ): Promise<SettingsState> {
   const merchant = await requireMerchant();
+  if (isLapsed(merchant)) return { error: LAPSED_MESSAGE };
   const storefront = merchant.storefront;
   if (!storefront) return { error: "Finish setting up your shop first." };
 
