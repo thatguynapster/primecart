@@ -12,7 +12,7 @@ import { getRootDomain, getStorefrontOrigin } from "@/lib/domain";
 import { formatGhs, formatLongDate } from "@/lib/format";
 import { requireMerchant } from "@/lib/merchant/current";
 import { prisma } from "@/lib/prisma";
-import { CheckPaymentButton, PlanPicker } from "./billing-forms";
+import { CheckPaymentButton, ContinuePaymentButton, PlanPicker } from "./billing-forms";
 
 export const metadata = { title: "Billing — PrimeCart" };
 
@@ -182,7 +182,12 @@ export default async function BillingPage({
                         </td>
                         <td className="px-6 py-3 text-right">
                           {payment.status === "PENDING" ? (
-                            <CheckPaymentButton reference={payment.reference} />
+                            <span className="inline-flex flex-wrap items-start justify-end gap-2">
+                              {payment.authorizationUrl && (
+                                <ContinuePaymentButton reference={payment.reference} />
+                              )}
+                              <CheckPaymentButton reference={payment.reference} />
+                            </span>
                           ) : (
                             <span className="text-nk-neutral-400">
                               {STATUS_LABEL[payment.status] ?? payment.status}
