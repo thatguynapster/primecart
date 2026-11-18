@@ -169,6 +169,17 @@ export default async function OrderStatusPage({
             This can take a minute. Refresh this page to check again — we will
             not ask you to pay twice.
           </p>
+          {holdOpen && returnedReference && (
+            <p className="mt-4 text-[13.5px] text-neutral-600">
+              Payment didn&rsquo;t go through?{" "}
+              <Link
+                href={`/orders/${order.id}`}
+                className="font-medium text-neutral-900 underline underline-offset-4"
+              >
+                Try again
+              </Link>
+            </p>
+          )}
         </>
       )}
 
