@@ -3,12 +3,10 @@
 import { useActionState, useEffect, useId, useState } from "react";
 import { useFormStatus } from "react-dom";
 
-import type { PaystackBank } from "@/lib/paystack";
 import { checkSubdomain, completeOnboarding } from "./actions";
 import type { OnboardingState } from "./actions";
 
 type Props = {
-  banks: PaystackBank[];
   rootDomain: string;
   defaultBusinessName: string;
 };
@@ -41,7 +39,6 @@ function FieldError({ message }: { message?: string }) {
 }
 
 export function OnboardingForm({
-  banks,
   rootDomain,
   defaultBusinessName,
 }: Props) {
@@ -68,8 +65,6 @@ export function OnboardingForm({
     subdomain: useId(),
     description: useId(),
     primaryColor: useId(),
-    bankCode: useId(),
-    accountNumber: useId(),
   };
 
   // Debounced availability check. Every setState happens inside the timeout
@@ -97,9 +92,6 @@ export function OnboardingForm({
       clearTimeout(timer);
     };
   }, [subdomain]);
-
-  const bankOptions = banks.filter((b) => b.type !== "mobile_money");
-  const momoOptions = banks.filter((b) => b.type === "mobile_money");
 
   const fieldErrors = state.fieldErrors ?? {};
 
@@ -214,77 +206,11 @@ export function OnboardingForm({
         <FieldError message={fieldErrors.primaryColor} />
       </div>
 
-      {/* -------------------------------------------------------- payout */}
-      <div className="border-t border-neutral-200 pt-7">
-        <h2 className="font-display text-[17px] font-bold tracking-tight text-neutral-900">
-          Where should we send your money?
-        </h2>
-        <p className="mt-2 text-[14px] leading-relaxed text-neutral-600">
-          Storefront sales are paid into this account. We charge 3% on
-          storefront sales only. That 3% covers all payment processing fees — no
-          hidden charges on top. Manual orders are always free. You keep 97% of
-          every sale.
-        </p>
-
-        <div className="mt-5">
-          <label
-            htmlFor={ids.bankCode}
-            className="block text-[14px] font-medium text-neutral-900"
-          >
-            Bank or mobile money
-          </label>
-          <select
-            id={ids.bankCode}
-            name="bankCode"
-            defaultValue=""
-            className="mt-2 w-full rounded-xl border border-neutral-300 bg-white px-4 py-2.5 text-[15px] outline-none focus:border-neutral-900"
-          >
-            <option value="" disabled>
-              Choose one
-            </option>
-            {momoOptions.length > 0 && (
-              <optgroup label="Mobile money">
-                {momoOptions.map((bank) => (
-                  <option key={bank.code} value={bank.code}>
-                    {bank.name}
-                  </option>
-                ))}
-              </optgroup>
-            )}
-            <optgroup label="Banks">
-              {bankOptions.map((bank) => (
-                <option key={bank.code} value={bank.code}>
-                  {bank.name}
-                </option>
-              ))}
-            </optgroup>
-          </select>
-          <FieldError message={fieldErrors.bankCode} />
-        </div>
-
-        <div className="mt-5">
-          <label
-            htmlFor={ids.accountNumber}
-            className="block text-[14px] font-medium text-neutral-900"
-          >
-            Account or mobile money number
-          </label>
-          <input
-            id={ids.accountNumber}
-            name="accountNumber"
-            inputMode="numeric"
-            placeholder="0244000000"
-            autoComplete="off"
-            className="mt-2 w-full rounded-xl border border-neutral-300 bg-white px-4 py-2.5 text-[15px] outline-none focus:border-neutral-900"
-          />
-          <FieldError message={fieldErrors.accountNumber} />
-        </div>
-      </div>
-
       <SubmitButton />
 
       <p className="text-center text-[13px] text-neutral-500">
-        Your shop goes live straight away. Nothing to pay for 30 days.
+        Your shop goes live straight away, and your 14-day free trial starts
+        today. No payment details needed.
       </p>
     </form>
   );

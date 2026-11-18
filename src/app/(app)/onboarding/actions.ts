@@ -2,9 +2,9 @@
 
 import { redirect } from "next/navigation";
 
+import { TRIAL_DAYS, addDays } from "@/lib/billing/plans";
 import { requireMerchant } from "@/lib/merchant/current";
 import { invalidateStorefront } from "@/lib/merchant/lookup";
-import { PaystackError, createSubaccount } from "@/lib/paystack";
 import { prisma } from "@/lib/prisma";
 import { checkSubdomainAvailable } from "@/lib/storefront/subdomain";
 
@@ -16,8 +16,12 @@ export type OnboardingState = {
 const HEX_COLOUR = /^#[0-9a-fA-F]{6}$/;
 
 /**
- * Completes merchant onboarding: claims a subdomain, creates the Paystack
- * subaccount, and switches the storefront on.
+ * Completes merchant onboarding: claims a subdomain, starts the 14-day free
+ * trial, and switches the storefront on.
+ *
+ * No payout details here any more (D-18d): checkout is an opt-in add-on that
+ * starts off, and the Paystack subaccount is created only when the merchant
+ * switches it on in settings.
  *
  * The merchant is taken from the Clerk session, never from the form — a
  * merchantId submitted by the client would let one merchant write to another's
@@ -33,8 +37,6 @@ export async function completeOnboarding(
   const subdomainRaw = String(formData.get("subdomain") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
   const primaryColor = String(formData.get("primaryColor") ?? "#000000").trim();
-  const bankCode = String(formData.get("bankCode") ?? "").trim();
-  const accountNumber = String(formData.get("accountNumber") ?? "").trim();
 
   const fieldErrors: Record<string, string> = {};
 
@@ -53,16 +55,6 @@ export async function completeOnboarding(
     fieldErrors.primaryColor = "Choose a colour.";
   }
 
-  if (!bankCode) {
-    fieldErrors.bankCode = "Choose where you want to be paid.";
-  }
-
-  if (!accountNumber) {
-    fieldErrors.accountNumber = "Enter your account or mobile money number.";
-  } else if (!/^[0-9]{5,20}$/.test(accountNumber)) {
-    fieldErrors.accountNumber = "Use digits only.";
-  }
-
   // The `!subdomainCheck.ok` arm is what narrows the check to its success shape
   // for the rest of this function.
   if (Object.keys(fieldErrors).length > 0 || !subdomainCheck.ok) {
@@ -71,35 +63,24 @@ export async function completeOnboarding(
 
   const subdomain = subdomainCheck.value;
 
-  // Paystack first. If this fails the merchant simply retries; the reverse
-  // order would leave a live storefront that cannot take payment.
-  let subaccountCode: string;
-  try {
-    const subaccount = await createSubaccount({
-      businessName,
-      bankCode,
-      accountNumber,
-    });
-    subaccountCode = subaccount.subaccount_code;
-  } catch (error) {
-    if (error instanceof PaystackError) {
-      // Paystack's own message names the real problem ("Account number is
-      // invalid", "Settlement Bank is invalid"), but not reliably which field
-      // it belongs to — so it is shown against the payout section rather than
-      // pinned to the wrong input.
-      return { error: `Paystack could not verify these details: ${error.message}` };
-    }
-    return {
-      error:
-        "Could not reach Paystack just now. Check your details and try again.",
-    };
-  }
+  // D-18: the trial is set once. A merchant who somehow onboards again (or
+  // was already given a trial by the deploy backfill) keeps the dates they
+  // have, and a founding plan is never downgraded to STANDARD here.
+  const now = new Date();
+  const subscription = {
+    ...(merchant.subscriptionStatus == null && { subscriptionStatus: "TRIAL" }),
+    ...(merchant.plan == null && { plan: "STANDARD" }),
+    ...(merchant.trialEndsAt == null && { trialEndsAt: addDays(now, TRIAL_DAYS) }),
+    ...(merchant.storefrontPaymentsEnabled == null && {
+      storefrontPaymentsEnabled: false,
+    }),
+  };
 
   try {
     await prisma.merchant.update({
       where: { id: merchant.id },
       data: {
-        paystackSubaccountCode: subaccountCode,
+        ...subscription,
         // Setting the whole composite works through Prisma Client; only
         // partial updates of a single embedded field require $runCommandRaw.
         storefront: {
@@ -108,8 +89,8 @@ export async function completeOnboarding(
             businessName,
             description: description || null,
             primaryColor,
-            // Live immediately — storefronts are not manually reviewed. It is
-            // only switched off if the subscription lapses.
+            // Live immediately — storefronts are not manually reviewed, and a
+            // lapsed subscription never takes a shop down (D-18f).
             isActive: true,
           },
         },
