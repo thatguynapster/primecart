@@ -79,6 +79,20 @@ export async function startSubscriptionPayment(
     throw error;
   }
 
+  await prisma.subscriptionPayment.updateMany({
+    where: { reference, status: "PENDING" },
+    data: { authorizationUrl },
+  });
+
+  // This payment replaces any earlier one left unpaid, so history shows one
+  // pending row, not a trail of abandoned ones. Only after Paystack accepted
+  // the new one: if it had failed, the old one stays to be continued.
+  // SUPERSEDED rows still apply if their old link is ever paid.
+  await prisma.subscriptionPayment.updateMany({
+    where: { merchantId: merchant.id, status: "PENDING", reference: { not: reference } },
+    data: { status: "SUPERSEDED" },
+  });
+
   // Preselects the same option next time.
   await prisma.merchant.update({
     where: { id: merchant.id },
@@ -86,6 +100,55 @@ export async function startSubscriptionPayment(
   });
 
   redirect(authorizationUrl);
+}
+
+/** Paystack's hosted checkout. Anything else stored there is never followed. */
+function isPaystackCheckout(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "https:" && parsed.hostname === "checkout.paystack.com";
+  } catch {
+    return false;
+  }
+}
+
+export type ResumeState = { error?: string; outcome?: ApplyOutcome };
+
+/**
+ * "Continue payment" on a payment left unpaid: back to the same Paystack
+ * checkout, same reference and amount, so nothing new is created. Asks
+ * Paystack first: if it was in fact paid (tab closed before returning), it's
+ * applied here instead of sending the merchant to pay twice.
+ */
+export async function resumeSubscriptionPayment(
+  _prev: ResumeState,
+  formData: FormData
+): Promise<ResumeState> {
+  const merchant = await requireMerchant();
+  const reference = String(formData.get("reference") ?? "");
+  if (merchantIdOfReference(reference) !== merchant.id) {
+    return { error: "This payment can't be continued." };
+  }
+
+  const payment = await prisma.subscriptionPayment.findUnique({ where: { reference } });
+  if (
+    !payment ||
+    payment.merchantId !== merchant.id ||
+    payment.status !== "PENDING" ||
+    !payment.authorizationUrl ||
+    !isPaystackCheckout(payment.authorizationUrl)
+  ) {
+    return { error: "This payment can't be continued. Start a new one above." };
+  }
+
+  const outcome = await verifyAndApplySubscriptionPayment(reference);
+  if (outcome !== "pending") {
+    revalidatePath("/dashboard/billing");
+    revalidatePath("/dashboard", "layout");
+    return { outcome };
+  }
+
+  redirect(payment.authorizationUrl);
 }
 
 /**

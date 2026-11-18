@@ -282,7 +282,13 @@ model SubscriptionPayment {
   // Set once applied — the period this payment actually bought.
   periodStart       DateTime?
   periodEnd         DateTime?
-  status            String // "PENDING" | "APPLYING" | "SUCCESS" | "FAILED" | "REVIEW"
+  // SUPERSEDED: still unpaid when the merchant started another payment.
+  // Hidden from history, but a late payment on its link still applies.
+  status            String // "PENDING" | "APPLYING" | "SUCCESS" | "FAILED" | "REVIEW" | "SUPERSEDED"
+  // Paystack's hosted checkout for this reference, so an abandoned payment
+  // can be continued instead of started again. Null on rows from before
+  // 2026-11-18.
+  authorizationUrl  String?
   channel           String? // Paystack channel, e.g. "mobile_money", "card"
   paidAt            DateTime?
   createdAt         DateTime  @default(now())
