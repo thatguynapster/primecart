@@ -79,13 +79,13 @@ Already verified offline (no database needed):
 - [x] Backup → restore keeps every BSON type and the unique subdomain index; restore refuses a non-empty target (`npm run test:db`)
 - [x] `tsc --noEmit`, `eslint` (0 errors), `next build`
 
-Needs the deployed dev environment:
+Needs the deployed dev environment (ticked = verified on `aura-stone`, 2026-11-18):
 - [ ] New sign-up: no payout step; trial 14 days; banner shows; storefront button says "Place order"
-- [ ] Checkout off: order unpaid, **stock unchanged**, merchant email has the WhatsApp button, order page says "Order received", never "waiting for payment"
-- [ ] Checkout off, order more than stock → rejected at checkout
-- [ ] Two checkout-off orders for the last unit: both accepted; confirming the second is blocked with "Only 0 left of …"
-- [ ] Cancel a checkout-off order before confirming: stock unchanged. After confirming: stock restored
-- [x] Unpaid manual order / checkout-off order never matched by the expiry sweep (`npm run test:db`; found on dev, see below). Still worth one manual unpaid order on dev
+- [x] Checkout off: order unpaid, **stock unchanged**, merchant email has the WhatsApp button, order page says "Order received", never "waiting for payment"
+- [x] Checkout off, order more than stock → rejected at checkout (storefront caps quantity; edited cart blocked)
+- [x] Two checkout-off orders for the last unit: both accepted; confirming the second is blocked with "Only 0 left of …"
+- [x] Cancel a checkout-off order before confirming: stock unchanged. After confirming: stock restored
+- [x] Unpaid manual order: stock deducted; still open after the cron runs. Checkout-off order also still open (verified on dev 2026-11-18 with the cron re-enabled, after the fix below)
 - [ ] Settings: switch checkout on without a subaccount → payout form → on. With one → on at once. Off → immediate
 - [ ] Checkout on: GHS 6,000 order → Paystack `transaction_charge` 18000 pesewas (no cap); order holds 24 h
 - [ ] Reminder email ~30 min after an unpaid checkout-on order, once (run the cron twice)
