@@ -16,11 +16,100 @@ export type StockLine = {
   quantity: number;
 };
 
+/**
+ * Why a reservation or stock check failed. `detail` lets a caller word its own
+ * message (the dashboard's "Only N left of …" on confirm, D-18c) while
+ * `message` stays the shopper-facing default.
+ */
+export type OversellDetail =
+  | { kind: "unavailable" }
+  | { kind: "short"; productName: string; variantName: string; available: number }
+  | { kind: "race" };
+
 export class OversellError extends Error {
-  constructor(message: string) {
+  readonly detail: OversellDetail;
+
+  constructor(message: string, detail: OversellDetail = { kind: "race" }) {
     super(message);
     this.name = "OversellError";
+    this.detail = detail;
   }
+}
+
+type CatalogueProduct = Awaited<ReturnType<typeof prisma.product.findMany>>[number];
+
+/**
+ * Phase 1 of a reservation, on its own: reads the catalogue and throws
+ * `OversellError` if any variant can't cover the total quantity asked of it.
+ * Writes nothing.
+ *
+ * Exported for D-18c's checkout-off orders, which check stock at order time
+ * without taking it (it's taken when the merchant confirms). Shares this code
+ * with `reserveStock` so the two can't drift on the comparison or wording.
+ */
+export async function checkStockAvailable(
+  merchantId: string,
+  lines: StockLine[]
+): Promise<void> {
+  await loadAndCheck(merchantId, lines);
+}
+
+async function loadAndCheck(
+  merchantId: string,
+  lines: StockLine[]
+): Promise<Map<string, CatalogueProduct>> {
+  const productIds = [...new Set(lines.map((line) => line.productId))];
+  const products = await prisma.product.findMany({
+    where: { merchantId, id: { in: productIds }, isActive: true },
+  });
+  const productById = new Map(products.map((product) => [product.id, product]));
+
+  for (const line of lines) {
+    const product = productById.get(line.productId);
+    const variant = product?.variants.find(
+      (candidate) => candidate.id === line.variantId && candidate.isActive
+    );
+
+    if (!product || !variant) {
+      throw new OversellError(
+        "One of the items in your cart is no longer available.",
+        { kind: "unavailable" }
+      );
+    }
+  }
+
+  // DEV-7 (Phase 15), §B.3. Two lines can now share a variant — the same
+  // ring engraved for two different people (B.2's lineKey). Checked
+  // separately, both could pass against a single unit of stock; summed by
+  // variant first, a request for more than exists is caught here instead of
+  // surfacing as phase 2's confusing "just sold out" after both "succeeded".
+  const requestedByVariant = new Map<string, number>();
+  for (const line of lines) {
+    requestedByVariant.set(
+      line.variantId,
+      (requestedByVariant.get(line.variantId) ?? 0) + line.quantity
+    );
+  }
+
+  for (const [variantId, requested] of requestedByVariant) {
+    const line = lines.find((candidate) => candidate.variantId === variantId)!;
+    const product = productById.get(line.productId)!;
+    const variant = product.variants.find((v) => v.id === variantId)!;
+
+    if (variant.stock < requested) {
+      throw new OversellError(
+        `Sorry, only ${variant.stock} of ${product.name} (${variant.name}) available.`,
+        {
+          kind: "short",
+          productName: product.name,
+          variantName: variant.name,
+          available: Math.max(0, variant.stock),
+        }
+      );
+    }
+  }
+
+  return productById;
 }
 
 /**
@@ -46,49 +135,7 @@ export async function reserveStock(
 ): Promise<void> {
   if (lines.length === 0) return;
 
-  const productIds = [...new Set(lines.map((line) => line.productId))];
-  const products = await prisma.product.findMany({
-    where: { merchantId, id: { in: productIds }, isActive: true },
-  });
-  const productById = new Map(products.map((product) => [product.id, product]));
-
-  for (const line of lines) {
-    const product = productById.get(line.productId);
-    const variant = product?.variants.find(
-      (candidate) => candidate.id === line.variantId && candidate.isActive
-    );
-
-    if (!product || !variant) {
-      throw new OversellError(
-        "One of the items in your cart is no longer available."
-      );
-    }
-  }
-
-  // DEV-7 (Phase 15), §B.3. Two lines can now share a variant — the same
-  // ring engraved for two different people (B.2's lineKey). Checked
-  // separately, both could pass against a single unit of stock; summed by
-  // variant first, a request for more than exists is caught here instead of
-  // surfacing as phase 2's confusing "just sold out" after both "succeeded".
-  const requestedByVariant = new Map<string, number>();
-  for (const line of lines) {
-    requestedByVariant.set(
-      line.variantId,
-      (requestedByVariant.get(line.variantId) ?? 0) + line.quantity
-    );
-  }
-
-  for (const [variantId, requested] of requestedByVariant) {
-    const line = lines.find((candidate) => candidate.variantId === variantId)!;
-    const product = productById.get(line.productId)!;
-    const variant = product.variants.find((v) => v.id === variantId)!;
-
-    if (variant.stock < requested) {
-      throw new OversellError(
-        `Sorry, only ${variant.stock} of ${product.name} (${variant.name}) available.`
-      );
-    }
-  }
+  const productById = await loadAndCheck(merchantId, lines);
 
   // Collected while reserving, sent only after every line succeeds — an
   // order that fails partway through rolls its stock back, and a low-stock

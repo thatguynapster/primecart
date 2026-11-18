@@ -110,7 +110,12 @@ export default async function StorefrontLayout({
               </label>
             </form>
 
-            <CartSheet subdomain={subdomain} primaryColor={merchant.primaryColor} />
+            <CartSheet
+              subdomain={subdomain}
+              primaryColor={merchant.primaryColor}
+              storeName={merchant.businessName}
+              paymentsEnabled={merchant.storefrontPaymentsEnabled}
+            />
           </div>
         </div>
       </header>

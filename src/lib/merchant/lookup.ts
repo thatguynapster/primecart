@@ -61,6 +61,12 @@ export type StorefrontMerchant = {
   facebookUrl: string | null;
   instagramUrl: string | null;
   whatsappNumber: string | null;
+  /**
+   * D-18a checkout add-on. Cached like everything here, so it can be up to
+   * five minutes stale on another instance: only ever used for labels. The
+   * checkout action re-reads it fresh before deciding anything.
+   */
+  storefrontPaymentsEnabled: boolean;
 };
 
 const storefrontCache = new Map<string, CacheEntry<StorefrontMerchant | null>>();
@@ -74,7 +80,7 @@ export async function getMerchantBySubdomain(
 
   const merchant = await prisma.merchant.findFirst({
     where: { storefront: { is: { subdomain } } },
-    select: { id: true, storefront: true },
+    select: { id: true, storefront: true, storefrontPaymentsEnabled: true },
   });
 
   const data: StorefrontMerchant | null = merchant?.storefront
@@ -95,6 +101,7 @@ export async function getMerchantBySubdomain(
         facebookUrl: merchant.storefront.facebookUrl,
         instagramUrl: merchant.storefront.instagramUrl,
         whatsappNumber: merchant.storefront.whatsappNumber,
+        storefrontPaymentsEnabled: merchant.storefrontPaymentsEnabled === true,
       }
     : null;
 

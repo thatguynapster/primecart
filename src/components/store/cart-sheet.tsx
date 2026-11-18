@@ -29,9 +29,13 @@ import { useIsClient } from "@/lib/use-is-client";
 export function CartSheet({
   subdomain,
   primaryColor,
+  storeName,
+  paymentsEnabled,
 }: {
   subdomain: string;
   primaryColor: string;
+  storeName: string;
+  paymentsEnabled: boolean;
 }) {
   const useStore = useCartStore(subdomain);
   const lines = useStore((state) => state.lines);
@@ -70,7 +74,11 @@ export function CartSheet({
         </SheetHeader>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-6">
-          <CartView subdomain={subdomain} />
+          <CartView
+            subdomain={subdomain}
+            storeName={storeName}
+            paymentsEnabled={paymentsEnabled}
+          />
         </div>
       </SheetContent>
     </Sheet>

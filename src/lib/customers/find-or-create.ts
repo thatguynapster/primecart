@@ -1,5 +1,6 @@
 import type { Customer } from "@prisma/client";
 
+import { normalizeGhanaPhone } from "@/lib/phone";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -39,8 +40,16 @@ export async function findOrCreateCustomer(
   const name = input.name.trim();
 
   if (phone) {
+    // D-18e: storefront numbers are now stored as +233XXXXXXXXX, while older
+    // records (and manual orders) hold whatever was typed — usually
+    // 0XXXXXXXXX. Match either spelling of the same number so a returning
+    // buyer doesn't become a second customer.
+    const normalised = normalizeGhanaPhone(phone);
+    const spellings = normalised
+      ? [...new Set([phone, normalised, `0${normalised.slice(4)}`])]
+      : [phone];
     const byPhone = await prisma.customer.findFirst({
-      where: { merchantId, phone },
+      where: { merchantId, phone: { in: spellings } },
     });
     if (byPhone) return byPhone;
   }
