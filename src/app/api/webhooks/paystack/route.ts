@@ -84,6 +84,7 @@ async function settleFromPending(order: Order): Promise<boolean> {
         orderNumber: order.orderNumber,
         customerName: customerNameOf(order),
         total: order.total,
+        paid: true,
         lines: notificationLinesOf(order),
       });
     }
@@ -167,6 +168,7 @@ async function settleFromExpired(order: Order): Promise<void> {
       orderNumber: order.orderNumber,
       customerName: customerNameOf(order),
       total: order.total,
+      paid: true,
       lines: notificationLinesOf(order),
     });
   }

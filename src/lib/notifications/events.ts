@@ -1,6 +1,7 @@
 import type { DormantMerchant } from "@/lib/admin/dormancy";
 import { getDashboardOrigin } from "@/lib/domain";
 import { formatGhs, formatRelativeDate } from "@/lib/format";
+import { waMeLink } from "@/lib/phone";
 import { sendEmail } from "./resend";
 
 /**
@@ -39,10 +40,30 @@ function escapeHtml(value: string): string {
     .replace(/'/g, "&#39;");
 }
 
+/** "Wed 18 Nov, 14:05" in Accra time, for deadlines shown to people. */
+function formatDeadline(date: Date): string {
+  return new Intl.DateTimeFormat("en-GH", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: "Africa/Accra",
+  }).format(date);
+}
+
 /**
- * Event 1 — a storefront order's payment just confirmed (webhook's
- * settleFromPending / settleFromExpired success path only — never on order
- * creation, which would fire on every abandoned checkout).
+ * Event 1 — a new order for the merchant.
+ *
+ * Paid (`paid: true`): a storefront order whose payment just confirmed —
+ * the webhook's settleFromPending / settleFromExpired success path only,
+ * never on order creation (which would fire on every abandoned checkout).
+ *
+ * Unpaid (`paid: false`, D-18 checkout off): sent the moment the shopper
+ * places the order, since there is no payment to wait for. The merchant
+ * contacts the buyer on WhatsApp to confirm and arrange payment, so the
+ * email carries the buyer's number and a one-tap wa.me link.
  */
 export async function notifyNewOrder(params: {
   merchantEmail: string;
@@ -50,6 +71,11 @@ export async function notifyNewOrder(params: {
   orderNumber: string;
   customerName: string;
   total: number;
+  paid: boolean;
+  /** E.164 buyer WhatsApp number (D-18e). Shown on unpaid orders. */
+  buyerWhatsapp?: string | null;
+  /** Used in the pre-filled WhatsApp message. */
+  storeName?: string | null;
   /**
    * DEV-7 (Phase 15), §B.7 — so the merchant sees what to engrave without
    * opening the dashboard. Only lines carrying customization text are shown;
@@ -78,19 +104,92 @@ export async function notifyNewOrder(params: {
           .join("")}</ul>`
       : "";
 
+  const summary = `<p><strong>${escapeHtml(params.orderNumber)}</strong> from ${escapeHtml(params.customerName)}, ${formatGhs(params.total)}.</p>`;
+
+  let subject: string;
+  let html: string;
+
+  if (params.paid) {
+    subject = `New order ${params.orderNumber} — ${formatGhs(params.total)}`;
+    html = layout(
+      "You've got a new paid order",
+      `${summary}
+       ${customizationHtml}
+       <a href="${url}" style="${BUTTON}">View order</a>`
+    );
+  } else {
+    subject = `New order ${params.orderNumber} — unpaid`;
+    const whatsapp = params.buyerWhatsapp;
+    const contactHtml = whatsapp
+      ? `<p>Message them on WhatsApp at <strong>${escapeHtml(whatsapp)}</strong> to confirm the order and arrange payment. Stock isn't taken until you confirm it or mark it paid.</p>
+         <a href="${escapeHtml(
+           waMeLink(
+             whatsapp,
+             newOrderWhatsappMessage({
+               customerName: params.customerName,
+               orderNumber: params.orderNumber,
+               storeName: params.storeName ?? null,
+               total: params.total,
+             })
+           )
+         )}" style="${BUTTON}">Message on WhatsApp</a>&nbsp;`
+      : `<p>Contact the buyer to confirm the order and arrange payment. Stock isn't taken until you confirm it or mark it paid.</p>`;
+    html = layout(
+      "You've got a new order — arrange payment",
+      `${summary}
+       ${customizationHtml}
+       ${contactHtml}
+       <a href="${url}" style="${BUTTON}">View order</a>`
+    );
+  }
+
+  try {
+    await sendEmail({ to: params.merchantEmail, subject, html });
+  } catch (error) {
+    console.error(`notifyNewOrder failed for order ${params.orderId}:`, error);
+  }
+}
+
+/** The merchant's opening WhatsApp message to a buyer. Shared with the dashboard. */
+export function newOrderWhatsappMessage(params: {
+  customerName: string;
+  orderNumber: string;
+  storeName: string | null;
+  total: number;
+}): string {
+  const from = params.storeName ? ` from ${params.storeName}` : "";
+  return `Hi ${params.customerName}, thanks for your order ${params.orderNumber}${from} (${formatGhs(params.total)}). I'm confirming it now. How would you like to pay?`;
+}
+
+/**
+ * T10 — the buyer's one payment reminder, ~30 minutes after placing a
+ * checkout-on order they haven't paid for yet. Links to the storefront order
+ * page (which has a fresh "Pay now"), never to a raw Paystack URL that may
+ * have gone stale. The caller claims `Order.reminderSentAt` first, so this
+ * sends once.
+ */
+export async function notifyPaymentReminder(params: {
+  buyerEmail: string;
+  storeName: string;
+  orderId: string;
+  orderNumber: string;
+  orderUrl: string;
+  total: number;
+  reservedUntil: Date;
+}): Promise<void> {
+  const store = escapeHtml(params.storeName);
   try {
     await sendEmail({
-      to: params.merchantEmail,
-      subject: `New order ${params.orderNumber} — ${formatGhs(params.total)}`,
+      to: params.buyerEmail,
+      subject: `Your order from ${params.storeName} is waiting for payment`,
       html: layout(
-        "You've got a new paid order",
-        `<p><strong>${params.orderNumber}</strong> from ${escapeHtml(params.customerName)}, ${formatGhs(params.total)}.</p>
-         ${customizationHtml}
-         <a href="${url}" style="${BUTTON}">View order</a>`
+        `Your order from ${store} is saved`,
+        `<p>Order <strong>${escapeHtml(params.orderNumber)}</strong> (${formatGhs(params.total)}) is held for you until <strong>${escapeHtml(formatDeadline(params.reservedUntil))}</strong>. Pay now to secure it. After that, the items go back on sale.</p>
+         <a href="${escapeHtml(params.orderUrl)}" style="${BUTTON}">Pay now</a>`
       ),
     });
   } catch (error) {
-    console.error(`notifyNewOrder failed for order ${params.orderId}:`, error);
+    console.error(`notifyPaymentReminder failed for order ${params.orderId}:`, error);
   }
 }
 
@@ -113,7 +212,7 @@ export async function notifyNeedsReview(params: {
       subject: `Needs review — order ${params.orderNumber}`,
       html: layout(
         "A payment needs your attention",
-        `<p>Order <strong>${params.orderNumber}</strong> was paid, but ${params.reason}</p>
+        `<p>Order <strong>${escapeHtml(params.orderNumber)}</strong> was paid, but ${escapeHtml(params.reason)}</p>
          <a href="${url}" style="${BUTTON}">Review order</a>`
       ),
     });
@@ -142,7 +241,7 @@ export async function notifyLowStock(params: {
       subject: `Low stock — ${params.productName} (${params.variantName})`,
       html: layout(
         "Running low on stock",
-        `<p><strong>${params.productName}</strong> — ${params.variantName} is down to
+        `<p><strong>${escapeHtml(params.productName)}</strong> — ${escapeHtml(params.variantName)} is down to
          <strong>${params.stock}</strong> ${params.stock === 1 ? "unit" : "units"}
          (threshold: ${params.lowStockThreshold}).</p>
          <a href="${url}" style="${BUTTON}">Restock</a>`
@@ -168,7 +267,7 @@ export async function notifyDormantMerchants(params: {
       const lastSale = merchant.lastPaidOrderAt
         ? `last sale ${formatRelativeDate(merchant.lastPaidOrderAt)}`
         : "never sold anything";
-      return `<li><strong>${merchant.businessName}</strong> (${merchant.subdomain}) — ${lastSale}, ${merchant.email}</li>`;
+      return `<li><strong>${escapeHtml(merchant.businessName)}</strong> (${escapeHtml(merchant.subdomain)}) — ${lastSale}, ${escapeHtml(merchant.email)}</li>`;
     })
     .join("");
 
