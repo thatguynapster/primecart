@@ -667,8 +667,8 @@ Not in the original handover — new scope, raised 2026-10-06. WhatsApp becomes 
 | #     | Task | Status | Done |
 | ----- | ---- | ------ | ---- |
 | 16.1  | Raise `STOREFRONT_FEE_CAP_PESEWAS` above GHS 100 (13b.2), handled in a separate session. Confirm only: constant changed, the doc comment's threshold arithmetic updated, and any user-facing copy that states the cap updated | [~] **Done in the working tree, not committed** (checked 2026-10-08): `STOREFRONT_FEE_CAP_PESEWAS = 500 * 100`, doc comment updated, and the copy in `app/layout.tsx` metadata and `app/page.tsx` pricing now says GHS 500. No remaining "GHS 100" anywhere in `src/`. At 3%, the cap kicks in at ~GHS 16,667 and break-even is ~GHS 25,641. Mark `[x]` once committed and deployed | |
-| 16.2  | **Decide** the storefront fee rate: 3% (with message-count limits, see D-21) or 4% | [ ] D-18 | |
-| 16.3  | Apply the rate decided in 16.2: `STOREFRONT_FEE_RATE` in `src/lib/paystack.ts` plus every user-facing "3%": `dashboard/settings/settings-forms.tsx`, `onboarding/onboarding-form.tsx`, `app/layout.tsx` metadata, `app/page.tsx` landing pricing, and code comments citing 3%. Past orders are unaffected (`Order.platformFee` is a snapshot). Skip if 16.2 keeps 3% | [ ] blocked on 16.2 | |
+| 16.2  | **Decide** the storefront fee rate: 3% (with message-count limits, see D-21) or 4% | [x] superseded — decided by D-18b: 3%, no cap | 2026-11-17 |
+| 16.3  | ~~Apply the rate decided in 16.2~~ — skipped, 3% kept (D-18b). `STOREFRONT_FEE_RATE` in `src/lib/paystack.ts` plus every user-facing "3%": `dashboard/settings/settings-forms.tsx`, `onboarding/onboarding-form.tsx`, `app/layout.tsx` metadata, `app/page.tsx` landing pricing, and code comments citing 3%. Past orders are unaffected (`Order.platformFee` is a snapshot). Skip if 16.2 keeps 3% | [ ] blocked on 16.2 | |
 | 16.3a | _(Owner)_ Tell existing merchants about a rate change before it takes effect, with a start date. Ideally announced together with the WhatsApp launch. Skip if 3% is kept | [ ] | |
 
 **Spec + Meta setup** (Meta's setup has a slow approval loop, so start the owner tasks early)
@@ -739,13 +739,46 @@ Raised 2026-10-08, from a full landing-page/compliance sweep (copy-vs-implementa
 
 ---
 
+## Phase 18 — Subscriptions, 14-day trial, checkout as opt-in add-on (D-18)
+
+Not in the original handover — new scope, decided 2026-11-17. Full brief and acceptance tests: **[`PRIMECART_D18_IMPLEMENTATION.md`](./PRIMECART_D18_IMPLEMENTATION.md)** (task letters T0–T14 there map to 18.0–18.14 here). Logged as Phase 18 because 16 and 17 were already taken. Built on branch `feat/subscriptions-d18` off `feat/v2`, one commit per task.
+
+Every schema change is additive and optional. Migrations run on every deploy via `vercel-build`, so each one must be idempotent.
+
+| #     | Task | Status | Done |
+| ----- | ---- | ------ | ---- |
+| 18.0  | T0 — `scripts/backup-db.mjs` (canonical EJSON → gzip → private R2, runs in `vercel-build` before `db:push` on Production), `scripts/restore-db.mjs`, daily `.github/workflows/db-backup.yml` | [ ] | |
+| 18.1  | T1 — public copy: landing hero/pricing, metadata, "Start your free trial" CTA, footer legal links | [ ] | |
+| 18.2  | T2 — schema: `Merchant` subscription fields + `storefrontPaymentsEnabled`; `Order.stockReserved`/`paymentMethod`/`reminderSentAt`; new `SubscriptionPayment` model | [ ] | |
+| 18.3  | T3 — `scripts/backfill-d18.mjs` (idempotent; trial for existing merchants, checkout off, founding via `FOUNDING_MERCHANT_IDS`), wired into `vercel-build` | [ ] | |
+| 18.4  | T4 — remove the fee cap; keep it only as `LEGACY_D16_FEE_CAP_PESEWAS` for the pre-DEV-6 profit fallback | [ ] | |
+| 18.5  | T5 — onboarding without payout; sets trial + checkout off | [ ] | |
+| 18.6  | T6 — billing: `plans.ts`, `status.ts`, `startSubscriptionPayment`, webhook subscription branch, `/dashboard/billing`, trial banner, rail link | [ ] | |
+| 18.7  | T7 — "Take payments on your storefront" toggle in settings, with payout setup when there's no subaccount | [ ] | |
+| 18.8  | T8 — storefront checkout, both paths; WhatsApp number required + normalised; consent line | [ ] | |
+| 18.9  | T9 — stock deducted on confirm / mark paid for checkout-off orders, oversell blocked; cancel restores only reserved stock; manual orders never expire | [ ] | |
+| 18.10 | T10 — 30-minute payment reminder email, "Pay now" re-pay on the order page, webhook fallback for older payment links, "Send payment link on WhatsApp" | [ ] | |
+| 18.11 | T11 — `notifyNewOrder` paid/unpaid variants with buyer WhatsApp link; `notifyPaymentReminder` | [ ] | |
+| 18.12 | T12 — storefront order page states (checkout off / on / legacy); "How was it paid?" on mark paid; Unpaid filter + badge | [ ] | |
+| 18.13 | T13 — acceptance tests (brief §5 T13); `tsc --noEmit`, `eslint`, `next build` clean | [ ] | |
+| 18.14 | T14 — `/privacy` and `/terms` drafts (owner gets them reviewed before go-live); sign-up consent line. Supersedes the `/legal/*` paths in 17.1/17.2 | [ ] | |
+| 18.15 | §6 — lapsed gate (D-18f): dashboard read-only except billing and order confirm / mark paid / cancel, enforced in server actions. **Due before the first trials end** | [ ] | |
+| 18.16 | §6 — billing emails (trial ending 3d/1d, renewal due 7d/1d, expired), daily cron with claim-then-send | [ ] | |
+| 18.17 | _(Owner)_ Brief §8: tell merchants checkout is off; set `FOUNDING_MERCHANT_IDS` (Production only); separate Preview/Production `DATABASE_URL`; create backup bucket + token + 60-day lifecycle; read-only Atlas user for the GitHub backup; one restore drill | [ ] | |
+
+**Restore drills** (brief T0 — run once now, then monthly)
+
+| Date | Backup file | Result |
+| ---- | ----------- | ------ |
+
+---
+
 ## Open Decisions
 
 Deferred by the project owner — revisit before the phase that depends on it. Neither blocks current work.
 
 | ID   | Question                                                                                                                                                                                                                                                                                                                                                                                                               | Decide before  |
 | ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
-| D-18 | **Storefront fee rate: 3% or 4%?** 4% roughly doubles PrimeCart's net margin (~1.05% → ~2.05%) and pays for the full WhatsApp feature. 3% is the stronger price for winning merchants but needs the cost limits in D-21. Either way, revisit with real numbers from 16.19 after a couple of months. | before 16.3 |
 | D-19 | **Buyer WhatsApp for manual orders?** Manual orders have no platform fee, so every message is pure cost. Recommended: none in v1, with a monthly free quota or paid add-on later if merchants ask. | before 16.15 |
 | D-20 | **Further events to review:** payout settled, a problem with the bank account on the merchant's Paystack subaccount, platform announcements. Announcements are "marketing" category on Meta (~5× utility pricing) and need separate opt-in. | before 16.4 |
 | D-21 | **Buyer message set and limits:** confirmation + shipped/ready only, or also delivered? A minimum order value (e.g. GHS 100) below which buyers get email only? Mainly matters if D-18 keeps 3%. | before 16.7 |
@@ -754,6 +787,23 @@ Deferred by the project owner — revisit before the phase that depends on it. N
 | D-15 | **Extra storefront branding fields** — banner image, curated page ground, curated font choice, plus a possible `whatsappNumber`. Proposal parked in **[`STOREFRONT_BRANDING.md`](./STOREFRONT_BRANDING.md)** with rationale and implementation notes. Raised because shops currently have only three branding levers and risk all looking alike; deferred until the remaining phases are built. Nothing depends on it. | after Phase 13 |
 
 All other decisions raised against the handover document are resolved — see below.
+
+### Resolved 2026-11-17 by project owner (PRIMECART_D18_IMPLEMENTATION.md)
+
+Full brief: **[`PRIMECART_D18_IMPLEMENTATION.md`](./PRIMECART_D18_IMPLEMENTATION.md)**. These also answer the earlier open question "storefront fee rate: 3% or 4%?" (was listed as D-18 under Open Decisions): **3%, no cap** (D-18b). That old question is removed from Open Decisions; tasks 16.1–16.3a are superseded by D-18b.
+
+| ID | Decision |
+| --- | --- |
+| D-18 | **Subscription pricing, superseding D-16.** GHS 89/month, GHS 267/quarter, GHS 890/year (2 months free). Prepaid via one-off Paystack payments, because Paystack can't auto-renew over Mobile Money. 14-day free trial, no payment details asked for. Founding merchants: 50% off any interval for 12 months, agreed privately (never on a public page). |
+| D-18a | **Storefront checkout is an opt-in add-on, off by default for everyone**, including the existing merchants (owner tells them personally). Without it, shoppers still place orders; the merchant contacts them on WhatsApp to confirm and arrange payment. |
+| D-18b | **Checkout fee: 3% of every order, no cap.** The cap from D-16 (GHS 100, later GHS 500) is removed. PrimeCart keeps paying Paystack's 1.95% out of the 3% (`bearer: "account"`, unchanged): merchants pay 3% all-in. |
+| D-18c | **Stock.** Checkout **on**: stock is reserved when the order is placed and held 24 hours for payment; unpaid orders then expire via the existing cron. Checkout **off**: placing an order doesn't touch stock; stock is deducted when the merchant confirms the order (or marks it paid), and that's blocked if stock has run out. |
+| D-18d | **Payout setup leaves onboarding.** It happens when the merchant switches checkout on, only if they don't already have a Paystack subaccount. |
+| D-18e | **Buyers give a WhatsApp number at checkout.** Automated WhatsApp messages (Cloud API) are a separate post-launch project (Phase 16); until then, payment reminders go by email and merchants get one-tap `wa.me` links. |
+| D-18f | **A lapsed subscription locks the dashboard only.** Storefront stays up and checkout keeps taking payments. Consistent with D-17: no automatic takedowns. |
+| D-18g | **Delivery fees:** after launch. |
+
+Assumptions accepted without objection (brief §2): checkout-off stock is deducted at confirmation with an oversell block; manual orders deduct stock at creation and never expire; the 30-minute payment reminder goes by email and links to the PrimeCart order page; yearly = 10 months' price, quarterly undiscounted; a founding period that *starts* within the 12 months gets the founding price in full.
 
 ### Resolved 2026-10-03 by project owner (PROFIT_AND_CUSTOMIZATION.md)
 
