@@ -8,6 +8,7 @@
 		"vercel-build": "prisma generate && npm run db:push && npm run db:backfill && next build",
 		"start": "next start",
 		"lint": "eslint",
+		"test": "node --test \"src/**/*.test.ts\"",
 		"db:push": "prisma db push && node prisma/indexes.mjs",
 		"db:indexes": "node prisma/indexes.mjs",
 		"db:backfill": "node scripts/backfill-customization.mjs"
