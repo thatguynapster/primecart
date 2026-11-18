@@ -184,15 +184,20 @@ export async function updateSubaccount(
 export const STOREFRONT_FEE_RATE = 0.03;
 
 /**
- * D-16 (raised to GHS 500 2026-10-08, better margin at the same low-friction
- * principle): the 3% is capped per order, so an unusually large single sale
- * doesn't cost the merchant disproportionately. In pesewas, matching
- * `amountInPesewas` below.
+ * LEGACY ONLY — do not use for new orders. D-18b removed the per-order cap:
+ * every storefront order now pays 3%, uncapped (Paystack doesn't cap its own
+ * fee in Ghana either).
+ *
+ * Kept solely for the profit fallback on storefront orders placed before
+ * `Order.platformFee` existed (DEV-6, shipped 2026-10-06). Those orders really
+ * were charged under D-16's cap, which was GHS 100 at the time — the later
+ * raise to GHS 500 never applied to an order without a `platformFee`
+ * snapshot. In pesewas, matching `amountInPesewas` below.
  */
-export const STOREFRONT_FEE_CAP_PESEWAS = 500 * 100;
+export const LEGACY_D16_FEE_CAP_PESEWAS = 100 * 100;
 
 /**
- * PrimeCart's cut of a storefront sale, in pesewas, at the current rate/cap.
+ * PrimeCart's cut of a storefront sale, in pesewas (D-18b: 3%, no cap).
  *
  * Exported so the order and Paystack can never disagree about the fee: both
  * `initializeTransaction` (the `transaction_charge` Paystack actually
@@ -200,10 +205,7 @@ export const STOREFRONT_FEE_CAP_PESEWAS = 500 * 100;
  * DEV-6) compute it through this one function.
  */
 export function storefrontFeePesewas(amountInPesewas: number): number {
-  return Math.min(
-    Math.round(amountInPesewas * STOREFRONT_FEE_RATE),
-    STOREFRONT_FEE_CAP_PESEWAS
-  );
+  return Math.round(amountInPesewas * STOREFRONT_FEE_RATE);
 }
 
 type InitializeTransactionParams = {
@@ -230,9 +232,8 @@ type InitializeTransactionResult = {
  * The 3% is computed here, once — `transaction_charge` — and only here.
  * `createSubaccount` above sets `percentage_charge: 0` for exactly this
  * reason: applying a cut in both places stacks them, taking ~6% from the
- * merchant instead of 3% (D-6 in the project's decision log). Capped at
- * `STOREFRONT_FEE_CAP_PESEWAS` (D-16) so an unusually large order doesn't
- * cost the merchant disproportionately.
+ * merchant instead of 3% (D-6 in the project's decision log). Uncapped
+ * since D-18b.
  */
 export async function initializeTransaction(
   params: InitializeTransactionParams

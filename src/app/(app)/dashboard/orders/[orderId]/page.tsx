@@ -8,7 +8,7 @@ import { formatGhs, formatRelativeDate } from "@/lib/format";
 import { requireMerchant } from "@/lib/merchant/current";
 import { getOrder } from "@/lib/orders/queries";
 import {
-  STOREFRONT_FEE_CAP_PESEWAS,
+  LEGACY_D16_FEE_CAP_PESEWAS,
   STOREFRONT_FEE_RATE,
 } from "@/lib/paystack";
 import { OrderActions } from "./order-actions";
@@ -20,14 +20,14 @@ function titleCase(value: string): string {
 /**
  * DEV-6 (Phase 15) — dashboard-only, never the storefront order page (§A.6).
  *
- * The same fallback `getProfitSummary` uses for a pre-D-16 storefront order
- * missing `platformFee`, applied per-order here for consistency: current
- * rate/cap, possibly off by the cap for an order placed before it existed.
+ * The same fallback `getProfitSummary` uses for a storefront order placed
+ * before `platformFee` existed, applied per-order here for consistency: 3%
+ * under D-16's legacy GHS 100 cap. Every newer order has a snapshot.
  */
 function orderPlatformFee(order: { platformFee: number | null; source: string; total: number }): number {
   if (order.platformFee != null) return order.platformFee;
   if (order.source !== "STOREFRONT") return 0;
-  const feeCapGhs = STOREFRONT_FEE_CAP_PESEWAS / 100;
+  const feeCapGhs = LEGACY_D16_FEE_CAP_PESEWAS / 100;
   return Math.min(order.total * STOREFRONT_FEE_RATE, feeCapGhs);
 }
 

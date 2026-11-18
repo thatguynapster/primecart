@@ -1,5 +1,5 @@
 import { aggregate, isoDate, oid } from "@/lib/db/aggregate";
-import { STOREFRONT_FEE_CAP_PESEWAS, STOREFRONT_FEE_RATE } from "@/lib/paystack";
+import { LEGACY_D16_FEE_CAP_PESEWAS, STOREFRONT_FEE_RATE } from "@/lib/paystack";
 
 /**
  * Dashboard reporting.
@@ -471,9 +471,10 @@ export async function getProfitSummary(
 	merchantId: string,
 	sinceDate: Date
 ): Promise<ProfitSummary> {
-	// In GHS, matching Order.total/platformFee — STOREFRONT_FEE_CAP_PESEWAS is
-	// defined in pesewas for the Paystack API.
-	const feeCapGhs = STOREFRONT_FEE_CAP_PESEWAS / 100;
+	// In GHS, matching Order.total/platformFee. Only used for the legacy
+	// fallback below — new orders always carry a platformFee snapshot (D-18b
+	// removed the cap for them).
+	const feeCapGhs = LEGACY_D16_FEE_CAP_PESEWAS / 100;
 
 	const [result] = await aggregate<ProfitFacetResult>("Order", [
 		{
@@ -484,9 +485,10 @@ export async function getProfitSummary(
 			}
 		},
 		// Order-level fee first, before $unwind multiplies orders into lines.
-		// Falls back to today's rate/cap for storefront orders placed before
-		// `platformFee` existed — correct for every order since D-16, possibly
-		// off by the cap for earlier, uncapped ones. Acceptable (see §A.5).
+		// Falls back to 3% under D-16's GHS 100 cap for storefront orders placed
+		// before `platformFee` existed (pre-2026-10-06) — the terms those orders
+		// were actually charged under. Possibly off by the cap for pre-D-16,
+		// uncapped ones. Acceptable (see §A.5).
 		{
 			$set: {
 				fee: {
