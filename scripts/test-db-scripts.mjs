@@ -157,6 +157,34 @@ const forced = run("scripts/restore-db.mjs", [BACKUP, DST, "--force"], {});
 check(forced.code === 0, "restore --force upserts over it");
 check((await dst.collection("Merchant").countDocuments()) === (await src.collection("Merchant").countDocuments()), "no duplicates after --force");
 
+// ---------------------------------------------------------------- expiry sweep filter
+// Prisma on MongoDB: `reservedUntil: { lt: now }` alone matches null too, which
+// expired every checkout-off and manual order (found on dev 2026-11-18). Runs the
+// real filter from src/lib/orders/expiry-filter.ts through Prisma.
+{
+  const EXP = withDb("primecart-expiry");
+  const orders = client.db("primecart-expiry").collection("Order");
+  const base = { merchantId: new ObjectId(), status: "PENDING", paymentStatus: "UNPAID", source: "STOREFRONT", lineItems: [], subtotal: 1, total: 1, createdAt: new Date(), updatedAt: new Date() };
+  const past = new Date(Date.now() - 60_000);
+  await orders.insertMany([
+    { ...base, orderNumber: "OFF-NULL", reservedUntil: null, stockReserved: false },
+    { ...base, orderNumber: "MANUAL-NULL", source: "MANUAL", reservedUntil: null, stockReserved: true },
+    { ...base, orderNumber: "LEGACY-MISSING" },
+    { ...base, orderNumber: "HOLD-PAST", reservedUntil: past, stockReserved: true },
+    { ...base, orderNumber: "HOLD-FUTURE", reservedUntil: new Date(Date.now() + 3_600_000), stockReserved: true },
+    { ...base, orderNumber: "PAID-PAST", paymentStatus: "PAID", reservedUntil: past },
+  ]);
+  process.env.DATABASE_URL = EXP;
+  const { PrismaClient } = await import("@prisma/client");
+  const { abandonedOrderWhere } = await import("../src/lib/orders/expiry-filter.ts");
+  const prisma = new PrismaClient();
+  const hits = (await prisma.order.findMany({ where: abandonedOrderWhere(new Date()), select: { orderNumber: true } })).map((o) => o.orderNumber);
+  check(JSON.stringify(hits) === JSON.stringify(["HOLD-PAST"]), `expiry sweep matches only a lapsed hold (got ${JSON.stringify(hits)})`);
+  const naive = (await prisma.order.findMany({ where: { status: "PENDING", paymentStatus: "UNPAID", reservedUntil: { lt: new Date() } }, select: { orderNumber: true } })).map((o) => o.orderNumber);
+  check(naive.includes("OFF-NULL"), "guard still needed: bare `lt` matches null on this Prisma version");
+  await prisma.$disconnect();
+}
+
 await client.close();
 await replSet.stop();
 if (existsSync(BACKUP)) unlinkSync(BACKUP);

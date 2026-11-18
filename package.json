@@ -4,7 +4,7 @@
 	"private": true,
 	"scripts": {
 		"dev": "rm -rf .next && next dev",
-		"build": "prisma generate && next build",
+		"build": "node scripts/require-vercel-build.mjs && prisma generate && next build",
 		"vercel-build": "prisma generate && npm run db:backup && npm run db:push && npm run db:backfill && npm run db:backfill-d18 && next build",
 		"start": "next start",
 		"lint": "eslint",
