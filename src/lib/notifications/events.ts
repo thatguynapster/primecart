@@ -1,6 +1,6 @@
 import type { DormantMerchant } from "@/lib/admin/dormancy";
 import { getDashboardOrigin } from "@/lib/domain";
-import { formatDeadline, formatGhs, formatRelativeDate } from "@/lib/format";
+import { formatDeadline, formatGhs, formatLongDate, formatRelativeDate } from "@/lib/format";
 import { waMeLink } from "@/lib/phone";
 import { sendEmail } from "./resend";
 
@@ -270,5 +270,67 @@ export async function notifyDormantMerchants(params: {
     });
   } catch (error) {
     console.error("notifyDormantMerchants failed:", error);
+  }
+}
+
+export type BillingReminderKind = "trial-3" | "trial-1" | "renew-7" | "renew-1" | "expired";
+
+/**
+ * D-18 §6 — subscription reminders to the merchant. The caller
+ * (src/lib/billing/reminders.ts) claims each one first, so this just sends.
+ * Every one links to /dashboard/billing.
+ */
+export async function notifyBillingReminder(params: {
+  merchantEmail: string;
+  kind: BillingReminderKind;
+  date: Date;
+  daysLeft: number;
+}): Promise<void> {
+  const url = `${getDashboardOrigin()}/dashboard/billing`;
+  const when = escapeHtml(formatLongDate(params.date));
+  const days = `${params.daysLeft} ${params.daysLeft === 1 ? "day" : "days"}`;
+
+  const copy: Record<BillingReminderKind, { subject: string; title: string; body: string; cta: string }> = {
+    "trial-3": {
+      subject: `Your PrimeCart trial ends in ${days}`,
+      title: `Your free trial ends in ${days}`,
+      body: `Your trial ends on <strong>${when}</strong>. Choose a plan to keep managing your shop. If you pay now, your paid time starts when the trial ends, so you don't lose any days.`,
+      cta: "Choose a plan",
+    },
+    "trial-1": {
+      subject: "Your PrimeCart trial ends tomorrow",
+      title: "Your free trial ends tomorrow",
+      body: `Your trial ends on <strong>${when}</strong>. Your shop stays online either way, but you'll need a plan to keep managing products, orders and settings.`,
+      cta: "Choose a plan",
+    },
+    "renew-7": {
+      subject: `Your PrimeCart plan ends in ${days}`,
+      title: `Your plan ends in ${days}`,
+      body: `Your paid time runs until <strong>${when}</strong>. Renew any time: the new time is added after your current plan ends.`,
+      cta: "Renew",
+    },
+    "renew-1": {
+      subject: "Your PrimeCart plan ends tomorrow",
+      title: "Your plan ends tomorrow",
+      body: `Your paid time ends on <strong>${when}</strong>. Renew now so you can keep managing your shop without a break.`,
+      cta: "Renew",
+    },
+    expired: {
+      subject: "Your PrimeCart plan has expired",
+      title: "Your plan has expired",
+      body: `Your shop is still online and still taking orders, and you can still confirm and mark orders paid. To change products and settings again, choose a plan.`,
+      cta: "Renew",
+    },
+  };
+
+  const message = copy[params.kind];
+  try {
+    await sendEmail({
+      to: params.merchantEmail,
+      subject: message.subject,
+      html: layout(message.title, `<p>${message.body}</p><a href="${url}" style="${BUTTON}">${message.cta}</a>`),
+    });
+  } catch (error) {
+    console.error(`notifyBillingReminder (${params.kind}) failed:`, error);
   }
 }

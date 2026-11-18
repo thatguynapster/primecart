@@ -58,6 +58,10 @@ model Merchant {
   // orders without paying and the merchant arranges payment on WhatsApp.
   storefrontPaymentsEnabled Boolean?
 
+  // Billing reminder emails already sent, keyed "<kind>:<date ISO>" so each
+  // goes once per trial/period end (src/lib/billing/reminders.ts).
+  billingReminderKeys String[]
+
   products             Product[]
   orders               Order[]
   customers            Customer[]
