@@ -219,7 +219,7 @@ export default function LandingPage() {
 
             <div className="mt-12 sm:mt-16">
               <div className="rounded-2xl border border-neutral-900 bg-neutral-900 p-8 text-white sm:p-10">
-                <div className="grid gap-8 sm:grid-cols-[1.1fr_1fr] sm:items-center">
+                <div>
                   <div>
                     <div className="flex items-baseline gap-2">
                       <span className="font-display text-5xl font-extrabold tracking-[-0.04em]">
@@ -263,36 +263,12 @@ export default function LandingPage() {
                       Start your free trial
                     </Link>
                   </div>
-
-                  <div className="rounded-xl border border-white/10 bg-white/[0.04] p-5">
-                    <p className="text-[12px] font-medium tracking-[0.12em] text-neutral-400 uppercase">
-                      Online checkout — optional
-                    </p>
-                    <p className="mt-3 text-[13.5px] leading-relaxed text-neutral-300">
-                      Switch it on and shoppers pay by MoMo or card on your
-                      shop. 3% per order, payment fees included. Leave it off
-                      and they order, then you arrange payment on WhatsApp.
-                      No fee.
-                    </p>
-                    <p className="mt-5 text-[12px] font-medium tracking-[0.12em] text-neutral-400 uppercase">
-                      On a GHS 200 order paid online
-                    </p>
-                    <dl className="mt-4 space-y-2.5 text-[14px]">
-                      <div className="flex justify-between text-neutral-300">
-                        <dt>Customer pays</dt>
-                        <dd className="font-mono tabular-nums">GHS 200.00</dd>
-                      </div>
-                      <div className="flex justify-between text-neutral-300">
-                        <dt>Checkout fee (3%, all-in)</dt>
-                        <dd className="font-mono tabular-nums">− GHS 6.00</dd>
-                      </div>
-                      <div className="flex justify-between border-t border-white/10 pt-2.5 font-medium text-white">
-                        <dt>You receive</dt>
-                        <dd className="font-mono tabular-nums">GHS 194.00</dd>
-                      </div>
-                    </dl>
-                  </div>
                 </div>
+                <p className="mt-8 border-t border-white/10 pt-5 text-[12.5px] leading-relaxed text-neutral-400">
+                  Want shoppers to pay by MoMo or card on your shop? Switch on
+                  online checkout whenever you&rsquo;re ready. It&rsquo;s
+                  optional, with a small fee per online order.
+                </p>
               </div>
             </div>
           </div>
