@@ -52,10 +52,17 @@ export type ApplyOutcome =
   /** Not one of ours. */
   | "unknown";
 
+/**
+ * Statuses a paid Paystack transaction can still be applied from. SUPERSEDED
+ * is included on purpose: replacing an abandoned payment hides it, but if the
+ * merchant later pays its old link that money must still buy time.
+ */
+const APPLICABLE = ["PENDING", "FAILED", "SUPERSEDED"];
+
 async function markReview(reference: string, why: string): Promise<ApplyOutcome> {
   console.error(`Subscription payment ${reference}: NOT applied, needs review — ${why}`);
   await prisma.subscriptionPayment.updateMany({
-    where: { reference, status: { in: ["PENDING", "FAILED"] } },
+    where: { reference, status: { in: APPLICABLE } },
     data: { status: "REVIEW" },
   });
   return "review";
@@ -101,7 +108,7 @@ export async function verifyAndApplySubscriptionPayment(
   if (!refMerchantId) return "unknown";
 
   const existing = await prisma.subscriptionPayment.findUnique({ where: { reference } });
-  if (existing && existing.status !== "PENDING" && existing.status !== "FAILED") {
+  if (existing && !APPLICABLE.includes(existing.status)) {
     return "already"; // SUCCESS, APPLYING or REVIEW
   }
 
@@ -181,7 +188,7 @@ export async function verifyAndApplySubscriptionPayment(
 
   // ---- claim, then extend ------------------------------------------------------
   const claimed = await prisma.subscriptionPayment.updateMany({
-    where: { reference, status: { in: ["PENDING", "FAILED"] } },
+    where: { reference, status: { in: APPLICABLE } },
     data: { status: "APPLYING", channel: tx.channel ?? null },
   });
   if (claimed.count === 0) return "already";

@@ -8,9 +8,41 @@ import { OUTCOME_TEXT } from "@/lib/billing/outcome-text";
 import type { Quote } from "@/lib/billing/state";
 import {
   checkSubscriptionPayment,
+  resumeSubscriptionPayment,
   startSubscriptionPayment,
   type BillingFormState,
+  type ResumeState,
 } from "./actions";
+
+function ContinueSubmit() {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className="rounded-md border border-nk-accent-700 px-2.5 py-1 text-xs text-nk-accent-200 transition-colors hover:bg-nk-accent/12 disabled:opacity-45"
+    >
+      {pending ? "Opening…" : "Continue payment"}
+    </button>
+  );
+}
+
+/** Reopens the same Paystack checkout for a payment left unpaid. */
+export function ContinuePaymentButton({ reference }: { reference: string }) {
+  const [state, formAction] = useActionState<ResumeState, FormData>(
+    resumeSubscriptionPayment,
+    {}
+  );
+  const message = state.error ?? (state.outcome ? OUTCOME_TEXT[state.outcome] : null);
+
+  return (
+    <form action={formAction} className="inline-flex flex-col items-end gap-1">
+      <input type="hidden" name="reference" value={reference} />
+      <ContinueSubmit />
+      {message && <span className="max-w-56 text-right text-xs text-nk-neutral-400">{message}</span>}
+    </form>
+  );
+}
 
 function PayButton({ amount }: { amount: string }) {
   const { pending } = useFormStatus();
