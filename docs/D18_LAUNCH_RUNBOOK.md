@@ -1,0 +1,114 @@
+# D-18 launch runbook: subscriptions + checkout add-on
+
+**For:** the owner. **Branch:** `feat/subscriptions-d18` (off `feat/v2`). **Spec:** [`PRIMECART_D18_IMPLEMENTATION.md`](./PRIMECART_D18_IMPLEMENTATION.md). **Tasks:** Phase 18 in [`TASKS.md`](./TASKS.md).
+
+Everything in the brief (T0–T14, plus §6's lapsed gate and billing emails) is built and committed. This file covers what only you can do, in the order to do it. The production build **will fail on purpose** until step 1 is done, because a deploy must never migrate the database without a backup.
+
+---
+
+## 1. Backup bucket (blocks the production deploy, ~10 min)
+
+1. Cloudflare dashboard → R2 → **Create bucket** `primecart-backups`. Leave it **private** (no public access, no custom domain).
+2. Bucket → Settings → **Object lifecycle rules** → add rule: delete objects after **60 days** (they contain customers' personal data; `/privacy` says 60 days).
+3. R2 → **Manage API tokens** → Create token: *Object Read & Write*, **scoped to `primecart-backups` only**. Not the image-upload token.
+4. Vercel → Project → Settings → Environment Variables, **Production only**:
+
+   | Name | Value |
+   | --- | --- |
+   | `BACKUP_R2_ACCESS_KEY_ID` | from step 3 |
+   | `BACKUP_R2_SECRET_ACCESS_KEY` | from step 3 |
+   | `BACKUP_R2_BUCKET` | `primecart-backups` |
+
+   `R2_ACCOUNT_ID` is reused from the image setup and should already be there.
+
+## 2. Other environment variables
+
+| Name | Where | Value |
+| --- | --- | --- |
+| `FOUNDING_MERCHANT_IDS` | **Production only** | The two founding merchants' Merchant `_id`s, comma-separated. Ask me to look them up if you don't have them. A malformed id fails the build on purpose. |
+| `SUPPORT_EMAIL` | Production + Preview | The address shown on `/privacy` and `/terms`. **The mailbox must exist.** Defaults to `support@primecart.app`. |
+
+**Check:** Preview and Production use **different** `DATABASE_URL`s (Phase 15 note). Otherwise every branch build migrates production.
+
+## 3. Test on dev first (`dev.primecart.app`)
+
+`dev.primecart.app` builds from `feat/v2`. Merge the PR into `feat/v2` (Preview env: the backup step skips itself there, and the D-18 backfill runs against `primecart-dev`). In the build log, check for:
+
+```
+Backup skipped: VERCEL_ENV=preview …
+D-18 backfill summary: {"trialStarted":{…},"checkoutDefaultedOff":{…},…,"onboardedStillMissing":0}
+```
+
+Then walk through the checklist in §6 below on `aura-stone.dev.primecart.app` with Paystack in test mode. I can drive most of it in the browser if you're signed in to the dashboard there.
+
+## 4. cron-job.org
+
+| Job | URL | Schedule | Notes |
+| --- | --- | --- | --- |
+| Order expiry + reminders | `…/api/cron/expire-orders` | every 5 min | **Existing job, no change.** Now also sends the 30-minute payment reminder. |
+| Billing reminders | `https://primecart.app/api/cron/billing-reminders` | **daily** (e.g. 08:00 GMT) | **New.** Same `Authorization: Bearer <CRON_SECRET>` header. Trial-ending / renewal / expired emails. |
+
+The first trials end about 14 days after the production deploy. The billing-reminder job needs to exist by then (first email goes 3 days before).
+
+## 5. Daily backup on GitHub Actions
+
+Repo → Settings → Secrets and variables → Actions → New repository secret:
+
+| Secret | Value |
+| --- | --- |
+| `DATABASE_URL` | A **read-only** Atlas user made just for backups (Atlas → Database Access → Add user → role *Read only any database*, or `read` on `primecart`). |
+| `R2_ACCOUNT_ID` | same as Vercel |
+| `BACKUP_R2_ACCESS_KEY_ID` / `BACKUP_R2_SECRET_ACCESS_KEY` | the backup token from step 1 |
+
+Then Actions → **Database backup** → *Run workflow* once by hand and check the log ends with `Backup uploaded: r2://primecart-backups/production/scheduled/…`. Atlas network access must allow GitHub's runners (`0.0.0.0/0`, as Vercel already uses).
+
+**Restore drill (once now, then monthly):** from a machine that can reach Atlas, restore the newest backup into a **new, empty** database and check the counts:
+
+```
+node --env-file=.env scripts/restore-db.mjs production/<file>.ejson.gz "mongodb+srv://…/primecart-restore-test?…"
+```
+
+Record the date in TASKS.md's Phase 18 "Restore drills" table. (The backup → restore round trip itself is covered by `npm run test:db`, which passes.)
+
+## 6. Acceptance checklist on dev (brief T13)
+
+Already verified offline (no database needed):
+- [x] Prices, intervals, founding 50% on all intervals, period stacking, pay-during-trial starts at `trialEndsAt`, pay-while-lapsed starts now, month-end clamping, Ghana phone normalisation (`npm test`, 17 checks)
+- [x] `db:backfill-d18` run twice: second run changes nothing; checkout-on merchant stays on; founding end date doesn't move; open Paystack orders untouched (`npm run test:db`)
+- [x] Backup → restore keeps every BSON type and the unique subdomain index; restore refuses a non-empty target (`npm run test:db`)
+- [x] `tsc --noEmit`, `eslint` (0 errors), `next build`
+
+Needs the deployed dev environment:
+- [ ] New sign-up: no payout step; trial 14 days; banner shows; storefront button says "Place order"
+- [ ] Checkout off: order unpaid, **stock unchanged**, merchant email has the WhatsApp button, order page says "Order received", never "waiting for payment"
+- [ ] Checkout off, order more than stock → rejected at checkout
+- [ ] Two checkout-off orders for the last unit: both accepted; confirming the second is blocked with "Only 0 left of …"
+- [ ] Cancel a checkout-off order before confirming: stock unchanged. After confirming: stock restored
+- [ ] Unpaid manual order: stock deducted; still open after the cron runs
+- [ ] Settings: switch checkout on without a subaccount → payout form → on. With one → on at once. Off → immediate
+- [ ] Checkout on: GHS 6,000 order → Paystack `transaction_charge` 18000 pesewas (no cap); order holds 24 h
+- [ ] Reminder email ~30 min after an unpaid checkout-on order, once (run the cron twice)
+- [ ] Pay now issues a new link; paying the **old** link still settles the order
+- [ ] Billing: pay monthly in test mode → "Paid until …" = trial end + 1 month; replaying the webhook adds nothing
+- [ ] Existing storefront `charge.success` still settles orders (subscription branch doesn't swallow it)
+
+## 7. Production deploy
+
+1. Tell both merchants (brief §8): checkout is now **off**; shoppers order and they arrange payment on WhatsApp; they can switch it back on in Settings (no payout setup needed, their subaccounts are kept); 14-day trial starts at deploy.
+2. Steps 1–2 done. Merge to the production branch.
+3. Build log: `Backup uploaded: r2://primecart-backups/production/…` and the D-18 backfill summary with `"onboardedStillMissing":0`.
+4. Set Paystack **live** webhook is unchanged (`https://primecart.app/api/webhooks/paystack`): subscription payments use the same URL.
+5. One live monthly payment on a test merchant, then refund it from the Paystack dashboard.
+
+## What changed for merchants, in one paragraph (for your message to them)
+
+PrimeCart is now GHS 89/month with everything included, after a 14-day free trial (no payment details needed). Your shop works the same, but online checkout is now optional and starts **off**: shoppers place orders without paying, you get an email with their WhatsApp number, and you confirm the order and arrange payment yourself. Stock comes off when you confirm or mark it paid. If you'd rather take payment online, switch on "Take payments on your storefront" in Settings: shoppers pay by MoMo or card, PrimeCart keeps 3% (payment fees included), and you're paid the next working day.
+
+## Decisions I made that weren't spelled out (tell me if you want any changed)
+
+- **Trial clock for not-yet-onboarded merchants.** The backfill gives a trial only to merchants who have a shop. Anyone mid-signup gets their 14 days when they finish onboarding, not at deploy time.
+- **Legacy fee cap is GHS 100, not 500.** Orders without a `platformFee` snapshot all predate 6 Oct, when the cap was GHS 100.
+- **Lapsed merchants can still** advance any existing order (not just confirm), switch checkout **off**, and update payout details. All protect money or buyers. Everything else is read-only.
+- **Duplicate payments are flagged.** If a buyer pays two links, or pays online after you marked an order paid, the merchant gets a "needs review" email and the extra payment is logged for a refund. Previously it would have been silently ignored.
+- **Pending checkout-off orders** count in the side-rail badge and show "New — confirm" in the orders list, since nothing else prompts the merchant to contact the buyer.
+- **Legal pages** live at `/privacy` and `/terms` (the brief's paths; supersedes 17.1/17.2's `/legal/*`). They are drafts: get them reviewed.

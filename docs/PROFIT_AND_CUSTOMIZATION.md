@@ -142,6 +142,7 @@ type ProfitSummary = {
 ```
 Notes:
 - **Fee fallback:** the `$ifNull` recomputes the fee for storefront orders placed before `platformFee` existed. It uses the current rule, which is correct for every order since D-16. Pre-D-16 orders had no cap, so they may be off by the capped amount. That's acceptable; say so in the code comment.
+- **D-18 update (2026-11-18):** new storefront orders pay 3% with **no cap** (D-18b), and checkout-off storefront orders snapshot `platformFee: 0`. Every order since DEV-6 carries a snapshot, so the fallback now only ever applies to orders placed before 2026-10-06. It uses `LEGACY_D16_FEE_CAP_PESEWAS` (GHS 100, the cap in force for all of those orders) and nothing else uses a cap any more.
 - **Fees vs coverage:** fees are subtracted in full even when coverage is below 100%. This slightly understates net profit, which is the safer direction. When coverage < 100%, the UI must say so (below).
 - A per-product breakdown is the same pipeline with `_id: "$lineItems.productId"`. Group by `productId`, not `productName`, for the reason `bestsellers.ts` gives.
 - Bundle profit into the existing `getAnalyticsKpis` `Promise.all` so the analytics page stays one round-trip.
