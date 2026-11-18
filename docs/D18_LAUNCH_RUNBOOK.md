@@ -85,7 +85,7 @@ Needs the deployed dev environment:
 - [ ] Checkout off, order more than stock → rejected at checkout
 - [ ] Two checkout-off orders for the last unit: both accepted; confirming the second is blocked with "Only 0 left of …"
 - [ ] Cancel a checkout-off order before confirming: stock unchanged. After confirming: stock restored
-- [ ] Unpaid manual order: stock deducted; still open after the cron runs
+- [x] Unpaid manual order / checkout-off order never matched by the expiry sweep (`npm run test:db`; found on dev, see below). Still worth one manual unpaid order on dev
 - [ ] Settings: switch checkout on without a subaccount → payout form → on. With one → on at once. Off → immediate
 - [ ] Checkout on: GHS 6,000 order → Paystack `transaction_charge` 18000 pesewas (no cap); order holds 24 h
 - [ ] Reminder email ~30 min after an unpaid checkout-on order, once (run the cron twice)
@@ -109,6 +109,7 @@ PrimeCart is now GHS 89/month with everything included, after a 14-day free tria
 
 - **Stale Phase 13 subscription status.** The removed Aug 2026 subscription left `subscriptionStatus` (enum default `TRIAL`, sometimes `EXPIRED`) on merchants who signed up 13–24 Aug, with no D-18 dates. The first backfill skipped them (it matched `subscriptionStatus: null`), so they showed **Expired** with a read-only dashboard. On dev that was `aura-stone`; in production it would almost certainly have been the founding merchants. The backfill, onboarding and the status check now key on the D-18 dates instead, so those merchants get their 14-day trial on the next deploy.
 
+- **Checkout-off and unpaid manual orders were expired by the 5-minute cron.** They store `reservedUntil: null` ("never expires"), but on MongoDB Prisma's `reservedUntil: { lt: now }` also matches `null`. On dev, two checkout-off orders went to Expired within a minute; an unpaid manual order would also have had its stock put back. The sweep and `expireOrder` now require a real hold (`src/lib/orders/expiry-filter.ts`), checked against Prisma in `npm run test:db`.
 - **Vercel Build Command override.** The project's Build Command was `npm run build && npm run db:push`, so `vercel-build` never ran on any deploy: no pre-deploy backup, no `db:backfill` (Phase 15) and no `db:backfill-d18`. Changed to `npm run vercel-build` on 2026-11-18; the next dev deploy started aura-stone's trial. `npm run build` now fails on Vercel (`scripts/require-vercel-build.mjs`) so the override can't silently come back. **Before the first production deploy, check Production also builds with `npm run vercel-build`.**
 
 ## Decisions I made that weren't spelled out (tell me if you want any changed)

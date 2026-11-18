@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { HAS_HOLD, abandonedOrderWhere } from "@/lib/orders/expiry-filter";
 import { restoreStock } from "@/lib/orders/stock";
 
 /**
@@ -24,7 +25,9 @@ import { restoreStock } from "@/lib/orders/stock";
  */
 export async function expireOrder(orderId: string): Promise<void> {
   const claimed = await prisma.order.updateMany({
-    where: { id: orderId, status: "PENDING" },
+    // Only an order with a hold can expire. Checkout-off and manual orders
+    // (reservedUntil null) stay open until the merchant acts on them.
+    where: { id: orderId, status: "PENDING", reservedUntil: { gt: HAS_HOLD } },
     data: { status: "EXPIRED", reservedUntil: null },
   });
   if (claimed.count === 0) return;
@@ -69,11 +72,7 @@ export async function expireOrder(orderId: string): Promise<void> {
  */
 export async function expireAbandonedOrders(): Promise<{ expired: number }> {
   const abandoned = await prisma.order.findMany({
-    where: {
-      status: "PENDING",
-      paymentStatus: "UNPAID",
-      reservedUntil: { lt: new Date() },
-    },
+    where: abandonedOrderWhere(new Date()),
   });
 
   for (const order of abandoned) {
