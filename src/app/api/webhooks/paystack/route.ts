@@ -3,7 +3,12 @@ import { NextResponse } from "next/server";
 import type { Order } from "@prisma/client";
 
 import { notifyNeedsReview, notifyNewOrder } from "@/lib/notifications/events";
+import {
+  SUBSCRIPTION_REFERENCE_PREFIX,
+  verifyAndApplySubscriptionPayment,
+} from "@/lib/billing/subscription";
 import { OversellError, reserveStock, restoreStock } from "@/lib/orders/stock";
+import { metadataOf } from "@/lib/paystack";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -39,8 +44,20 @@ type PaystackEvent = {
     // matches the number the docs and the transaction-verify API imply.
     // Coerced with Number() at the one place it's compared (confirmPaidOrder).
     amount?: number | string;
+    currency?: string;
+    channel?: string;
+    // Echoed back from transaction/initialize. Paystack sometimes delivers
+    // it as a JSON string rather than an object, so it's normalised before use.
+    metadata?: unknown;
   };
 };
+
+/**
+ * Storefront references are `PCART-<orderId>` for the first payment link and
+ * `PCART-<orderId>-<n>` for each fresh "Pay now" (T10). The order id is
+ * recoverable from either, so a payment made on an older link still settles.
+ */
+const STOREFRONT_REFERENCE = /^PCART-([0-9a-f]{24})(?:-[0-9]+)?$/;
 
 /** Best-effort merchant email lookup — never lets a lookup failure block settlement. */
 async function merchantEmail(merchantId: string): Promise<string | null> {
@@ -69,10 +86,19 @@ function notificationLinesOf(order: Order) {
  * claiming the same order in the same instant (`status: "PENDING"`). If that
  * race is lost, `count` is 0 and the caller re-reads and re-dispatches.
  */
-async function settleFromPending(order: Order): Promise<boolean> {
+async function settleFromPending(order: Order, reference: string): Promise<boolean> {
   const claimed = await prisma.order.updateMany({
     where: { id: order.id, status: "PENDING", paymentStatus: "UNPAID" },
-    data: { paymentStatus: "PAID", status: "CONFIRMED", reservedUntil: null },
+    // paymentRef records the reference that actually paid, which may be an
+    // older link than the latest one (T10). A second payment under any other
+    // reference is then recognisable as a duplicate.
+    data: {
+      paymentStatus: "PAID",
+      status: "CONFIRMED",
+      reservedUntil: null,
+      paymentRef: reference,
+      paymentMethod: "PAYSTACK",
+    },
   });
 
   if (claimed.count > 0) {
@@ -84,6 +110,7 @@ async function settleFromPending(order: Order): Promise<boolean> {
         orderNumber: order.orderNumber,
         customerName: customerNameOf(order),
         total: order.total,
+        paid: true,
         lines: notificationLinesOf(order),
       });
     }
@@ -109,7 +136,7 @@ async function settleFromPending(order: Order): Promise<boolean> {
  * here by notifyNeedsReview — an operator should not have to be staring at
  * the dashboard to find out a payment needs attention.
  */
-async function settleFromExpired(order: Order): Promise<void> {
+async function settleFromExpired(order: Order, reference: string): Promise<void> {
   const lineItems = order.lineItems.map((item) => ({
     productId: item.productId,
     variantId: item.variantId,
@@ -128,7 +155,8 @@ async function settleFromExpired(order: Order): Promise<void> {
     );
     await prisma.order.updateMany({
       where: { id: order.id, paymentStatus: "UNPAID" },
-      data: { paymentStatus: "PAID" }, // status intentionally stays EXPIRED
+      // status intentionally stays EXPIRED
+      data: { paymentStatus: "PAID", paymentRef: reference, paymentMethod: "PAYSTACK" },
     });
 
     const email = await merchantEmail(order.merchantId);
@@ -145,7 +173,14 @@ async function settleFromExpired(order: Order): Promise<void> {
 
   const claimed = await prisma.order.updateMany({
     where: { id: order.id, status: "EXPIRED", paymentStatus: "UNPAID" },
-    data: { status: "CONFIRMED", paymentStatus: "PAID", reservedUntil: null },
+    data: {
+      status: "CONFIRMED",
+      paymentStatus: "PAID",
+      reservedUntil: null,
+      stockReserved: true,
+      paymentRef: reference,
+      paymentMethod: "PAYSTACK",
+    },
   });
 
   if (claimed.count === 0) {
@@ -167,6 +202,7 @@ async function settleFromExpired(order: Order): Promise<void> {
       orderNumber: order.orderNumber,
       customerName: customerNameOf(order),
       total: order.total,
+      paid: true,
       lines: notificationLinesOf(order),
     });
   }
@@ -179,13 +215,48 @@ async function settleFromExpired(order: Order): Promise<void> {
  * caller might be holding stale — the whole point of this function is to
  * handle the case where that status changed underneath the payment.
  */
+async function findOrderForReference(reference: string): Promise<Order | null> {
+  const byRef = await prisma.order.findFirst({ where: { paymentRef: reference } });
+  if (byRef) return byRef;
+
+  // T10: a payment on an older link, after "Pay now" issued a newer one and
+  // overwrote paymentRef. The signature is already verified, so the order id
+  // in our own reference format can be trusted.
+  const match = STOREFRONT_REFERENCE.exec(reference);
+  if (!match) return null;
+  return prisma.order.findFirst({ where: { id: match[1], source: "STOREFRONT" } });
+}
+
 async function confirmPaidOrder(reference: string, amountPesewas?: number | string) {
-  const order = await prisma.order.findFirst({ where: { paymentRef: reference } });
+  const order = await findOrderForReference(reference);
   if (!order) {
     console.error(`Paystack webhook: no order for reference ${reference}`);
     return;
   }
-  if (order.paymentStatus !== "UNPAID") return; // already settled, by any path
+
+  if (order.paymentStatus !== "UNPAID") {
+    // The same reference again is just a redelivered webhook.
+    if (order.paymentRef === reference) return;
+
+    // A different reference paying an order that's already paid: the buyer
+    // paid two links, or paid online after the merchant marked it paid by
+    // hand (markOrderPaid clears paymentRef for exactly this). Real money
+    // arrived twice, so it must not be dropped silently.
+    console.error(
+      `Order ${order.id}: duplicate payment — reference ${reference} arrived ` +
+        `but the order is already ${order.paymentStatus} (paymentRef ${order.paymentRef}).`
+    );
+    const email = await merchantEmail(order.merchantId);
+    if (email) {
+      await notifyNeedsReview({
+        merchantEmail: email,
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        reason: `it had already been paid, so this looks like a duplicate payment (Paystack reference ${reference}). Please contact PrimeCart so the extra payment can be refunded to the buyer.`,
+      });
+    }
+    return;
+  }
 
   if (amountPesewas !== undefined) {
     const expected = Math.round(order.total * 100);
@@ -207,7 +278,7 @@ async function confirmPaidOrder(reference: string, amountPesewas?: number | stri
   }
 
   if (order.status === "PENDING") {
-    if (await settleFromPending(order)) return;
+    if (await settleFromPending(order, reference)) return;
 
     // Lost a race with the expiry cron between the read above and the write —
     // re-check what the order actually is now rather than give up.
@@ -217,7 +288,7 @@ async function confirmPaidOrder(reference: string, amountPesewas?: number | stri
   }
 
   if (order.status === "EXPIRED") {
-    return settleFromExpired(order);
+    return settleFromExpired(order, reference);
   }
 
   // CANCELLED, or any other status reached with paymentStatus still UNPAID —
@@ -231,7 +302,7 @@ async function confirmPaidOrder(reference: string, amountPesewas?: number | stri
   );
   await prisma.order.updateMany({
     where: { id: order.id, paymentStatus: "UNPAID" },
-    data: { paymentStatus: "PAID" },
+    data: { paymentStatus: "PAID", paymentRef: reference, paymentMethod: "PAYSTACK" },
   });
 
   const email = await merchantEmail(order.merchantId);
@@ -246,8 +317,21 @@ async function confirmPaidOrder(reference: string, amountPesewas?: number | stri
 }
 
 // ---------------------------------------------------------------------------
-// Subscriptions (Phase 13)
+// Subscriptions (D-18)
 // ---------------------------------------------------------------------------
+
+/**
+ * A subscription payment, not a storefront order: branched on *before*
+ * `confirmPaidOrder`, so it never touches orders, and storefront payments
+ * never reach this. Identified by metadata, with the reference prefix as a
+ * fallback in case metadata ever arrives unparseable.
+ */
+function isSubscriptionEvent(data: NonNullable<PaystackEvent["data"]>): boolean {
+  return (
+    metadataOf(data.metadata).type === "subscription" ||
+    (data.reference?.startsWith(SUBSCRIPTION_REFERENCE_PREFIX) ?? false)
+  );
+}
 
 export async function POST(request: Request) {
   // Logged before any validation, deliberately — this is the one line that
@@ -294,7 +378,17 @@ export async function POST(request: Request) {
   );
 
   if (event.event === "charge.success" && event.data?.reference) {
-    await confirmPaidOrder(event.data.reference, event.data.amount);
+    if (isSubscriptionEvent(event.data)) {
+      // Re-verified server-side against Paystack, idempotent on the
+      // reference. A mismatch is logged and acknowledged (200), so the
+      // billing page's return path and "Check payment" are the second chance
+      // for anything this doesn't apply. A thrown error (e.g. the database
+      // is down) returns 500, which earns a Paystack retry.
+      const outcome = await verifyAndApplySubscriptionPayment(event.data.reference);
+      console.log(`Paystack webhook: subscription ${event.data.reference} -> ${outcome}`);
+    } else {
+      await confirmPaidOrder(event.data.reference, event.data.amount);
+    }
   }
 
   // Every other event is acknowledged without action — nothing else needs a

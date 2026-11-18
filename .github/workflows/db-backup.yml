@@ -1,0 +1,63 @@
+# Daily production database backup (Phase 18, task 18.0 / brief T0).
+#
+# Free: GitHub Actions on a public repo, no paid cron. Also runnable by hand
+# from the Actions tab (workflow_dispatch).
+#
+# THIS REPOSITORY IS PUBLIC. So:
+#   - the script prints counts and file names only, never documents or
+#     connection strings; nothing here echoes a secret;
+#   - the dump is uploaded only to the PRIVATE R2 bucket. Never add
+#     actions/upload-artifact here: artifacts on public repos are downloadable.
+#
+# Secrets (Settings -> Secrets and variables -> Actions):
+#   DATABASE_URL                  a READ-ONLY Atlas user made just for backups
+#   R2_ACCOUNT_ID
+#   BACKUP_R2_ACCESS_KEY_ID       token scoped to the backup bucket only
+#   BACKUP_R2_SECRET_ACCESS_KEY
+#   BACKUP_R2_BUCKET              optional, defaults to primecart-backups
+#
+# Atlas network access must allow GitHub's runners (0.0.0.0/0 is what the
+# Vercel setup already uses). GitHub emails the repo owner when a scheduled
+# run fails. GitHub disables scheduled workflows after 60 days with no
+# repository activity: any push resets that.
+
+name: Database backup
+
+on:
+  schedule:
+    - cron: "30 2 * * *" # 02:30 GMT daily
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: db-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      # --ignore-scripts: the backup needs only the mongodb driver and the S3
+      # client, not prisma generate.
+      - run: npm ci --ignore-scripts
+
+      - name: Back up production database to R2
+        run: node scripts/backup-db.mjs
+        env:
+          BACKUP_ON_BUILD: "1"
+          BACKUP_SOURCE: scheduled
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          BACKUP_R2_ACCESS_KEY_ID: ${{ secrets.BACKUP_R2_ACCESS_KEY_ID }}
+          BACKUP_R2_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_R2_SECRET_ACCESS_KEY }}
+          BACKUP_R2_BUCKET: ${{ secrets.BACKUP_R2_BUCKET }}

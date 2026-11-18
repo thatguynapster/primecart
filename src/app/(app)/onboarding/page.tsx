@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 
 import { getRootDomain } from "@/lib/domain";
 import { hasCompletedOnboarding, requireMerchant } from "@/lib/merchant/current";
-import { listGhanaianBanks } from "@/lib/paystack";
 import { OnboardingForm } from "./onboarding-form";
 
 export const metadata = {
@@ -14,12 +13,10 @@ export default async function OnboardingPage() {
   const merchant = await requireMerchant();
 
   // Onboarding is one-time. Returning here afterwards would offer to claim a
-  // second subdomain and create a second Paystack subaccount.
+  // second subdomain.
   if (hasCompletedOnboarding(merchant)) {
     redirect("/dashboard");
   }
-
-  const banks = await listGhanaianBanks();
 
   return (
     <div className="min-h-full bg-[#F5F5F4] text-neutral-900">
@@ -49,7 +46,6 @@ export default async function OnboardingPage() {
 
         <div className="mt-10 rounded-2xl border border-neutral-200 bg-white p-6 shadow-[0_1px_2px_rgb(0_0_0/0.03)] sm:p-9">
           <OnboardingForm
-            banks={banks}
             rootDomain={getRootDomain()}
             defaultBusinessName={merchant.name}
           />

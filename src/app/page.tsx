@@ -85,7 +85,7 @@ export default function LandingPage() {
             <div className="mx-auto max-w-3xl text-center">
               <span className="inline-flex items-center gap-2 rounded-full border border-neutral-300/80 bg-white/70 px-3.5 py-1.5 text-[12.5px] font-medium text-neutral-600">
                 <span className="size-1.5 rounded-full bg-neutral-900" />
-                No subscription — you only pay when you sell
+                14-day free trial — no payment details needed
               </span>
 
               <h1 className="font-display mt-8 text-[2.5rem] leading-[0.95] font-extrabold tracking-[-0.04em] text-balance text-neutral-900 sm:text-[4rem] lg:text-[4.75rem]">
@@ -103,7 +103,7 @@ export default function LandingPage() {
                   href="/sign-up"
                   className="w-full rounded-full bg-neutral-900 px-6 py-3 text-center text-sm font-medium text-white transition-colors hover:bg-neutral-700 sm:w-auto"
                 >
-                  Get started free
+                  Start your free trial
                 </Link>
                 <a
                   href="#features"
@@ -213,7 +213,7 @@ export default function LandingPage() {
                 Pricing
               </p>
               <h2 className="font-display mt-4 text-3xl leading-[1.05] font-extrabold tracking-[-0.03em] text-balance text-neutral-900 sm:text-[2.75rem]">
-                No subscription. Ever.
+                One price. Everything included.
               </h2>
             </div>
 
@@ -223,18 +223,18 @@ export default function LandingPage() {
                   <div>
                     <div className="flex items-baseline gap-2">
                       <span className="font-display text-5xl font-extrabold tracking-[-0.04em]">
-                        3%
+                        GHS 89
                       </span>
-                      <span className="text-sm text-neutral-400">
-                        / storefront sale, capped at GHS 500
-                      </span>
+                      <span className="text-sm text-neutral-400">/ month</span>
                     </div>
+                    <p className="mt-2 text-[13px] text-neutral-400">
+                      Or GHS 267 a quarter, or GHS 890 a year (2 months free).
+                    </p>
                     <p className="mt-3 max-w-sm text-[14px] leading-relaxed text-neutral-300">
-                      No monthly fee, no trial that runs out. You only pay
-                      when a storefront sale actually happens — and never
-                      more than GHS 500 on any single order. Manual orders
-                      are always free. Nothing to cancel, because there is
-                      nothing recurring.
+                      Start with 14 days free, no payment details needed.
+                      After that, pay by MoMo or card for the months you
+                      want. Nothing renews on its own, so there&rsquo;s
+                      nothing to cancel.
                     </p>
 
                     <ul className="mt-7 space-y-3 text-[14px] text-neutral-200">
@@ -242,6 +242,7 @@ export default function LandingPage() {
                         "Unlimited products and variants",
                         "Your own storefront link",
                         "Orders from storefront, walk-in and WhatsApp",
+                        "Profit on every sale",
                         "Low-stock alerts",
                         "Sales and stock reports",
                       ].map((item) => (
@@ -259,13 +260,22 @@ export default function LandingPage() {
                       href="/sign-up"
                       className="mt-9 inline-block rounded-full bg-white px-6 py-3 text-center text-sm font-medium text-neutral-900 transition-colors hover:bg-neutral-200"
                     >
-                      Get started free
+                      Start your free trial
                     </Link>
                   </div>
 
                   <div className="rounded-xl border border-white/10 bg-white/[0.04] p-5">
                     <p className="text-[12px] font-medium tracking-[0.12em] text-neutral-400 uppercase">
-                      On a GHS 200 order
+                      Online checkout — optional
+                    </p>
+                    <p className="mt-3 text-[13.5px] leading-relaxed text-neutral-300">
+                      Switch it on and shoppers pay by MoMo or card on your
+                      shop. 3% per order, payment fees included. Leave it off
+                      and they order, then you arrange payment on WhatsApp.
+                      No fee.
+                    </p>
+                    <p className="mt-5 text-[12px] font-medium tracking-[0.12em] text-neutral-400 uppercase">
+                      On a GHS 200 order paid online
                     </p>
                     <dl className="mt-4 space-y-2.5 text-[14px]">
                       <div className="flex justify-between text-neutral-300">
@@ -273,7 +283,7 @@ export default function LandingPage() {
                         <dd className="font-mono tabular-nums">GHS 200.00</dd>
                       </div>
                       <div className="flex justify-between text-neutral-300">
-                        <dt>PrimeCart fee (3%)</dt>
+                        <dt>Checkout fee (3%, all-in)</dt>
                         <dd className="font-mono tabular-nums">− GHS 6.00</dd>
                       </div>
                       <div className="flex justify-between border-t border-white/10 pt-2.5 font-medium text-white">
@@ -298,14 +308,14 @@ export default function LandingPage() {
                 Count your stock once. Then let it count itself.
               </h2>
               <p className="mx-auto mt-5 max-w-lg text-[15px] leading-relaxed text-neutral-600">
-                Set up your shop in an afternoon. No subscription, and nothing
-                to pay until you make your first sale.
+                Set up your shop in an afternoon. Your first 14 days are free,
+                with no payment details needed.
               </p>
               <Link
                 href="/sign-up"
                 className="mt-8 inline-block rounded-full bg-neutral-900 px-7 py-3.5 text-sm font-medium text-white transition-colors hover:bg-neutral-700"
               >
-                Get started free
+                Start your free trial
               </Link>
             </div>
           </div>

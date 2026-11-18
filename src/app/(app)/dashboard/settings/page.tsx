@@ -9,6 +9,7 @@ import {
 import { isImageUploadConfigured } from "@/lib/r2";
 import {
   BannerForm,
+  CheckoutAddonForm,
   HeroForm,
   LogoForm,
   PayoutForm,
@@ -26,9 +27,14 @@ export default async function SettingsPage() {
   const storefront = merchant.storefront!;
 
   const [banks, currentPayout] = await Promise.all([
-    listGhanaianBanks(),
+    // Best-effort: a Paystack blip must not take the whole settings page down.
+    listGhanaianBanks().catch((error: unknown) => {
+      console.error("Could not load the bank list from Paystack:", error);
+      return [];
+    }),
     getCurrentPayout(merchant.paystackSubaccountCode),
   ]);
+  const hasSubaccount = Boolean(merchant.paystackSubaccountCode);
 
   return (
     <>
@@ -68,11 +74,17 @@ export default async function SettingsPage() {
             configured={isImageUploadConfigured()}
           />
 
-          <PayoutForm
+          <CheckoutAddonForm
+            enabled={merchant.storefrontPaymentsEnabled === true}
+            hasSubaccount={hasSubaccount}
             banks={banks}
-            hasSubaccount={Boolean(merchant.paystackSubaccountCode)}
-            current={currentPayout}
           />
+
+          {/* Payout details only matter once there's a subaccount; before
+              that, the checkout card above collects them as it switches on. */}
+          {hasSubaccount && (
+            <PayoutForm banks={banks} hasSubaccount current={currentPayout} />
+          )}
 
           <SocialsForm
             facebookUrl={storefront.facebookUrl}

@@ -7,6 +7,8 @@ import { Field, FormError, inputClass } from "@/components/dashboard/fields";
 import { ImagePicker } from "@/components/dashboard/image-picker";
 import type { PaystackBank, PaystackSubaccountDetails } from "@/lib/paystack";
 import {
+  disableStorefrontPayments,
+  enableStorefrontPayments,
   removeBannerImage,
   removeHeroImage,
   removeLogo,
@@ -386,6 +388,192 @@ export function BannerForm({
 
 // ---------------------------------------------------------------------------
 
+/** Bank / MoMo select + account number, shared by payout setup and the checkout switch. */
+function PayoutFields({
+  banks,
+  bankLabel,
+  fieldErrors,
+}: {
+  banks: PaystackBank[];
+  bankLabel: string;
+  fieldErrors: Record<string, string>;
+}) {
+  const ids = { bankCode: useId(), accountNumber: useId() };
+  const bankOptions = banks.filter((b) => b.type !== "mobile_money");
+  const momoOptions = banks.filter((b) => b.type === "mobile_money");
+
+  return (
+    <>
+      <Field label={bankLabel} htmlFor={ids.bankCode} error={fieldErrors.bankCode}>
+        <select id={ids.bankCode} name="bankCode" defaultValue="" className={inputClass}>
+          <option value="" disabled>
+            {banks.length === 0 ? "Couldn't load banks — refresh to try again" : "Choose one"}
+          </option>
+          {momoOptions.length > 0 && (
+            <optgroup label="Mobile money">
+              {momoOptions.map((bank) => (
+                <option key={bank.code} value={bank.code}>
+                  {bank.name}
+                </option>
+              ))}
+            </optgroup>
+          )}
+          {bankOptions.length > 0 && (
+            <optgroup label="Banks">
+              {bankOptions.map((bank) => (
+                <option key={bank.code} value={bank.code}>
+                  {bank.name}
+                </option>
+              ))}
+            </optgroup>
+          )}
+        </select>
+      </Field>
+
+      <Field
+        label="Account or mobile money number"
+        htmlFor={ids.accountNumber}
+        error={fieldErrors.accountNumber}
+      >
+        <input
+          id={ids.accountNumber}
+          name="accountNumber"
+          inputMode="numeric"
+          placeholder="0244000000"
+          autoComplete="off"
+          className={inputClass}
+        />
+      </Field>
+    </>
+  );
+}
+
+/**
+ * D-18a/d — "Take payments on your storefront". Off by default. Switching on
+ * with a payout account already on file is one click; without one, the
+ * payout fields open in the same card and checkout is enabled only once
+ * Paystack accepts them. Switching off is immediate. Neither touches
+ * existing orders.
+ */
+export function CheckoutAddonForm({
+  enabled,
+  hasSubaccount,
+  banks,
+}: {
+  enabled: boolean;
+  hasSubaccount: boolean;
+  banks: PaystackBank[];
+}) {
+  const [state, formAction] = useActionState<SettingsState, FormData>(
+    enableStorefrontPayments,
+    {}
+  );
+  const [settingUp, setSettingUp] = useState(false);
+  const [disabling, setDisabling] = useState(false);
+  const [disableError, setDisableError] = useState<string | null>(null);
+  const fieldErrors = state.fieldErrors ?? {};
+  const needsPayout = !hasSubaccount;
+
+  return (
+    <section className="rounded-md border border-nk-neutral-800 bg-nk-surface p-6 sm:p-8">
+      <div className="flex flex-wrap items-center gap-3">
+        <h2 className="text-base font-medium tracking-tight">
+          Take payments on your storefront
+        </h2>
+        <span
+          className={`rounded-sm border px-2 py-0.5 text-xs ${
+            enabled
+              ? "border-nk-accent-700 text-nk-accent-300"
+              : "border-nk-neutral-800 text-nk-neutral-500"
+          }`}
+        >
+          {enabled ? "On" : "Off"}
+        </span>
+      </div>
+      <p className="mt-2 text-sm leading-relaxed text-nk-neutral-400">
+        Shoppers pay online by MoMo or card and you&rsquo;re paid the next
+        working day. PrimeCart keeps 3% of each order, and that includes all
+        payment fees. Stock is held for 24 hours while a shopper pays.
+      </p>
+      {!enabled && (
+        <p className="mt-2 text-sm leading-relaxed text-nk-neutral-500">
+          While this is off, shoppers still place orders. You get an email
+          with their WhatsApp number to confirm the order and arrange payment,
+          and stock is taken when you confirm it.
+        </p>
+      )}
+
+      {enabled ? (
+        <div className="mt-5 flex flex-wrap items-center gap-4">
+          <button
+            type="button"
+            disabled={disabling}
+            onClick={async () => {
+              setDisabling(true);
+              setDisableError(null);
+              try {
+                const result = await disableStorefrontPayments();
+                if (result.error) setDisableError(result.error);
+              } catch {
+                setDisableError("Could not switch it off. Try again.");
+              } finally {
+                setDisabling(false);
+              }
+            }}
+            className="rounded-md border border-nk-neutral-800 px-5 py-2.5 text-sm font-medium text-nk-text transition-colors hover:bg-nk-text/7 disabled:opacity-45"
+          >
+            {disabling ? "Switching off…" : "Switch off"}
+          </button>
+          <p className="text-sm text-nk-neutral-500">
+            Orders already placed aren&rsquo;t affected.
+          </p>
+          <FormError message={disableError ?? undefined} />
+        </div>
+      ) : needsPayout && !settingUp ? (
+        <div className="mt-5">
+          <button
+            type="button"
+            onClick={() => setSettingUp(true)}
+            className="rounded-md border border-nk-accent bg-transparent px-5 py-2.5 text-sm font-medium text-nk-accent transition-colors hover:bg-nk-accent/12"
+          >
+            Switch on
+          </button>
+        </div>
+      ) : (
+        <form action={formAction} className="mt-5 space-y-5">
+          <FormError message={state.error} />
+
+          {needsPayout && (
+            <>
+              <p className="text-sm text-nk-text">
+                Where should we send your money?
+              </p>
+              <PayoutFields
+                banks={banks}
+                bankLabel="Bank or mobile money"
+                fieldErrors={fieldErrors}
+              />
+            </>
+          )}
+
+          <div className="flex items-center gap-4">
+            <Saving label={needsPayout ? "Save and switch on" : "Switch on"} />
+            {needsPayout && (
+              <button
+                type="button"
+                onClick={() => setSettingUp(false)}
+                className="text-sm text-nk-neutral-500 hover:text-nk-text"
+              >
+                Cancel
+              </button>
+            )}
+          </div>
+        </form>
+      )}
+    </section>
+  );
+}
+
 /**
  * Payout details — the bank/mobile money account storefront sales settle
  * into. Onboarding is the only other place a subaccount ever gets created;
@@ -410,19 +598,14 @@ export function PayoutForm({
     updatePayoutDetails,
     {}
   );
-  const ids = { bankCode: useId(), accountNumber: useId() };
   const fieldErrors = state.fieldErrors ?? {};
-
-  const bankOptions = banks.filter((b) => b.type !== "mobile_money");
-  const momoOptions = banks.filter((b) => b.type === "mobile_money");
 
   return (
     <section className="rounded-md border border-nk-neutral-800 bg-nk-surface p-6 sm:p-8">
       <h2 className="text-base font-medium tracking-tight">Payout details</h2>
       <p className="mt-2 text-sm leading-relaxed text-nk-neutral-400">
-        Where your storefront sales get paid. We charge 3% on storefront sales
-        only, covering all payment processing fees — manual orders are always
-        free.
+        Where your online storefront payments get paid out. Orders you record
+        yourself, and orders paid outside checkout, carry no fee.
       </p>
 
       {current ? (
@@ -451,48 +634,11 @@ export function PayoutForm({
       >
         <FormError message={state.error} />
 
-        <Field
-          label={hasSubaccount ? "New bank or mobile money" : "Bank or mobile money"}
-          htmlFor={ids.bankCode}
-          error={fieldErrors.bankCode}
-        >
-          <select id={ids.bankCode} name="bankCode" defaultValue="" className={inputClass}>
-            <option value="" disabled>
-              Choose one
-            </option>
-            {momoOptions.length > 0 && (
-              <optgroup label="Mobile money">
-                {momoOptions.map((bank) => (
-                  <option key={bank.code} value={bank.code}>
-                    {bank.name}
-                  </option>
-                ))}
-              </optgroup>
-            )}
-            <optgroup label="Banks">
-              {bankOptions.map((bank) => (
-                <option key={bank.code} value={bank.code}>
-                  {bank.name}
-                </option>
-              ))}
-            </optgroup>
-          </select>
-        </Field>
-
-        <Field
-          label="Account or mobile money number"
-          htmlFor={ids.accountNumber}
-          error={fieldErrors.accountNumber}
-        >
-          <input
-            id={ids.accountNumber}
-            name="accountNumber"
-            inputMode="numeric"
-            placeholder="0244000000"
-            autoComplete="off"
-            className={inputClass}
-          />
-        </Field>
+        <PayoutFields
+          banks={banks}
+          bankLabel={hasSubaccount ? "New bank or mobile money" : "Bank or mobile money"}
+          fieldErrors={fieldErrors}
+        />
 
         <div className="flex items-center gap-4">
           <Saving label={hasSubaccount ? "Update payout details" : "Add payout details"} />

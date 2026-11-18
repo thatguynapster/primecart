@@ -2,7 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 
+import { LAPSED_MESSAGE, isLapsed } from "@/lib/billing/state";
 import { requireMerchant } from "@/lib/merchant/current";
+import { invalidateStorefront } from "@/lib/merchant/lookup";
 import {
   setStorefrontBannerImage,
   setStorefrontHeroImage,
@@ -43,6 +45,7 @@ export async function updateShopDetails(
   formData: FormData
 ): Promise<SettingsState> {
   const merchant = await requireMerchant();
+  if (isLapsed(merchant)) return { error: LAPSED_MESSAGE };
   const storefront = merchant.storefront;
   if (!storefront) return { error: "Finish setting up your shop first." };
 
@@ -78,6 +81,7 @@ export async function uploadLogo(
   formData: FormData
 ): Promise<SettingsState> {
   const merchant = await requireMerchant();
+  if (isLapsed(merchant)) return { error: LAPSED_MESSAGE };
   const storefront = merchant.storefront;
   if (!storefront) return { error: "Finish setting up your shop first." };
 
@@ -107,6 +111,7 @@ export async function uploadLogo(
 
 export async function removeLogo(): Promise<void> {
   const merchant = await requireMerchant();
+  if (isLapsed(merchant)) return;
   const storefront = merchant.storefront;
   if (!storefront?.logoUrl) return;
 
@@ -125,6 +130,7 @@ export async function updateHero(
   formData: FormData
 ): Promise<SettingsState> {
   const merchant = await requireMerchant();
+  if (isLapsed(merchant)) return { error: LAPSED_MESSAGE };
   const storefront = merchant.storefront;
   if (!storefront) return { error: "Finish setting up your shop first." };
 
@@ -145,6 +151,7 @@ export async function uploadHeroImage(
   formData: FormData
 ): Promise<SettingsState> {
   const merchant = await requireMerchant();
+  if (isLapsed(merchant)) return { error: LAPSED_MESSAGE };
   const storefront = merchant.storefront;
   if (!storefront) return { error: "Finish setting up your shop first." };
 
@@ -171,6 +178,7 @@ export async function uploadHeroImage(
 
 export async function removeHeroImage(): Promise<void> {
   const merchant = await requireMerchant();
+  if (isLapsed(merchant)) return;
   const storefront = merchant.storefront;
   if (!storefront?.heroImageUrl) return;
 
@@ -189,6 +197,7 @@ export async function updateBanner(
   formData: FormData
 ): Promise<SettingsState> {
   const merchant = await requireMerchant();
+  if (isLapsed(merchant)) return { error: LAPSED_MESSAGE };
   const storefront = merchant.storefront;
   if (!storefront) return { error: "Finish setting up your shop first." };
 
@@ -209,6 +218,7 @@ export async function uploadBannerImage(
   formData: FormData
 ): Promise<SettingsState> {
   const merchant = await requireMerchant();
+  if (isLapsed(merchant)) return { error: LAPSED_MESSAGE };
   const storefront = merchant.storefront;
   if (!storefront) return { error: "Finish setting up your shop first." };
 
@@ -235,6 +245,7 @@ export async function uploadBannerImage(
 
 export async function removeBannerImage(): Promise<void> {
   const merchant = await requireMerchant();
+  if (isLapsed(merchant)) return;
   const storefront = merchant.storefront;
   if (!storefront?.bannerImageUrl) return;
 
@@ -245,15 +256,112 @@ export async function removeBannerImage(): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
+// Storefront checkout add-on (D-18a, D-18d)
+// ---------------------------------------------------------------------------
+
+function parsePayoutFields(formData: FormData):
+  | { ok: true; bankCode: string; accountNumber: string }
+  | { ok: false; fieldErrors: Record<string, string> } {
+  const bankCode = String(formData.get("bankCode") ?? "").trim();
+  const accountNumber = String(formData.get("accountNumber") ?? "").trim();
+
+  const fieldErrors: Record<string, string> = {};
+  if (!bankCode) {
+    fieldErrors.bankCode = "Choose where you want to be paid.";
+  }
+  if (!accountNumber) {
+    fieldErrors.accountNumber = "Enter your account or mobile money number.";
+  } else if (!/^[0-9]{5,20}$/.test(accountNumber)) {
+    fieldErrors.accountNumber = "Use digits only.";
+  }
+  if (Object.keys(fieldErrors).length > 0) return { ok: false, fieldErrors };
+  return { ok: true, bankCode, accountNumber };
+}
+
+/**
+ * Switches storefront checkout on. A merchant with a Paystack subaccount
+ * already (including both pre-D-18 merchants) is switched on at once; one
+ * without has to give payout details in the same form, and checkout is only
+ * enabled after Paystack confirms the subaccount — never a live checkout
+ * with nowhere to settle.
+ *
+ * Subaccounts are created with `percentage_charge: 0` (D-6), via the shared
+ * `createSubaccount`. Existing orders are never touched.
+ */
+export async function enableStorefrontPayments(
+  _prev: SettingsState,
+  formData: FormData
+): Promise<SettingsState> {
+  const merchant = await requireMerchant();
+  if (isLapsed(merchant)) return { error: LAPSED_MESSAGE };
+  const storefront = merchant.storefront;
+  if (!storefront) return { error: "Finish setting up your shop first." };
+
+  if (!merchant.paystackSubaccountCode) {
+    const payout = parsePayoutFields(formData);
+    if (!payout.ok) return { fieldErrors: payout.fieldErrors };
+
+    try {
+      const subaccount = await createSubaccount({
+        businessName: storefront.businessName,
+        bankCode: payout.bankCode,
+        accountNumber: payout.accountNumber,
+      });
+      await prisma.merchant.update({
+        where: { id: merchant.id },
+        data: {
+          paystackSubaccountCode: subaccount.subaccount_code,
+          storefrontPaymentsEnabled: true,
+        },
+      });
+    } catch (error) {
+      if (error instanceof PaystackError) {
+        return { error: `Paystack could not verify these details: ${error.message}` };
+      }
+      return {
+        error: "Could not reach Paystack just now. Check your details and try again.",
+      };
+    }
+  } else {
+    await prisma.merchant.update({
+      where: { id: merchant.id },
+      data: { storefrontPaymentsEnabled: true },
+    });
+  }
+
+  // Labels on this instance's storefront update at once; other instances
+  // within five minutes. Checkout itself always reads the flag fresh.
+  invalidateStorefront(storefront.subdomain);
+  revalidatePath("/dashboard/settings");
+  return { savedAt: Date.now() };
+}
+
+/** Switches storefront checkout off, immediately. Existing orders are untouched. */
+export async function disableStorefrontPayments(): Promise<SettingsState> {
+  const merchant = await requireMerchant();
+  const storefront = merchant.storefront;
+  if (!storefront) return { error: "Finish setting up your shop first." };
+
+  await prisma.merchant.update({
+    where: { id: merchant.id },
+    data: { storefrontPaymentsEnabled: false },
+  });
+
+  invalidateStorefront(storefront.subdomain);
+  revalidatePath("/dashboard/settings");
+  return { savedAt: Date.now() };
+}
+
+// ---------------------------------------------------------------------------
 // Payout details
 // ---------------------------------------------------------------------------
 
 /**
  * Adds or changes where storefront sales get paid out.
  *
- * The onboarding flow (`src/app/onboarding/actions.ts`) is the only other
- * place that ever creates a subaccount — this mirrors its validation and its
- * "Paystack first" ordering (never write a subaccount code the create call
+ * `enableStorefrontPayments` above is the only other place that creates a
+ * subaccount (onboarding no longer does, D-18d). This mirrors its validation
+ * and its "Paystack first" ordering (never write a subaccount code the create call
  * didn't actually confirm), but branches into an update when one already
  * exists rather than always creating a new one. A merchant provisioned
  * without a subaccount at all (e.g. a database seeded directly rather than
@@ -268,19 +376,9 @@ export async function updatePayoutDetails(
   const storefront = merchant.storefront;
   if (!storefront) return { error: "Finish setting up your shop first." };
 
-  const bankCode = String(formData.get("bankCode") ?? "").trim();
-  const accountNumber = String(formData.get("accountNumber") ?? "").trim();
-
-  const fieldErrors: Record<string, string> = {};
-  if (!bankCode) {
-    fieldErrors.bankCode = "Choose where you want to be paid.";
-  }
-  if (!accountNumber) {
-    fieldErrors.accountNumber = "Enter your account or mobile money number.";
-  } else if (!/^[0-9]{5,20}$/.test(accountNumber)) {
-    fieldErrors.accountNumber = "Use digits only.";
-  }
-  if (Object.keys(fieldErrors).length > 0) return { fieldErrors };
+  const payout = parsePayoutFields(formData);
+  if (!payout.ok) return { fieldErrors: payout.fieldErrors };
+  const { bankCode, accountNumber } = payout;
 
   try {
     if (merchant.paystackSubaccountCode) {
@@ -325,6 +423,7 @@ export async function updateSocials(
   formData: FormData
 ): Promise<SettingsState> {
   const merchant = await requireMerchant();
+  if (isLapsed(merchant)) return { error: LAPSED_MESSAGE };
   const storefront = merchant.storefront;
   if (!storefront) return { error: "Finish setting up your shop first." };
 

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { LAPSED_MESSAGE, isLapsed } from "@/lib/billing/state";
 import { requireMerchant } from "@/lib/merchant/current";
 import { prisma } from "@/lib/prisma";
 import { MAX_IMAGES_PER_PRODUCT } from "@/lib/products/limits";
@@ -127,6 +128,7 @@ export async function createProduct(
   formData: FormData
 ): Promise<FormState> {
   const merchant = await requireMerchant();
+  if (isLapsed(merchant)) return { error: LAPSED_MESSAGE };
 
   const name = String(formData.get("name") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
@@ -208,6 +210,7 @@ export async function updateProductDetails(
   formData: FormData
 ): Promise<FormState> {
   const merchant = await requireMerchant();
+  if (isLapsed(merchant)) return { error: LAPSED_MESSAGE };
 
   const productId = String(formData.get("productId") ?? "");
   const name = String(formData.get("name") ?? "").trim();
@@ -290,6 +293,7 @@ export async function setProductArchived(
   archived: boolean
 ): Promise<void> {
   const merchant = await requireMerchant();
+  if (isLapsed(merchant)) return;
 
   await prisma.product.updateMany({
     where: { merchantId: merchant.id, id: productId },
@@ -309,6 +313,7 @@ export async function uploadProductImages(
   formData: FormData
 ): Promise<FormState> {
   const merchant = await requireMerchant();
+  if (isLapsed(merchant)) return { error: LAPSED_MESSAGE };
   const productId = String(formData.get("productId") ?? "");
 
   const product = await getProduct(merchant.id, productId);
@@ -361,6 +366,7 @@ export async function removeProductImage(
   url: string
 ): Promise<void> {
   const merchant = await requireMerchant();
+  if (isLapsed(merchant)) return;
 
   const product = await getProduct(merchant.id, productId);
   if (!product) return;
@@ -391,6 +397,7 @@ export async function createVariant(
   formData: FormData
 ): Promise<FormState> {
   const merchant = await requireMerchant();
+  if (isLapsed(merchant)) return { error: LAPSED_MESSAGE };
   const productId = String(formData.get("productId") ?? "");
 
   const fieldErrors: Record<string, string> = {};
@@ -417,6 +424,7 @@ export async function editVariant(
   formData: FormData
 ): Promise<FormState> {
   const merchant = await requireMerchant();
+  if (isLapsed(merchant)) return { error: LAPSED_MESSAGE };
   const productId = String(formData.get("productId") ?? "");
   const variantId = String(formData.get("variantId") ?? "");
 
@@ -468,6 +476,7 @@ export async function adjustStock(
   stock: number
 ): Promise<void> {
   const merchant = await requireMerchant();
+  if (isLapsed(merchant)) return;
 
   await setVariantStock(merchant.id, productId, variantId, stock);
 
@@ -481,6 +490,7 @@ export async function setVariantArchived(
   archived: boolean
 ): Promise<void> {
   const merchant = await requireMerchant();
+  if (isLapsed(merchant)) return;
 
   await setVariantActive(merchant.id, productId, variantId, !archived);
 

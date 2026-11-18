@@ -2,9 +2,9 @@ import Image from "next/image";
 import Link from "next/link";
 
 const LINKS = [
-  { href: "#why", label: "Why PrimeCart" },
-  { href: "#features", label: "Features" },
-  { href: "#pricing", label: "Pricing" },
+  { href: "/#why", label: "Why PrimeCart" },
+  { href: "/#features", label: "Features" },
+  { href: "/#pricing", label: "Pricing" },
 ];
 
 export function SiteHeader() {
@@ -48,7 +48,7 @@ export function SiteHeader() {
             href="/sign-up"
             className="rounded-full bg-neutral-900 px-4 py-2 text-[13.5px] font-medium text-white transition-colors hover:bg-neutral-700"
           >
-            Get started free
+            Start your free trial
           </Link>
         </div>
       </div>

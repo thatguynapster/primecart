@@ -184,15 +184,20 @@ export async function updateSubaccount(
 export const STOREFRONT_FEE_RATE = 0.03;
 
 /**
- * D-16 (raised to GHS 500 2026-10-08, better margin at the same low-friction
- * principle): the 3% is capped per order, so an unusually large single sale
- * doesn't cost the merchant disproportionately. In pesewas, matching
- * `amountInPesewas` below.
+ * LEGACY ONLY — do not use for new orders. D-18b removed the per-order cap:
+ * every storefront order now pays 3%, uncapped (Paystack doesn't cap its own
+ * fee in Ghana either).
+ *
+ * Kept solely for the profit fallback on storefront orders placed before
+ * `Order.platformFee` existed (DEV-6, shipped 2026-10-06). Those orders really
+ * were charged under D-16's cap, which was GHS 100 at the time — the later
+ * raise to GHS 500 never applied to an order without a `platformFee`
+ * snapshot. In pesewas, matching `amountInPesewas` below.
  */
-export const STOREFRONT_FEE_CAP_PESEWAS = 500 * 100;
+export const LEGACY_D16_FEE_CAP_PESEWAS = 100 * 100;
 
 /**
- * PrimeCart's cut of a storefront sale, in pesewas, at the current rate/cap.
+ * PrimeCart's cut of a storefront sale, in pesewas (D-18b: 3%, no cap).
  *
  * Exported so the order and Paystack can never disagree about the fee: both
  * `initializeTransaction` (the `transaction_charge` Paystack actually
@@ -200,10 +205,7 @@ export const STOREFRONT_FEE_CAP_PESEWAS = 500 * 100;
  * DEV-6) compute it through this one function.
  */
 export function storefrontFeePesewas(amountInPesewas: number): number {
-  return Math.min(
-    Math.round(amountInPesewas * STOREFRONT_FEE_RATE),
-    STOREFRONT_FEE_CAP_PESEWAS
-  );
+  return Math.round(amountInPesewas * STOREFRONT_FEE_RATE);
 }
 
 type InitializeTransactionParams = {
@@ -230,9 +232,8 @@ type InitializeTransactionResult = {
  * The 3% is computed here, once — `transaction_charge` — and only here.
  * `createSubaccount` above sets `percentage_charge: 0` for exactly this
  * reason: applying a cut in both places stacks them, taking ~6% from the
- * merchant instead of 3% (D-6 in the project's decision log). Capped at
- * `STOREFRONT_FEE_CAP_PESEWAS` (D-16) so an unusually large order doesn't
- * cost the merchant disproportionately.
+ * merchant instead of 3% (D-6 in the project's decision log). Uncapped
+ * since D-18b.
  */
 export async function initializeTransaction(
   params: InitializeTransactionParams
@@ -255,4 +256,82 @@ export async function initializeTransaction(
   );
 
   return body.data;
+}
+
+// ---------------------------------------------------------------------------
+// Subscriptions (D-18) — money to PrimeCart's own account
+// ---------------------------------------------------------------------------
+
+/**
+ * Starts a one-off subscription payment. Deliberately separate from
+ * `initializeTransaction`, which always routes to a merchant subaccount and
+ * takes the 3% storefront fee: this has **no `subaccount` and no
+ * `transaction_charge`**, so the whole amount settles to PrimeCart.
+ *
+ * Prepaid, never recurring: Paystack can't auto-renew over Mobile Money,
+ * which is how most merchants here pay (D-18).
+ */
+export async function initializeSubscriptionTransaction(params: {
+  email: string;
+  amountInPesewas: number;
+  /** Only `-`, `.`, `=` and alphanumerics. */
+  reference: string;
+  callbackUrl: string;
+  metadata: Record<string, unknown>;
+}): Promise<InitializeTransactionResult> {
+  const body = await paystackFetch<InitializeTransactionResult>(
+    "/transaction/initialize",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        email: params.email,
+        amount: params.amountInPesewas,
+        currency: "GHS",
+        channels: ["mobile_money", "card"],
+        reference: params.reference,
+        callback_url: params.callbackUrl,
+        metadata: params.metadata,
+      }),
+    }
+  );
+
+  return body.data;
+}
+
+export type VerifiedTransaction = {
+  /** "success" | "failed" | "abandoned" | "ongoing" | "pending" | "reversed" … */
+  status: string;
+  reference: string;
+  /** Pesewas. May arrive as a string; compare with Number(). */
+  amount: number | string;
+  currency: string;
+  channel: string | null;
+  paid_at: string | null;
+  /** Echo of the initialize metadata; can be an object or a JSON string. */
+  metadata: unknown;
+};
+
+/**
+ * Server-to-server confirmation of a transaction, by reference. Throws
+ * `PaystackError` for a reference Paystack doesn't know.
+ */
+export async function verifyTransaction(reference: string): Promise<VerifiedTransaction> {
+  const body = await paystackFetch<VerifiedTransaction>(
+    `/transaction/verify/${encodeURIComponent(reference)}`
+  );
+  return body.data;
+}
+
+/** Paystack metadata as an object, whether it arrived as one or as a JSON string. */
+export function metadataOf(raw: unknown): Record<string, unknown> {
+  if (raw && typeof raw === "object") return raw as Record<string, unknown>;
+  if (typeof raw === "string") {
+    try {
+      const parsed: unknown = JSON.parse(raw);
+      if (parsed && typeof parsed === "object") return parsed as Record<string, unknown>;
+    } catch {
+      // not JSON
+    }
+  }
+  return {};
 }

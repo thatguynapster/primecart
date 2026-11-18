@@ -42,9 +42,30 @@ model Merchant {
   // the 3% is applied per-transaction via transaction_charge at initialization.
   paystackSubaccountCode String?
 
-  products  Product[]
-  orders    Order[]
-  customers Customer[]
+  // D-18 (Phase 18) — subscription. All optional: existing documents load
+  // unchanged, and scripts/backfill-d18.mjs fills them on deploy. LAPSED is
+  // never stored — it is computed from the dates (src/lib/billing/status.ts),
+  // so nothing has to run at the moment a period ends.
+  subscriptionStatus   String? // "TRIAL" | "ACTIVE"
+  plan                 String? // "STANDARD" | "FOUNDING"
+  billingInterval      String? // "MONTHLY" | "QUARTERLY" | "YEARLY" — last chosen, preselects renewal
+  priceOverridePercent Int? // founding: 50; null = no discount
+  priceOverrideEndsAt  DateTime? // founding deal end; never moved once set
+  trialEndsAt          DateTime? // set once; non-null = trial already used
+  currentPeriodEnd     DateTime?
+
+  // D-18a — storefront checkout add-on. null/false = off: shoppers place
+  // orders without paying and the merchant arranges payment on WhatsApp.
+  storefrontPaymentsEnabled Boolean?
+
+  // Billing reminder emails already sent, keyed "<kind>:<date ISO>" so each
+  // goes once per trial/period end (src/lib/billing/reminders.ts).
+  billingReminderKeys String[]
+
+  products             Product[]
+  orders               Order[]
+  customers            Customer[]
+  subscriptionPayments SubscriptionPayment[]
 
   // No @@index([email]) or @@index([clerkUserId]) — @unique already creates
   // those indexes, and declaring them twice fails schema validation.
@@ -109,19 +130,19 @@ model Product {
   // insignia). Off by default. Existing products are backfilled to false —
   // `@default` only applies on create, not to existing documents (see
   // scripts/backfill-customization.mjs).
-  allowCustomization Boolean @default(false)
+  allowCustomization     Boolean @default(false)
   // Prompt shown to the shopper, e.g. "Name to engrave". Falls back to
   // "Personalisation" when null.
-  customizationLabel String?
+  customizationLabel     String?
   // Hard cap enforced server-side. Null -> 30. Max accepted 200.
   customizationMaxLength Int?
   // When true, the product can't be added to the cart without text.
-  customizationRequired Boolean @default(false)
+  customizationRequired  Boolean @default(false)
   // Flat surcharge per unit when the shopper enters text, in GHS. Null/0 = free.
-  customizationFee Float?
+  customizationFee       Float?
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   variants ProductVariant[]
   merchant Merchant         @relation(fields: [merchantId], references: [id])
@@ -134,27 +155,27 @@ model Product {
 // Variants are embedded and have no independent existence. Do not create a
 // separate collection for them.
 type ProductVariant {
-  id                String   @default(cuid())
+  id                String  @default(cuid())
   name              String
   sku               String?
   price             Float
-  stock             Int      @default(0)
-  lowStockThreshold Int      @default(5)
+  stock             Int     @default(0)
+  lowStockThreshold Int     @default(5)
   attributes        Json
-  isActive          Boolean  @default(true)
+  isActive          Boolean @default(true)
 
   // DEV-6 (Phase 15). What the merchant paid for one unit. Optional: null
   // means "unknown", which is NOT the same as 0. Unknown-cost sales are left
   // out of profit and counted in the coverage figure. Never sent to the
   // storefront (see src/lib/storefront/catalogue.ts's PublicVariant).
-  costPrice         Float?
+  costPrice Float?
 
   // References into the parent Product.images — this option does not own
   // uploads of its own. Keeping photos on the product means a shared shot is
   // uploaded once, and the per-product cap still means something.
   //
   // Empty is meaningful: the option shows all of the product's photos.
-  imageUrls         String[]
+  imageUrls String[]
 
   // Set when a low-stock notification has been sent for the current dip below
   // lowStockThreshold; cleared when stock rises back above it. Dedupe marker
@@ -214,6 +235,17 @@ model Order {
   // or the order is expired by the cron job.
   reservedUntil DateTime?
 
+  // D-18c (Phase 18). Whether this order currently holds stock. null = legacy
+  // order placed before D-18: decide by status, as before
+  // (holdsReservedStock). false = checkout-off storefront order, stock is
+  // taken when the merchant confirms or marks it paid.
+  stockReserved  Boolean?
+  // "PAYSTACK" | "MOMO" | "CASH" | "BANK" | "OTHER". Optional — a merchant
+  // can mark an order paid without saying how.
+  paymentMethod  String?
+  // When the 30-minute payment reminder went to the buyer (claim marker).
+  reminderSentAt DateTime?
+
   notes     String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -228,6 +260,37 @@ model Order {
   @@index([paymentRef])
   // Drives the expiry cron's lookup of abandoned reservations.
   @@index([status, paymentStatus, reservedUntil])
+}
+
+// ============================================
+// SUBSCRIPTION PAYMENT (D-18)
+// ============================================
+// One row per subscription checkout PrimeCart starts. Written PENDING when the
+// merchant clicks Pay, claimed (PENDING -> APPLYING -> SUCCESS) by whichever
+// of the webhook or the billing page's return path verifies it first, so a
+// payment can only ever extend a subscription once. Doubles as the receipt
+// history on /dashboard/billing.
+model SubscriptionPayment {
+  id                String    @id @default(auto()) @map("_id") @db.ObjectId
+  merchantId        String    @db.ObjectId
+  reference         String    @unique
+  interval          String // "MONTHLY" | "QUARTERLY" | "YEARLY"
+  amount            Float // GHS, as quoted and charged
+  // The period start the quote was priced for (founding discount applies
+  // by period start, see src/lib/billing/plans.ts).
+  quotedPeriodStart DateTime
+  // Set once applied — the period this payment actually bought.
+  periodStart       DateTime?
+  periodEnd         DateTime?
+  status            String // "PENDING" | "APPLYING" | "SUCCESS" | "FAILED" | "REVIEW"
+  channel           String? // Paystack channel, e.g. "mobile_money", "card"
+  paidAt            DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  merchant Merchant @relation(fields: [merchantId], references: [id])
+
+  @@index([merchantId, createdAt])
 }
 
 // Snapshot pattern: product name, variant name, SKU and price are copied in at

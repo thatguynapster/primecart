@@ -5,12 +5,17 @@
 	"scripts": {
 		"dev": "rm -rf .next && next dev",
 		"build": "prisma generate && next build",
-		"vercel-build": "prisma generate && npm run db:push && npm run db:backfill && next build",
+		"vercel-build": "prisma generate && npm run db:backup && npm run db:push && npm run db:backfill && npm run db:backfill-d18 && next build",
 		"start": "next start",
 		"lint": "eslint",
+		"test": "node --test \"src/**/*.test.ts\"",
+		"test:db": "node scripts/test-db-scripts.mjs",
 		"db:push": "prisma db push && node prisma/indexes.mjs",
 		"db:indexes": "node prisma/indexes.mjs",
-		"db:backfill": "node scripts/backfill-customization.mjs"
+		"db:backup": "node scripts/backup-db.mjs",
+		"db:restore": "node scripts/restore-db.mjs",
+		"db:backfill": "node scripts/backfill-customization.mjs",
+		"db:backfill-d18": "node scripts/backfill-d18.mjs"
 	},
 	"dependencies": {
 		"@aws-sdk/client-s3": "^3.1110.0",
@@ -21,6 +26,7 @@
 		"class-variance-authority": "^0.7.1",
 		"clsx": "^2.1.1",
 		"lucide-react": "^1.31.0",
+		"mongodb": "^6.22.0",
 		"next": "16.3.0",
 		"prisma": "6.19.3",
 		"react": "19.2.8",
@@ -38,6 +44,7 @@
 		"@types/react-dom": "^19",
 		"eslint": "^9",
 		"eslint-config-next": "16.3.0",
+		"mongodb-memory-server-core": "^10.4.3",
 		"tailwindcss": "^4",
 		"typescript": "^5"
 	}

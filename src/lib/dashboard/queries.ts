@@ -1,5 +1,5 @@
 import { aggregate, isoDate, oid } from "@/lib/db/aggregate";
-import { STOREFRONT_FEE_CAP_PESEWAS, STOREFRONT_FEE_RATE } from "@/lib/paystack";
+import { LEGACY_D16_FEE_CAP_PESEWAS, STOREFRONT_FEE_RATE } from "@/lib/paystack";
 
 /**
  * Dashboard reporting.
@@ -223,7 +223,12 @@ export type SavedView =
 function viewFilter(view: SavedView): Record<string, unknown> {
 	switch (view) {
 		case "unpaid":
-			return { paymentStatus: "UNPAID" };
+			// Open orders still waiting on money. Expired/cancelled ones are
+			// unpaid too, but there is nothing left to collect on them.
+			return {
+				paymentStatus: "UNPAID",
+				status: { $nin: ["CANCELLED", "EXPIRED"] }
+			};
 		case "fulfil":
 			return { status: { $in: ["CONFIRMED", "PROCESSING"] } };
 		case "storefront":
@@ -248,6 +253,8 @@ export type OrderRow = {
 	channel: string;
 	status: string;
 	paymentStatus: string;
+	/** D-18c: false = checkout-off order whose stock isn't taken yet. */
+	stockReserved: boolean | null;
 	total: number;
 	createdAt: string;
 };
@@ -270,6 +277,7 @@ export async function listOrders(
 			source: string;
 			status: string;
 			paymentStatus: string;
+			stockReserved?: boolean | null;
 			total: number;
 			createdAt: { $date: string };
 		}>("Order", [
@@ -295,6 +303,7 @@ export async function listOrders(
 					source: 1,
 					status: 1,
 					paymentStatus: 1,
+					stockReserved: 1,
 					total: 1,
 					createdAt: 1,
 					customerName: {
@@ -320,6 +329,7 @@ export async function listOrders(
 			channel: row.source,
 			status: row.status,
 			paymentStatus: row.paymentStatus,
+			stockReserved: row.stockReserved ?? null,
 			total: row.total,
 			createdAt: row.createdAt.$date
 		})),
@@ -334,6 +344,10 @@ export async function listOrders(
  * state from task 10.8 — a paid order stuck at EXPIRED is exactly the kind of
  * thing this badge exists to surface, even though it isn't "to fulfil" in the
  * ordinary sense.
+ *
+ * D-18: plus new checkout-off storefront orders (PENDING, unpaid, stock not
+ * taken). The merchant has to message the buyer to confirm and arrange
+ * payment, and nothing else will prompt them to.
  */
 export async function countOrdersNeedingAction(
 	merchantId: string
@@ -344,7 +358,8 @@ export async function countOrdersNeedingAction(
 				merchantId: oid(merchantId),
 				$or: [
 					{ status: { $in: ["CONFIRMED", "PROCESSING"] } },
-					{ status: "EXPIRED", paymentStatus: "PAID" }
+					{ status: "EXPIRED", paymentStatus: "PAID" },
+					{ status: "PENDING", paymentStatus: "UNPAID", stockReserved: false }
 				]
 			}
 		},
@@ -471,9 +486,10 @@ export async function getProfitSummary(
 	merchantId: string,
 	sinceDate: Date
 ): Promise<ProfitSummary> {
-	// In GHS, matching Order.total/platformFee — STOREFRONT_FEE_CAP_PESEWAS is
-	// defined in pesewas for the Paystack API.
-	const feeCapGhs = STOREFRONT_FEE_CAP_PESEWAS / 100;
+	// In GHS, matching Order.total/platformFee. Only used for the legacy
+	// fallback below — new orders always carry a platformFee snapshot (D-18b
+	// removed the cap for them).
+	const feeCapGhs = LEGACY_D16_FEE_CAP_PESEWAS / 100;
 
 	const [result] = await aggregate<ProfitFacetResult>("Order", [
 		{
@@ -484,9 +500,10 @@ export async function getProfitSummary(
 			}
 		},
 		// Order-level fee first, before $unwind multiplies orders into lines.
-		// Falls back to today's rate/cap for storefront orders placed before
-		// `platformFee` existed — correct for every order since D-16, possibly
-		// off by the cap for earlier, uncapped ones. Acceptable (see §A.5).
+		// Falls back to 3% under D-16's GHS 100 cap for storefront orders placed
+		// before `platformFee` existed (pre-2026-10-06) — the terms those orders
+		// were actually charged under. Possibly off by the cap for pre-D-16,
+		// uncapped ones. Acceptable (see §A.5).
 		{
 			$set: {
 				fee: {

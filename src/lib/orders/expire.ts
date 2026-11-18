@@ -32,6 +32,10 @@ export async function expireOrder(orderId: string): Promise<void> {
   const order = await prisma.order.findUnique({ where: { id: orderId } });
   if (!order) return;
 
+  // D-18c: a checkout-off order never took stock, so expiring it (which the
+  // cron never does — it has no reservedUntil) must not give any back.
+  if (order.stockReserved === false) return;
+
   for (const item of order.lineItems) {
     try {
       await restoreStock(order.merchantId, [

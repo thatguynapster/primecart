@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useId, useState } from "react";
 
 import { checkout } from "@/app/store/[subdomain]/cart/actions";
+import { getDashboardOrigin } from "@/lib/domain";
 import { formatGhs } from "@/lib/format";
 import { cartTotal, useCartStore } from "@/lib/storefront/cart";
 import { useIsClient } from "@/lib/use-is-client";
@@ -24,8 +25,21 @@ const inputClass =
  * find out that something sold out here, not after paying. That reconciliation
  * is purely informational, though — the `checkout` action re-derives price and
  * stock from the database again regardless, so nothing here is trusted.
+ *
+ * `paymentsEnabled` (D-18a) only picks the labels: "Pay now" through
+ * Paystack, or "Place order" with payment arranged on WhatsApp. The server
+ * action decides the real path from the database, and either way returns a
+ * URL to go to next (Paystack, or the order page).
  */
-export function CartView({ subdomain }: { subdomain: string }) {
+export function CartView({
+  subdomain,
+  storeName,
+  paymentsEnabled,
+}: {
+  subdomain: string;
+  storeName: string;
+  paymentsEnabled: boolean;
+}) {
   const useStore = useCartStore(subdomain);
   const lines = useStore((state) => state.lines);
   const setQuantity = useStore((state) => state.setQuantity);
@@ -111,9 +125,9 @@ export function CartView({ subdomain }: { subdomain: string }) {
         return;
       }
 
-      // Stock for this cart is now reserved against a real order — clearing
-      // it here stops a shopper who abandons Paystack and comes back from
-      // resubmitting the same items as a second, separate reservation.
+      // The cart is now a real order. Clearing it stops a shopper who
+      // abandons Paystack, or reloads the order page, from submitting the
+      // same items again as a second order.
       clear();
       // A method call, not a property assignment: the React Compiler's
       // immutability check flags `window.location.href = …` as mutating a
@@ -314,17 +328,21 @@ export function CartView({ subdomain }: { subdomain: string }) {
 
             <div>
               <label htmlFor={ids.phone} className="text-[13px] font-medium">
-                Phone
+                WhatsApp number
               </label>
               <input
                 id={ids.phone}
                 name="phone"
                 type="tel"
                 inputMode="tel"
+                autoComplete="tel"
                 required
-                placeholder="0244000000"
+                placeholder="024 400 0000"
                 className={`mt-1.5 ${inputClass}`}
               />
+              <p className="mt-1 text-[12px] text-neutral-500">
+                {storeName} will contact you here about your order.
+              </p>
             </div>
 
             <div>
@@ -389,24 +407,52 @@ export function CartView({ subdomain }: { subdomain: string }) {
               </p>
             )}
 
+            {!paymentsEnabled && (
+              <p className="rounded-xl bg-neutral-50 px-4 py-3 text-[13px] leading-relaxed text-neutral-700">
+                You won&rsquo;t pay now. {storeName} will contact you on
+                WhatsApp to confirm your order and arrange payment.
+              </p>
+            )}
+
             <button
               type="submit"
               disabled={!canSubmit}
               className="w-full rounded-xl px-6 py-3 text-[14px] font-medium disabled:opacity-60"
               style={{ background: "var(--brand)", color: "var(--on-brand)" }}
             >
-              {submitting ? "Starting payment…" : `Pay ${formatGhs(total)}`}
+              {paymentsEnabled
+                ? submitting
+                  ? "Starting payment…"
+                  : `Pay now · ${formatGhs(total)}`
+                : submitting
+                  ? "Placing order…"
+                  : "Place order"}
             </button>
 
             {problems.length > 0 && (
               <p className="text-[12.5px] text-red-600">
-                Fix the items flagged above before paying.
+                Fix the items flagged above before continuing.
               </p>
             )}
 
-            <p className="text-center text-[12px] text-neutral-500">
-              You will pay securely on Paystack. Nothing is charged until you
-              confirm there.
+            {paymentsEnabled && (
+              <p className="text-center text-[12px] text-neutral-500">
+                You will pay securely on Paystack. Nothing is charged until you
+                confirm there.
+              </p>
+            )}
+
+            <p className="text-center text-[12px] leading-relaxed text-neutral-500">
+              By placing this order, you agree that {storeName} may contact you
+              on WhatsApp about it.{" "}
+              <a
+                href={`${getDashboardOrigin()}/privacy`}
+                target="_blank"
+                rel="noopener"
+                className="underline underline-offset-2 hover:text-neutral-900"
+              >
+                Privacy
+              </a>
             </p>
               </form>
             </>
