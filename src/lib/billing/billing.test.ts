@@ -91,6 +91,11 @@ describe("effectiveStatus", () => {
   it("legacy (unmigrated) merchant is ACTIVE", () => {
     assert.equal(effectiveStatus({ subscriptionStatus: null, trialEndsAt: null, currentPeriodEnd: null }, now), "ACTIVE");
   });
+  it("stale Phase 13 status with no D-18 dates is not lapsed", () => {
+    for (const stale of ["TRIAL", "ACTIVE", "EXPIRED"]) {
+      assert.equal(effectiveStatus({ subscriptionStatus: stale, trialEndsAt: null, currentPeriodEnd: null }, now), "ACTIVE");
+    }
+  });
   it("trial, active, lapsed", () => {
     assert.equal(
       effectiveStatus({ subscriptionStatus: "TRIAL", trialEndsAt: d("2026-12-02T00:00:00Z"), currentPeriodEnd: null }, now),
