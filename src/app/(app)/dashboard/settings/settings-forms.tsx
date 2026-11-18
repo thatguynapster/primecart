@@ -495,6 +495,11 @@ export function CheckoutAddonForm({
         working day. PrimeCart keeps 3% of each order, and that includes all
         payment fees. Stock is held for 24 hours while a shopper pays.
       </p>
+      <p className="mt-2 text-sm text-nk-neutral-500">
+        For example, on a GHS 200 order the shopper pays GHS 200.00, PrimeCart
+        keeps GHS 6.00 and you receive{" "}
+        <span className="text-nk-neutral-300">GHS 194.00</span>.
+      </p>
       {!enabled && (
         <p className="mt-2 text-sm leading-relaxed text-nk-neutral-500">
           While this is off, shoppers still place orders. You get an email

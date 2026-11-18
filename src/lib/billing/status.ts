@@ -17,13 +17,12 @@ export type StatusFields = {
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export function effectiveStatus(merchant: StatusFields, now: Date): EffectiveStatus {
-  // Not migrated yet (scripts/backfill-d18.mjs runs on deploy). Never lock
-  // out a merchant because a backfill hasn't reached them.
-  if (
-    merchant.subscriptionStatus == null &&
-    merchant.trialEndsAt == null &&
-    merchant.currentPeriodEnd == null
-  ) {
+  // No D-18 clock yet (scripts/backfill-d18.mjs runs on deploy). Never lock
+  // out a merchant because a backfill hasn't reached them. Deliberately
+  // ignores `subscriptionStatus`: merchants created 13–24 Aug 2026 carry a
+  // stale value from the removed Phase 13 subscription (enum, default TRIAL,
+  // sometimes EXPIRED) with no D-18 dates — that is "not migrated", not lapsed.
+  if (merchant.trialEndsAt == null && merchant.currentPeriodEnd == null) {
     return "ACTIVE";
   }
 

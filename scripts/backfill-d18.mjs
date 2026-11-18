@@ -55,6 +55,7 @@ function addMonths(date, months) {
 
 // `field: null` matches both a missing field and an explicit null.
 const ONBOARDED = { "storefront.subdomain": { $exists: true } };
+const NO_CLOCK = { trialEndsAt: null, currentPeriodEnd: null };
 
 async function count(query) {
   const result = await prisma.$runCommandRaw({ count: "Merchant", query });
@@ -89,9 +90,13 @@ async function main() {
   const now = new Date();
   const summary = {};
 
-  // 1. Trial for onboarded merchants without a subscription.
+  // 1. Trial for onboarded merchants without a D-18 clock. Keyed on the
+  // dates, not subscriptionStatus: merchants created 13–24 Aug 2026 still
+  // carry a Phase 13 status (enum default TRIAL, or EXPIRED) with no
+  // trialEndsAt, and would otherwise be skipped and show as lapsed.
+  // Idempotent: the update sets trialEndsAt, so a rerun matches nothing.
   summary.trialStarted = await updateMany(
-    { ...ONBOARDED, subscriptionStatus: null },
+    { ...ONBOARDED, ...NO_CLOCK },
     {
       $set: {
         subscriptionStatus: "TRIAL",
@@ -131,7 +136,7 @@ async function main() {
 
   const remaining = await count({
     ...ONBOARDED,
-    $or: [{ subscriptionStatus: null }, { storefrontPaymentsEnabled: null }],
+    $or: [{ subscriptionStatus: null }, NO_CLOCK, { storefrontPaymentsEnabled: null }],
   });
   summary.onboardedStillMissing = remaining;
 

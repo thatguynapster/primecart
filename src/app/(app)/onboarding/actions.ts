@@ -68,9 +68,14 @@ export async function completeOnboarding(
   // have, and a founding plan is never downgraded to STANDARD here.
   const now = new Date();
   const subscription = {
-    ...(merchant.subscriptionStatus == null && { subscriptionStatus: "TRIAL" }),
     ...(merchant.plan == null && { plan: "STANDARD" }),
-    ...(merchant.trialEndsAt == null && { trialEndsAt: addDays(now, TRIAL_DAYS) }),
+    // Keyed on the date, not the status: a stale Phase 13 status (13–24 Aug
+    // 2026 sign-ups) must not stop the trial from starting.
+    ...(merchant.trialEndsAt == null &&
+      merchant.currentPeriodEnd == null && {
+        subscriptionStatus: "TRIAL",
+        trialEndsAt: addDays(now, TRIAL_DAYS),
+      }),
     ...(merchant.storefrontPaymentsEnabled == null && {
       storefrontPaymentsEnabled: false,
     }),

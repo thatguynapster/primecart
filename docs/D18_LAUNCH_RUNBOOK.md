@@ -73,8 +73,9 @@ Record the date in TASKS.md's Phase 18 "Restore drills" table. (The backup → r
 ## 6. Acceptance checklist on dev (brief T13)
 
 Already verified offline (no database needed):
-- [x] Prices, intervals, founding 50% on all intervals, period stacking, pay-during-trial starts at `trialEndsAt`, pay-while-lapsed starts now, month-end clamping, Ghana phone normalisation (`npm test`, 17 checks)
+- [x] Prices, intervals, founding 50% on all intervals, period stacking, pay-during-trial starts at `trialEndsAt`, pay-while-lapsed starts now, month-end clamping, Ghana phone normalisation (`npm test`, 18 checks)
 - [x] `db:backfill-d18` run twice: second run changes nothing; checkout-on merchant stays on; founding end date doesn't move; open Paystack orders untouched (`npm run test:db`)
+- [x] Merchants who signed up 13–24 Aug 2026 (stale Phase 13 `subscriptionStatus`, no D-18 dates) get a fresh 14-day trial, not "Expired" (`npm run test:db`; found on dev, see below)
 - [x] Backup → restore keeps every BSON type and the unique subdomain index; restore refuses a non-empty target (`npm run test:db`)
 - [x] `tsc --noEmit`, `eslint` (0 errors), `next build`
 
@@ -103,6 +104,10 @@ Needs the deployed dev environment:
 ## What changed for merchants, in one paragraph (for your message to them)
 
 PrimeCart is now GHS 89/month with everything included, after a 14-day free trial (no payment details needed). Your shop works the same, but online checkout is now optional and starts **off**: shoppers place orders without paying, you get an email with their WhatsApp number, and you confirm the order and arrange payment yourself. Stock comes off when you confirm or mark it paid. If you'd rather take payment online, switch on "Take payments on your storefront" in Settings: shoppers pay by MoMo or card, PrimeCart keeps 3% (payment fees included), and you're paid the next working day.
+
+## Found on dev and fixed
+
+- **Stale Phase 13 subscription status.** The removed Aug 2026 subscription left `subscriptionStatus` (enum default `TRIAL`, sometimes `EXPIRED`) on merchants who signed up 13–24 Aug, with no D-18 dates. The first backfill skipped them (it matched `subscriptionStatus: null`), so they showed **Expired** with a read-only dashboard. On dev that was `aura-stone`; in production it would almost certainly have been the founding merchants. The backfill, onboarding and the status check now key on the D-18 dates instead, so those merchants get their 14-day trial on the next deploy.
 
 ## Decisions I made that weren't spelled out (tell me if you want any changed)
 

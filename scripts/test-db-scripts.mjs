@@ -49,7 +49,7 @@ await client.connect();
 const src = client.db("primecart-test");
 
 // ---------------------------------------------------------------- seed
-const ids = { legacy: new ObjectId(), founding: new ObjectId(), notOnboarded: new ObjectId(), switchedOn: new ObjectId() };
+const ids = { legacy: new ObjectId(), founding: new ObjectId(), notOnboarded: new ObjectId(), switchedOn: new ObjectId(), phase13: new ObjectId() };
 const store = (sub) => ({ subdomain: sub, businessName: sub, primaryColor: "#000000", isActive: true, createdAt: new Date("2026-08-01T00:00:00Z") });
 await src.collection("Merchant").insertMany([
   { _id: ids.legacy, clerkUserId: "u1", email: "a@x.test", name: "A", createdAt: new Date(), updatedAt: new Date(), storefront: store("legacy"), paystackSubaccountCode: "ACCT_legacy" },
@@ -57,6 +57,9 @@ await src.collection("Merchant").insertMany([
   { _id: ids.notOnboarded, clerkUserId: "u3", email: "c@x.test", name: "C", createdAt: new Date(), updatedAt: new Date() },
   { _id: ids.switchedOn, clerkUserId: "u4", email: "d@x.test", name: "D", createdAt: new Date(), updatedAt: new Date(), storefront: store("switchedon"),
     subscriptionStatus: "TRIAL", plan: "STANDARD", trialEndsAt: new Date("2026-12-01T00:00:00Z"), storefrontPaymentsEnabled: true, paystackSubaccountCode: "ACCT_d" },
+  // Signed up 13-24 Aug 2026 under the removed Phase 13 subscription: stale status, old trialExpiresAt, no D-18 dates.
+  { _id: ids.phase13, clerkUserId: "u5", email: "e@x.test", name: "E", createdAt: new Date(), updatedAt: new Date(), storefront: store("phase13"),
+    subscriptionStatus: "EXPIRED", trialExpiresAt: new Date("2026-09-15T00:00:00Z") },
 ]);
 await src.collection("Merchant").createIndexes([
   { key: { "storefront.subdomain": 1 }, name: "storefront_subdomain_unique", unique: true, sparse: true },
@@ -97,6 +100,11 @@ check(months === 12, "founding ends in 12 months");
 const C = after1[ids.notOnboarded.toHexString()];
 check(C.subscriptionStatus === undefined && C.trialEndsAt === undefined, "not-onboarded merchant gets no trial clock");
 check(C.storefrontPaymentsEnabled === false, "not-onboarded merchant checkout off");
+
+const P = after1[ids.phase13.toHexString()];
+const pDays = (P.trialEndsAt - Date.now()) / 864e5;
+check(P.subscriptionStatus === "TRIAL" && pDays > 13.9 && pDays <= 14, "stale Phase 13 status (EXPIRED, no D-18 dates) -> fresh 14-day TRIAL");
+check(P.storefrontPaymentsEnabled === false && P.plan === "STANDARD", "stale Phase 13 merchant checkout off, STANDARD");
 
 const D = after1[ids.switchedOn.toHexString()];
 check(D.storefrontPaymentsEnabled === true, "merchant who switched checkout on stays on");
@@ -147,7 +155,7 @@ const again = run("scripts/restore-db.mjs", [BACKUP, DST], {});
 check(again.code !== 0 && /already has/.test(again.out), "restore refuses a non-empty target");
 const forced = run("scripts/restore-db.mjs", [BACKUP, DST, "--force"], {});
 check(forced.code === 0, "restore --force upserts over it");
-check((await dst.collection("Merchant").countDocuments()) === 4, "no duplicates after --force");
+check((await dst.collection("Merchant").countDocuments()) === (await src.collection("Merchant").countDocuments()), "no duplicates after --force");
 
 await client.close();
 await replSet.stop();
