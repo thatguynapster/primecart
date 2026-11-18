@@ -212,13 +212,23 @@ export async function markOrderPaid(
           reservedUntil: null,
           stockReserved: true,
           paymentMethod,
+          paymentRef: null,
         },
       })
     );
   } else {
     await prisma.order.updateMany({
       where: { id: orderId, merchantId: merchant.id, paymentStatus: "UNPAID" },
-      data: { paymentStatus: "PAID", status, reservedUntil: null, paymentMethod },
+      // paymentRef cleared: any Paystack link still open for this order is
+      // now stale, and the webhook flags a payment on it as a duplicate
+      // rather than treating it as a redelivery.
+      data: {
+        paymentStatus: "PAID",
+        status,
+        reservedUntil: null,
+        paymentMethod,
+        paymentRef: null,
+      },
     });
   }
 

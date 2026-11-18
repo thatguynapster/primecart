@@ -1,6 +1,6 @@
 import type { DormantMerchant } from "@/lib/admin/dormancy";
 import { getDashboardOrigin } from "@/lib/domain";
-import { formatGhs, formatRelativeDate } from "@/lib/format";
+import { formatDeadline, formatGhs, formatRelativeDate } from "@/lib/format";
 import { waMeLink } from "@/lib/phone";
 import { sendEmail } from "./resend";
 
@@ -38,19 +38,6 @@ function escapeHtml(value: string): string {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
-}
-
-/** "Wed 18 Nov, 14:05" in Accra time, for deadlines shown to people. */
-function formatDeadline(date: Date): string {
-  return new Intl.DateTimeFormat("en-GH", {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-    timeZone: "Africa/Accra",
-  }).format(date);
 }
 
 /**

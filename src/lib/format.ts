@@ -19,6 +19,41 @@ export function daysUntil(date: Date): number {
 	return Math.max(0, Math.ceil((date.getTime() - Date.now()) / msPerDay));
 }
 
+/**
+ * "Wed 18 Nov, 14:05" in Accra time. For deadlines shown to people (a
+ * payment hold, a trial end), where the clock time matters, not just the day.
+ */
+export function formatDeadline(date: Date): string {
+	return new Intl.DateTimeFormat("en-GH", {
+		weekday: "short",
+		day: "numeric",
+		month: "short",
+		hour: "2-digit",
+		minute: "2-digit",
+		hour12: false,
+		timeZone: "Africa/Accra"
+	}).format(date);
+}
+
+/** "16 Feb 2027" in Accra time. */
+export function formatLongDate(date: Date): string {
+	return new Intl.DateTimeFormat("en-GB", {
+		day: "numeric",
+		month: "short",
+		year: "numeric",
+		timeZone: "Africa/Accra"
+	}).format(date);
+}
+
+/** "3 hours", "40 minutes" until `date`; "" once it has passed. */
+export function timeLeftUntil(date: Date): string {
+	const minutes = Math.floor((date.getTime() - Date.now()) / 60_000);
+	if (minutes <= 0) return "";
+	if (minutes < 60) return `${minutes} ${minutes === 1 ? "minute" : "minutes"}`;
+	const hours = Math.floor(minutes / 60);
+	return `${hours} ${hours === 1 ? "hour" : "hours"}`;
+}
+
 /** Whether `date` has already passed. Same purity reasoning as `daysUntil`. */
 export function isPast(date: Date): boolean {
 	return date.getTime() < Date.now();

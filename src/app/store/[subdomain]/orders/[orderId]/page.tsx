@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { formatGhs } from "@/lib/format";
+import { formatDeadline, formatGhs, isPast, timeLeftUntil } from "@/lib/format";
 import { getMerchantBySubdomain } from "@/lib/merchant/lookup";
+import { waMeLink } from "@/lib/phone";
 import { prisma } from "@/lib/prisma";
+import { PayNowButton } from "./pay-now";
 
 export const metadata = { title: "Your order" };
 
@@ -22,11 +24,22 @@ export const metadata = { title: "Your order" };
  * ObjectIds, unguessable in practice; combined with requiring the correct
  * subdomain, that is the same guest-order-security model most storefronts
  * use for order confirmation links.
+ *
+ * D-18 splits the old single "waiting" state three ways:
+ *   - checkout off (stockReserved false): order received, the store will
+ *     contact the buyer on WhatsApp to arrange payment. Never "waiting for
+ *     payment", since there's nothing to wait for.
+ *   - checkout on, unpaid: Pay now (a fresh Paystack link) and time left.
+ *     Coming straight back from Paystack (`?reference=`) shows "confirming"
+ *     instead, so a shopper who just paid isn't offered a second payment.
+ *   - legacy (stockReserved null): exactly as before.
  */
 export default async function OrderStatusPage({
   params,
+  searchParams,
 }: PageProps<"/store/[subdomain]/orders/[orderId]">) {
   const { subdomain, orderId } = await params;
+  const query = await searchParams;
 
   const merchant = await getMerchantBySubdomain(subdomain);
   if (!merchant) notFound();
@@ -37,9 +50,39 @@ export default async function OrderStatusPage({
   if (!order) notFound();
 
   const isPaid = order.paymentStatus === "PAID";
-  const isWaiting = order.status === "PENDING" && order.paymentStatus === "UNPAID";
+  const isOpenUnpaid = order.status === "PENDING" && order.paymentStatus === "UNPAID";
   const isExpired = order.status === "EXPIRED";
   const isCancelled = order.status === "CANCELLED";
+
+  // Paystack appends ?reference= (and ?trxref=) to the callback URL.
+  const returnedReference =
+    typeof query.reference === "string"
+      ? query.reference
+      : typeof query.trxref === "string"
+        ? query.trxref
+        : null;
+
+  const isCheckoutOff = isOpenUnpaid && order.stockReserved === false;
+  const isCheckoutOn =
+    isOpenUnpaid && order.stockReserved === true && order.paymentMethod === "PAYSTACK";
+  const holdOpen =
+    isCheckoutOn && order.reservedUntil != null && !isPast(order.reservedUntil);
+  const showPayNow = holdOpen && !returnedReference;
+  // Legacy orders, a shopper just back from Paystack, or a hold that has run
+  // out but the cron hasn't swept yet: the original "confirming" message.
+  const isWaiting = isOpenUnpaid && !isCheckoutOff && !showPayNow;
+
+  // Unpaid, but the merchant confirmed it: payment is being arranged directly.
+  const isConfirmedUnpaid =
+    !isPaid && !isOpenUnpaid && !isExpired && !isCancelled;
+
+  const buyerNumber = order.shippingAddress?.phone ?? null;
+  const storeWhatsapp = merchant.whatsappNumber
+    ? waMeLink(
+        merchant.whatsappNumber,
+        `Hi ${merchant.businessName}, I just placed order ${order.orderNumber} on your shop.`
+      )
+    : null;
 
   return (
     <div className="mx-auto max-w-lg px-4 py-8 sm:px-6 sm:py-12">
@@ -51,7 +94,68 @@ export default async function OrderStatusPage({
             Thank you! Your order is confirmed.
           </h1>
           <p className="mt-2 text-[14px] text-neutral-600">
-            A receipt has been sent to your email.
+            {order.paymentMethod === "PAYSTACK"
+              ? "A receipt has been sent to your email."
+              : `${merchant.businessName} has recorded your payment.`}
+          </p>
+        </>
+      )}
+
+      {isCheckoutOff && (
+        <>
+          <h1 className="mt-2 text-2xl font-semibold tracking-tight">
+            Order received.
+          </h1>
+          <p className="mt-2 text-[14px] leading-relaxed text-neutral-600">
+            {merchant.businessName} will contact you on WhatsApp
+            {buyerNumber ? (
+              <>
+                {" "}at <span className="whitespace-nowrap font-medium text-neutral-800">{buyerNumber}</span>
+              </>
+            ) : null}{" "}
+            to confirm your order and arrange payment. You haven&rsquo;t been
+            charged anything.
+          </p>
+          {storeWhatsapp && (
+            <a
+              href={storeWhatsapp}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-5 inline-flex w-full items-center justify-center rounded-xl px-6 py-3 text-[14px] font-medium"
+              style={{ background: "var(--brand)", color: "var(--on-brand)" }}
+            >
+              Message {merchant.businessName} on WhatsApp
+            </a>
+          )}
+        </>
+      )}
+
+      {showPayNow && order.reservedUntil && (
+        <>
+          <h1 className="mt-2 text-2xl font-semibold tracking-tight">
+            Your order is saved — pay to secure it.
+          </h1>
+          <p className="mt-2 text-[14px] leading-relaxed text-neutral-600">
+            We&rsquo;re holding these items for you for another{" "}
+            {timeLeftUntil(order.reservedUntil)}, until{" "}
+            {formatDeadline(order.reservedUntil)}. After that they go back on
+            sale.
+          </p>
+          <PayNowButton
+            subdomain={subdomain}
+            orderId={order.id}
+            label={`Pay now · ${formatGhs(order.total)}`}
+          />
+        </>
+      )}
+
+      {isConfirmedUnpaid && (
+        <>
+          <h1 className="mt-2 text-2xl font-semibold tracking-tight">
+            Your order is confirmed.
+          </h1>
+          <p className="mt-2 text-[14px] text-neutral-600">
+            {merchant.businessName} will arrange payment with you directly.
           </p>
         </>
       )}
@@ -88,11 +192,7 @@ export default async function OrderStatusPage({
         </>
       )}
 
-      {!isPaid && !isWaiting && !isExpired && !isCancelled && (
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight">
-          Order status: {order.status.toLowerCase()}
-        </h1>
-      )}
+
 
       <div className="mt-8 divide-y divide-neutral-100 overflow-hidden rounded-2xl border border-neutral-200">
         {order.lineItems.map((item, index) => (
