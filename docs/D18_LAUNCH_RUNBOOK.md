@@ -27,6 +27,7 @@ Everything in the brief (T0–T14, plus §6's lapsed gate and billing emails) is
 | --- | --- | --- |
 | `FOUNDING_MERCHANT_IDS` | **Production only** | The founding merchants' Merchant `_id`s, comma-separated. Can be added after launch: see "Founding merchants" below. A malformed id fails the build on purpose. |
 | `SUPPORT_EMAIL` | Production + Preview | The address shown on `/privacy` and `/terms`. **The mailbox must exist.** Defaults to `support@primecart.app`. |
+| `RESEND_API_KEY`, `NOTIFICATIONS_FROM_EMAIL`, `ADMIN_NOTIFICATION_EMAIL` | Production | Order emails and error alerts. **The production build fails without them**, or if the sender is `@resend.dev`. `ADMIN_NOTIFICATION_EMAIL` is your own inbox. |
 
 **Check:** Preview and Production use **different** `DATABASE_URL`s (Phase 15 note). Otherwise every branch build migrates production.
 
@@ -92,7 +93,7 @@ Record the date in TASKS.md's Phase 18 "Restore drills" table. (The backup → r
 ## 6. Acceptance checklist on dev (brief T13)
 
 Already verified offline (no database needed):
-- [x] Prices, intervals, founding 50% on all intervals, period stacking, pay-during-trial starts at `trialEndsAt`, pay-while-lapsed starts now, month-end clamping, Ghana phone normalisation (`npm test`, 21 checks)
+- [x] Prices, intervals, founding 50% on all intervals, period stacking, pay-during-trial starts at `trialEndsAt`, pay-while-lapsed starts now, month-end clamping, Ghana phone normalisation (`npm test`, 26 checks)
 - [x] `db:backfill-d18` run twice: second run changes nothing; checkout-on merchant stays on; founding end date doesn't move; open Paystack orders untouched (`npm run test:db`)
 - [x] Merchants who signed up 13–24 Aug 2026 (stale Phase 13 `subscriptionStatus`, no D-18 dates) get a fresh 14-day trial, not "Expired" (`npm run test:db`; found on dev, see below)
 - [x] Backup → restore keeps every BSON type and the unique subdomain index; restore refuses a non-empty target (`npm run test:db`)
@@ -112,6 +113,15 @@ Needs the deployed dev environment (ticked = verified on `aura-stone`, 2026-11-1
 - [x] Pay now issues a new link; paying the **old** link still settles the order (stock not deducted twice)
 - [x] Billing: pay monthly in test mode → "Paid until 2 Jan 2027" = trial end + 1 month; webhook + return path both ran, time added once. "Continue payment" reopens the same checkout; a new payment hides earlier unpaid ones
 - [x] Existing storefront `charge.success` still settles orders (subscription branch doesn't swallow it)
+
+Launch hardening (2026-11-23), to check on dev:
+- [ ] New product with 5 full-size phone photos saves with all 5 photos (from a real phone)
+- [ ] Logo with transparency stays transparent; hero and banner upload
+- [ ] New product with a missing price: error shows, text and photos are still there
+- [ ] Dashboard on a phone: tab bar, orders, order page, products, settings, billing; no sideways scroll
+- [ ] Checkout-off order: the buyer gets an email with a working order link
+- [ ] Unknown product link shows the shop's "Page not found"
+- [ ] Sixth order from one phone number within an hour is refused
 
 ## 7. Production deploy
 
