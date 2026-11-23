@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { getPreviewPhoto } from "@/lib/storefront/catalogue";
+import { shopPreview } from "@/lib/storefront/preview";
 import { getMerchantBySubdomain } from "@/lib/merchant/lookup";
 import {
   listStorefrontCategories,
@@ -26,10 +28,11 @@ export async function generateMetadata({
   const merchant = await getMerchantBySubdomain(subdomain);
   const category = typeof query.category === "string" ? query.category : undefined;
 
+  if (!merchant) return { title: "Shop" };
+
   return {
-    title: category
-      ? `${category} — ${merchant?.businessName ?? "Shop"}`
-      : `Products — ${merchant?.businessName ?? "Shop"}`,
+    ...shopPreview(merchant, await getPreviewPhoto(merchant)),
+    title: `${category ?? "Products"} — ${merchant.businessName}`,
   };
 }
 
