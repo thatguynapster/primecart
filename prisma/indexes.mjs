@@ -47,6 +47,16 @@ async function main() {
     throw new Error(`createIndexes failed: ${JSON.stringify(result)}`);
   }
 
+  const ttl = await prisma.$runCommandRaw({
+    createIndexes: "RateLimit",
+    indexes: [
+      { key: { expiresAt: 1 }, name: "rate_limit_ttl", expireAfterSeconds: 0 },
+    ],
+  });
+  if (ttl.ok !== 1) {
+    throw new Error(`createIndexes failed: ${JSON.stringify(ttl)}`);
+  }
+
   console.log(
     result.note ?? `Indexes present (${result.numIndexesAfter} on Merchant).`
   );

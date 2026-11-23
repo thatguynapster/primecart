@@ -317,6 +317,18 @@ model QueuedEmail {
   @@index([nextAttemptAt])
 }
 
+// ============================================
+// RATE LIMIT
+// ============================================
+// One counter per limit, hashed identifier and time window. Removed after
+// expiresAt by a TTL index (prisma/indexes.mjs). See src/lib/rate-limit.ts.
+model RateLimit {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  key       String   @unique
+  count     Int
+  expiresAt DateTime
+}
+
 // Snapshot pattern: product name, variant name, SKU and price are copied in at
 // order time. Never read live product data from a historical order.
 type OrderLineItem {

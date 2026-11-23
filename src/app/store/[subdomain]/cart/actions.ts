@@ -1,5 +1,7 @@
 "use server";
 
+import { headers } from "next/headers";
+
 import { STOREFRONT_PAYMENT_HOLD_HOURS } from "@/lib/billing/plans";
 import { findOrCreateCustomer } from "@/lib/customers/find-or-create";
 import { getStorefrontOrigin } from "@/lib/domain";
@@ -21,6 +23,7 @@ import {
 } from "@/lib/paystack";
 import { GHANA_PHONE_ERROR, normalizeGhanaPhone } from "@/lib/phone";
 import { prisma } from "@/lib/prisma";
+import { clientIp, withinLimit } from "@/lib/rate-limit";
 
 /**
  * Storefront checkout — two paths since D-18a.
@@ -72,6 +75,43 @@ export type CheckoutResult =
 
 const HOLD_MS = STOREFRONT_PAYMENT_HOLD_HOURS * 60 * 60 * 1000;
 
+const MAX_LINES = 50;
+
+/**
+ * Stops one person flooding a shop with orders, which with checkout on would
+ * also hold its stock. Per shop, so one shop's abuse doesn't affect another.
+ * The IP limits are loose on purpose: mobile networks put many real buyers
+ * behind one address.
+ */
+async function mayPlaceOrder(merchantId: string, phone: string): Promise<boolean> {
+  const ip = clientIp(await headers());
+  const checks = [
+    withinLimit({
+      name: "order-phone",
+      identifier: `${merchantId}:${phone}`,
+      limit: 5,
+      windowMinutes: 60,
+    }),
+  ];
+  if (ip) {
+    checks.push(
+      withinLimit({
+        name: "order-ip",
+        identifier: `${merchantId}:${ip}`,
+        limit: 15,
+        windowMinutes: 10,
+      }),
+      withinLimit({
+        name: "order-ip-day",
+        identifier: `${merchantId}:${ip}`,
+        limit: 60,
+        windowMinutes: 24 * 60,
+      })
+    );
+  }
+  return (await Promise.all(checks)).every(Boolean);
+}
+
 export async function checkout(
   subdomain: string,
   input: CheckoutInput
@@ -79,6 +119,9 @@ export async function checkout(
   // ---- validation ---------------------------------------------------------
   if (!Array.isArray(input.lines) || input.lines.length === 0) {
     return { ok: false, error: "Your cart is empty." };
+  }
+  if (input.lines.length > MAX_LINES) {
+    return { ok: false, error: "Your cart has too many items. Please split it into two orders." };
   }
   for (const line of input.lines) {
     if (!Number.isInteger(line.quantity) || line.quantity < 1) {
@@ -99,6 +142,20 @@ export async function checkout(
       ok: false,
       error: "Fill in your name, email, WhatsApp number, address and city.",
     };
+  }
+
+  if (
+    name.length > 100 ||
+    email.length > 254 ||
+    address.length > 300 ||
+    city.length > 100 ||
+    (region?.length ?? 0) > 100 ||
+    (notes?.length ?? 0) > 1000
+  ) {
+    return { ok: false, error: "One of your details is too long. Please shorten it." };
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return { ok: false, error: "Enter a valid email address." };
   }
 
   const phone = normalizeGhanaPhone(rawPhone);
@@ -127,6 +184,13 @@ export async function checkout(
     return { ok: false, error: "This store is not accepting orders right now." };
   }
   const merchantId = merchant.id;
+
+  if (!(await mayPlaceOrder(merchantId, phone))) {
+    return {
+      ok: false,
+      error: "Too many orders were placed in a short time. Please wait a while and try again, or message the shop.",
+    };
+  }
   const paymentsEnabled = merchant.storefrontPaymentsEnabled === true;
 
   // Safety net (T5): checkout switched on without a payout account should be

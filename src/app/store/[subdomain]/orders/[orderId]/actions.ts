@@ -6,6 +6,7 @@ import { getStorefrontOrigin } from "@/lib/domain";
 import { getMerchantBySubdomain } from "@/lib/merchant/lookup";
 import { initializeTransaction, PaystackError } from "@/lib/paystack";
 import { prisma } from "@/lib/prisma";
+import { withinLimit } from "@/lib/rate-limit";
 
 export type PayNowState = { error?: string };
 
@@ -44,6 +45,16 @@ export async function startOrderPayment(
     order.reservedUntil.getTime() > Date.now();
   if (!payable) {
     return { error: "This order can no longer be paid online. Refresh the page." };
+  }
+
+  const allowed = await withinLimit({
+    name: "pay-now",
+    identifier: order.id,
+    limit: 10,
+    windowMinutes: 60,
+  });
+  if (!allowed) {
+    return { error: "Too many payment attempts. Please wait a while and try again." };
   }
 
   const merchant = await prisma.merchant.findUnique({
