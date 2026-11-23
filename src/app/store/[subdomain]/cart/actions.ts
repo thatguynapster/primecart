@@ -4,7 +4,7 @@ import { STOREFRONT_PAYMENT_HOLD_HOURS } from "@/lib/billing/plans";
 import { findOrCreateCustomer } from "@/lib/customers/find-or-create";
 import { getStorefrontOrigin } from "@/lib/domain";
 import { getMerchantBySubdomain } from "@/lib/merchant/lookup";
-import { notifyNewOrder } from "@/lib/notifications/events";
+import { notifyBuyerOrderReceived, notifyNewOrder } from "@/lib/notifications/events";
 import { generateOrderNumber } from "@/lib/orders/order-number";
 import { validateCustomization } from "@/lib/products/customization";
 import { expireOrder } from "@/lib/orders/expire";
@@ -245,22 +245,34 @@ export async function checkout(
       },
     });
 
-    await notifyNewOrder({
-      merchantEmail: merchant.email,
-      orderId: order.id,
-      orderNumber: order.orderNumber,
-      customerName: name,
-      total: order.total,
-      paid: false,
-      buyerWhatsapp: phone,
-      storeName: storefront.businessName,
-      lines: lineItems,
-    });
+    const orderUrl = `${getStorefrontOrigin(subdomain)}/orders/${order.id}`;
 
-    return {
-      ok: true,
-      redirectUrl: `${getStorefrontOrigin(subdomain)}/orders/${order.id}`,
-    };
+    // Both swallow their own failures, so neither can fail the order.
+    await Promise.all([
+      notifyNewOrder({
+        merchantEmail: merchant.email,
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        customerName: name,
+        total: order.total,
+        paid: false,
+        buyerWhatsapp: phone,
+        storeName: storefront.businessName,
+        lines: lineItems,
+      }),
+      notifyBuyerOrderReceived({
+        buyerEmail: email,
+        storeName: storefront.businessName,
+        storeWhatsapp: storefront.whatsappNumber,
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        orderUrl,
+        total: order.total,
+        lines: lineItems,
+      }),
+    ]);
+
+    return { ok: true, redirectUrl: orderUrl };
   }
 
   // ==== Checkout ON: reserve, then Paystack ===================================

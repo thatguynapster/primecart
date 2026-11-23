@@ -137,6 +137,62 @@ export async function notifyNewOrder(params: {
   }
 }
 
+/**
+ * The buyer's copy of a checkout-off order. Paystack emails a receipt for paid
+ * orders; here nothing else would give the buyer their order link back once
+ * they close the tab.
+ */
+export async function notifyBuyerOrderReceived(params: {
+  buyerEmail: string;
+  storeName: string;
+  storeWhatsapp: string | null;
+  orderId: string;
+  orderNumber: string;
+  orderUrl: string;
+  total: number;
+  lines: {
+    productName: string;
+    variantName: string;
+    quantity: number;
+    subtotal: number;
+    customization: string | null;
+  }[];
+}): Promise<void> {
+  const store = escapeHtml(params.storeName);
+  const items = params.lines
+    .map(
+      (line) =>
+        `<li>${line.quantity} × ${escapeHtml(line.productName)} (${escapeHtml(line.variantName)})${
+          line.customization ? `: &ldquo;${escapeHtml(line.customization)}&rdquo;` : ""
+        } — ${formatGhs(line.subtotal)}</li>`
+    )
+    .join("");
+  const whatsapp = params.storeWhatsapp
+    ? `&nbsp;<a href="${escapeHtml(
+        waMeLink(
+          params.storeWhatsapp,
+          `Hi ${params.storeName}, I just placed order ${params.orderNumber} on your shop.`
+        )
+      )}" style="${BUTTON}">Message the shop</a>`
+    : "";
+
+  try {
+    await sendEmail({
+      to: params.buyerEmail,
+      subject: `${params.storeName} received your order ${params.orderNumber}`,
+      html: layout(
+        `${store} received your order`,
+        `<p>${store} will contact you on WhatsApp to confirm order <strong>${escapeHtml(params.orderNumber)}</strong> and arrange payment. You haven&rsquo;t been charged anything.</p>
+         <ul style="margin:12px 0;padding-left:20px;">${items}</ul>
+         <p><strong>Total: ${formatGhs(params.total)}</strong></p>
+         <a href="${escapeHtml(params.orderUrl)}" style="${BUTTON}">View your order</a>${whatsapp}`
+      ),
+    });
+  } catch (error) {
+    console.error(`notifyBuyerOrderReceived failed for order ${params.orderId}:`, error);
+  }
+}
+
 /** The merchant's opening WhatsApp message to a buyer. Shared with the dashboard. */
 export function newOrderWhatsappMessage(params: {
   customerName: string;
