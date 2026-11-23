@@ -3,6 +3,9 @@
 import Image from "next/image";
 import { useEffect, useId, useState } from "react";
 
+import { BRANDING_IMAGE } from "@/lib/images/fit";
+import { shrinkImage } from "@/lib/images/shrink";
+
 /**
  * Single-image file input with a live preview of what's been chosen, before
  * anything is uploaded — the same "see it before you submit" pattern
@@ -29,6 +32,9 @@ export function ImagePicker({
   const inputId = useId();
   const [preview, setPreview] = useState<{ file: File; url: string } | null>(null);
 
+  const [preparing, setPreparing] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
+
   // The blob: URL holds its file in memory until revoked.
   useEffect(() => {
     return () => {
@@ -36,10 +42,32 @@ export function ImagePicker({
     };
   }, [preview]);
 
-  function handleChange(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (preview) URL.revokeObjectURL(preview.url);
-    setPreview(file ? { file, url: URL.createObjectURL(file) } : null);
+  async function handleChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const input = event.target;
+    const file = input.files?.[0];
+    setProblem(null);
+    if (!file) {
+      setPreview(null);
+      return;
+    }
+
+    // Blocks submitting until the shrunk file has replaced the original.
+    setPreparing(true);
+    input.setCustomValidity("Your image is still being prepared.");
+    try {
+      const small = await shrinkImage(file, BRANDING_IMAGE);
+      const transfer = new DataTransfer();
+      transfer.items.add(small);
+      input.files = transfer.files;
+      setPreview({ file: small, url: URL.createObjectURL(small) });
+    } catch {
+      input.value = "";
+      setPreview(null);
+      setProblem(`Couldn't read ${file.name}. Try a JPG, PNG or WebP image.`);
+    } finally {
+      input.setCustomValidity("");
+      setPreparing(false);
+    }
   }
 
   const frameClass =
@@ -77,7 +105,9 @@ export function ImagePicker({
           htmlFor={inputId}
           className="w-fit cursor-pointer rounded-md border border-nk-neutral-800 bg-transparent px-4 py-2.5 text-sm font-medium transition-colors hover:bg-nk-text/7"
         >
-          {currentUrl || preview ? "Choose a different image" : "Choose image"}
+          {preparing
+            ? "Preparing image…"
+            : currentUrl || preview ? "Choose a different image" : "Choose image"}
         </label>
         <input
           id={inputId}
@@ -85,8 +115,9 @@ export function ImagePicker({
           type="file"
           accept={accept}
           onChange={handleChange}
-          className="hidden"
+          className="sr-only"
         />
+        {problem && <p className="text-sm text-nk-accent-300">{problem}</p>}
         {preview && (
           <p className="text-sm text-nk-neutral-500">
             {preview.file.name} — not uploaded yet.

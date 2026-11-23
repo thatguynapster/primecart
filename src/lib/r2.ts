@@ -6,6 +6,8 @@ import {
   S3Client,
 } from "@aws-sdk/client-s3";
 
+import { sniffImageType } from "@/lib/images/sniff";
+
 /**
  * Cloudflare R2 object storage.
  *
@@ -18,7 +20,9 @@ import {
  * no CORS configuration.
  */
 
-const MAX_BYTES = 5 * 1024 * 1024;
+// The pickers shrink photos well below this (src/lib/images/fit.ts). Vercel
+// rejects whole requests over about 4.5 MB, so nothing larger can arrive.
+const MAX_BYTES = 4 * 1024 * 1024;
 
 const ALLOWED_TYPES: Record<string, string> = {
   "image/jpeg": "jpg",
@@ -59,10 +63,12 @@ function client(): S3Client {
  *
  * @returns an error message, or null when the file is acceptable.
  */
-export function validateImageFile(file: File): string | null {
+export async function validateImageFile(file: File): Promise<string | null> {
   if (!ALLOWED_TYPES[file.type]) return "Use a JPG, PNG or WebP image.";
   if (file.size === 0) return "That file is empty.";
-  if (file.size > MAX_BYTES) return "Images must be 5MB or smaller.";
+  if (file.size > MAX_BYTES) return "Images must be 4MB or smaller.";
+  const head = new Uint8Array(await file.slice(0, 16).arrayBuffer());
+  if (sniffImageType(head) !== file.type) return "Use a JPG, PNG or WebP image.";
   return null;
 }
 
@@ -94,7 +100,7 @@ export async function uploadProductImage(params: {
 }): Promise<string> {
   const { merchantId, productId, file } = params;
 
-  const invalid = validateImageFile(file);
+  const invalid = await validateImageFile(file);
   if (invalid) throw new ImageUploadError(invalid);
 
   const extension = ALLOWED_TYPES[file.type];
@@ -129,7 +135,7 @@ async function uploadMerchantAsset(params: {
 }): Promise<string> {
   const { folder, merchantId, file } = params;
 
-  const invalid = validateImageFile(file);
+  const invalid = await validateImageFile(file);
   if (invalid) throw new ImageUploadError(invalid);
 
   const extension = ALLOWED_TYPES[file.type];
