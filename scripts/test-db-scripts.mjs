@@ -12,10 +12,12 @@
  * unique subdomain index is recreated, and restore refuses a non-empty target.
  */
 import { spawnSync } from "node:child_process";
+import { createServer } from "node:http";
+import { registerHooks } from "node:module";
 import { existsSync, unlinkSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { MongoMemoryReplSet } from "mongodb-memory-server-core";
 import { BSON, Double, Int32, MongoClient, ObjectId } from "mongodb";
 
@@ -123,6 +125,22 @@ check(openOrderBefore === openOrderAfter, "open Paystack order untouched");
 const bad = run("scripts/backfill-d18.mjs", [], { ...env, FOUNDING_MERCHANT_IDS: "not-an-id" });
 check(bad.code !== 0, "invalid FOUNDING_MERCHANT_IDS fails the build");
 
+const listed = run("scripts/list-merchants.mjs", [], { DATABASE_URL: SRC });
+check(listed.code === 0 && listed.out.includes(ids.founding.toHexString()) && /FOUNDING until \d{4}-\d{2}-\d{2}/.test(listed.out), "db:list-merchants shows ids and the founding plan");
+check(!listed.out.includes(ids.notOnboarded.toHexString()), "db:list-merchants lists only merchants with a shop");
+check(!/@x\.test/.test(listed.out), "db:list-merchants prints no emails");
+
+// Founding added after launch: a second id on a later deploy gets the deal,
+// the first one's end date doesn't move.
+const lateId = ids.legacy.toHexString();
+const foundingEndBefore = (await src.collection("Merchant").findOne({ _id: ids.founding })).priceOverrideEndsAt.toISOString();
+const late = run("scripts/backfill-d18.mjs", [], { ...env, FOUNDING_MERCHANT_IDS: `${ids.founding.toHexString()},${lateId}` });
+const lateM = await src.collection("Merchant").findOne({ _id: ids.legacy });
+const foundingAfter = await src.collection("Merchant").findOne({ _id: ids.founding });
+check(late.code === 0 && lateM.plan === "FOUNDING" && lateM.priceOverridePercent === 50 && lateM.priceOverrideEndsAt > new Date(), "founding id added later gets 50% for 12 months on the next deploy");
+check(lateM.trialEndsAt.toISOString() === L.trialEndsAt.toISOString(), "late founding merchant keeps their trial date");
+check(foundingAfter.priceOverrideEndsAt.toISOString() === foundingEndBefore, "existing founding end date unchanged when another id is added");
+
 // ---------------------------------------------------------------- backup -> restore
 if (existsSync(BACKUP)) unlinkSync(BACKUP);
 const skip = run("scripts/backup-db.mjs", [], { DATABASE_URL: SRC, VERCEL_ENV: "preview" });
@@ -183,6 +201,86 @@ check((await dst.collection("Merchant").countDocuments()) === (await src.collect
   const naive = (await prisma.order.findMany({ where: { status: "PENDING", paymentStatus: "UNPAID", reservedUntil: { lt: new Date() } }, select: { orderNumber: true } })).map((o) => o.orderNumber);
   check(naive.includes("OFF-NULL"), "guard still needed: bare `lt` matches null on this Prisma version");
   await prisma.$disconnect();
+}
+
+// ---------------------------------------------------------------- rate limit + email queue
+// Runs the real modules. A resolve hook maps the "@/" alias, and RESEND_BASE_URL
+// points the Resend SDK at a local fake, so nothing is ever sent.
+{
+  registerHooks({
+    resolve(specifier, context, next) {
+      if (!specifier.startsWith("@/")) return next(specifier, context);
+      return next(pathToFileURL(join(PROJECT, "src", `${specifier.slice(2)}.ts`)).href, context);
+    },
+  });
+
+  let up = false;
+  const received = [];
+  const server = createServer((req, res) => {
+    let body = "";
+    req.on("data", (chunk) => (body += chunk));
+    req.on("end", () => {
+      res.setHeader("content-type", "application/json");
+      if (!up) {
+        res.statusCode = 503;
+        return res.end(JSON.stringify({ name: "application_error", message: "down" }));
+      }
+      received.push({ key: req.headers["idempotency-key"], ...JSON.parse(body) });
+      res.end(JSON.stringify({ id: "fake" }));
+    });
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+
+  process.env.DATABASE_URL = withDb("primecart-ops");
+  process.env.RESEND_API_KEY = "re_fake";
+  process.env.RESEND_BASE_URL = `http://127.0.0.1:${server.address().port}`;
+  const ops = client.db("primecart-ops");
+
+  const push = spawnSync("npx prisma db push --skip-generate", { cwd: PROJECT, env: process.env, encoding: "utf8", shell: true });
+  check(push.status === 0, "schema pushes to an empty database");
+  const indexRun = run("prisma/indexes.mjs", [], { DATABASE_URL: process.env.DATABASE_URL });
+  const indexRerun = run("prisma/indexes.mjs", [], { DATABASE_URL: process.env.DATABASE_URL });
+  const ttl = (await ops.collection("RateLimit").indexes()).find((i) => i.name === "rate_limit_ttl");
+  check(indexRun.code === 0 && indexRerun.code === 0 && ttl?.expireAfterSeconds === 0, "rate-limit TTL index created, and re-running is a no-op");
+
+  const { prisma } = await import("../src/lib/prisma.ts");
+  const { withinLimit } = await import("../src/lib/rate-limit.ts");
+  // A 24h window, so a window boundary mid-test is very unlikely.
+  const hit = (identifier) => withinLimit({ name: "t", identifier, limit: 5, windowMinutes: 1440 });
+  const results = await Promise.all(Array.from({ length: 12 }, () => hit("0244000000")));
+  check(results.filter(Boolean).length === 5, `12 concurrent attempts: exactly 5 allowed (got ${results.filter(Boolean).length})`);
+  check(await hit("0244000001"), "another identifier has its own limit");
+  const keys = (await ops.collection("RateLimit").find().toArray()).map((row) => row.key).join();
+  check(!keys.includes("0244"), "identifiers are stored hashed");
+
+  const { sendEmail, retryQueuedEmails } = await import("../src/lib/notifications/resend.ts");
+  const queue = ops.collection("QueuedEmail");
+  const makeDue = () => queue.updateMany({}, { $set: { nextAttemptAt: new Date(0) } });
+  const quiet = console.error;
+  console.error = () => {};
+  await sendEmail({ to: "m@x.test", subject: "New order", html: "<p>hi</p>" });
+  check((await queue.countDocuments()) === 1, "a failed email is queued, and the caller doesn't fail");
+  await retryQueuedEmails();
+  check((await queue.findOne()).failures === 1, "not retried before it's due");
+  await makeDue();
+  await retryQueuedEmails();
+  check((await queue.findOne()).failures === 2, "a failed retry stays queued");
+  up = true;
+  await makeDue();
+  const { idempotencyKey } = await queue.findOne();
+  await Promise.all([retryQueuedEmails(), retryQueuedEmails()]);
+  check(received.length === 1 && received[0].key === idempotencyKey && (await queue.countDocuments()) === 0, "delivered once by overlapping cron runs, then removed");
+  up = false;
+  await sendEmail({ to: "m@x.test", subject: "New order", html: "<p>hi</p>" });
+  for (let i = 0; i < 5; i += 1) {
+    await makeDue();
+    await retryQueuedEmails();
+  }
+  console.error = quiet;
+  check((await queue.countDocuments()) === 0, "given up and removed after the last retry");
+
+  await prisma.$disconnect();
+  server.close();
 }
 
 await client.close();

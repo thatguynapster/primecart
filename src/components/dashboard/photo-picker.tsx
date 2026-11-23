@@ -4,8 +4,15 @@ import Image from "next/image";
 import { useEffect, useId, useRef, useState } from "react";
 
 import { PhotoFrame } from "@/components/dashboard/photo-frame";
+import { PRODUCT_PHOTO } from "@/lib/images/fit";
+import { shrinkImage } from "@/lib/images/shrink";
 
-type Picked = { file: File; url: string };
+type Picked = {
+  file: File;
+  url: string;
+  /** Identifies the file as chosen, before shrinking, to spot a re-pick. */
+  source: string;
+};
 
 /**
  * File input that shows what was chosen, before anything is uploaded, and lets
@@ -17,6 +24,9 @@ type Picked = { file: File; url: string };
  *
  * Selections accumulate rather than replace, which is the natural pairing with
  * per-photo removal: pick two, add a third, drop the first.
+ *
+ * Photos are shrunk as they are picked, so what the form submits is small
+ * enough for the server to accept (src/lib/images/fit.ts).
  *
  * Previews are `blob:` object URLs. Each holds its file in memory until
  * revoked, so they are revoked on removal, on replacement, and on unmount.
@@ -35,6 +45,7 @@ export function PhotoPicker({
   const inputRef = useRef<HTMLInputElement>(null);
   const [picked, setPicked] = useState<Picked[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
+  const [preparing, setPreparing] = useState(false);
   const [frameIndex, setFrameIndex] = useState<number | null>(null);
 
   // Mirrored into a ref so the unmount cleanup sees the latest selection
@@ -53,6 +64,7 @@ export function PhotoPicker({
   }, []);
 
   const full = picked.length >= maxSelectable;
+  const locked = full || preparing;
 
   /** Pushes the selection back onto the input so the form submits exactly it. */
   function syncInput(next: Picked[]) {
@@ -62,32 +74,53 @@ export function PhotoPicker({
     inputRef.current.files = transfer.files;
   }
 
-  function handleChange(event: React.ChangeEvent<HTMLInputElement>) {
-    const incoming = Array.from(event.target.files ?? []);
+  async function handleChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const input = event.target;
+    const incoming = Array.from(input.files ?? []);
     const next = [...picked];
     let skipped = 0;
+    const unreadable: string[] = [];
+
+    // Blocks submitting until the shrunk files are in the input.
+    setPreparing(true);
+    setNotice(null);
+    input.setCustomValidity("Your photos are still being prepared.");
 
     for (const file of incoming) {
+      // Same name and size twice is a re-pick, not a second photo.
+      const source = `${file.name}:${file.size}`;
+      if (next.some((item) => item.source === source)) continue;
+
       if (next.length >= maxSelectable) {
         skipped += 1;
         continue;
       }
-      // Same name and size twice is a re-pick, not a second photo.
-      const duplicate = next.some(
-        (item) => item.file.name === file.name && item.file.size === file.size
-      );
-      if (duplicate) continue;
 
-      next.push({ file, url: URL.createObjectURL(file) });
+      try {
+        const small = await shrinkImage(file, PRODUCT_PHOTO);
+        next.push({ file: small, url: URL.createObjectURL(small), source });
+      } catch {
+        unreadable.push(file.name);
+      }
     }
 
     setPicked(next);
     syncInput(next);
-    setNotice(
-      skipped > 0
-        ? `Only ${maxSelectable} more ${maxSelectable === 1 ? "photo" : "photos"} can be added.`
-        : null
-    );
+    input.setCustomValidity("");
+    setPreparing(false);
+
+    const notices: string[] = [];
+    if (skipped > 0) {
+      notices.push(
+        `Only ${maxSelectable} ${maxSelectable === 1 ? "photo" : "photos"} can be added.`
+      );
+    }
+    if (unreadable.length > 0) {
+      notices.push(
+        `Couldn't read ${unreadable.join(", ")}. Try a JPG, PNG or WebP photo.`
+      );
+    }
+    setNotice(notices.join(" ") || null);
   }
 
   function remove(index: number) {
@@ -105,12 +138,12 @@ export function PhotoPicker({
         <label
           htmlFor={inputId}
           className={
-            full
+            locked
               ? "cursor-not-allowed rounded-md border border-nk-neutral-800 bg-nk-neutral-800 px-4 py-2.5 text-sm font-medium text-nk-neutral-600"
               : "cursor-pointer rounded-md border border-nk-neutral-800 bg-transparent px-4 py-2.5 text-sm font-medium transition-colors hover:bg-nk-text/7"
           }
         >
-          {label}
+          {preparing ? "Preparing photos…" : label}
         </label>
         <input
           ref={inputRef}
@@ -119,7 +152,11 @@ export function PhotoPicker({
           type="file"
           accept="image/jpeg,image/png,image/webp"
           multiple
-          disabled={full}
+          onClick={(event) => {
+            // Not `disabled`: a disabled input is left out of the form, so a
+            // full selection would never be submitted.
+            if (locked) event.preventDefault();
+          }}
           onChange={handleChange}
           className="text-sm text-nk-neutral-500 file:hidden"
         />
@@ -159,6 +196,7 @@ export function PhotoPicker({
                 <button
                   type="button"
                   onClick={() => remove(index)}
+                  disabled={preparing}
                   aria-label={`Remove ${item.file.name}`}
                   className="absolute top-1.5 right-1.5 grid size-6 place-items-center rounded-full bg-nk-surface/95 text-sm leading-none text-nk-neutral-300 shadow-sm transition-colors hover:text-nk-text"
                 >

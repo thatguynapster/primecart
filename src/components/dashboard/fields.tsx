@@ -10,7 +10,7 @@ import type { ReactNode } from "react";
  */
 
 export const inputClass =
-  "w-full rounded-md border border-nk-neutral-800 bg-nk-surface px-3 py-2 text-sm text-nk-text outline-none transition-colors placeholder:text-nk-neutral-600 hover:border-nk-neutral-700 focus-visible:border-nk-accent";
+  "w-full rounded-md border border-nk-neutral-800 bg-nk-surface px-3 py-2 text-base text-nk-text sm:text-sm outline-none transition-colors placeholder:text-nk-neutral-600 hover:border-nk-neutral-700 focus-visible:border-nk-accent";
 
 export function Field({
   label,

@@ -38,7 +38,13 @@ export function NewProductForm({
   const fieldErrors = state.fieldErrors ?? {};
 
   return (
-    <form action={formAction} className="space-y-8">
+    // React resets a form after its action runs, which on a validation error
+    // would wipe everything typed and empty the photo input.
+    <form
+      action={formAction}
+      onReset={(event) => event.preventDefault()}
+      className="space-y-8"
+    >
       <FormError message={state.error} />
 
       <div className="space-y-5 rounded-md border border-nk-neutral-800 bg-nk-surface p-6 sm:p-8">
@@ -85,7 +91,7 @@ export function NewProductForm({
             <p className="text-sm font-medium text-nk-text">
               Photos
               <span className="ml-1.5 font-normal text-nk-neutral-600">
-                Optional — up to {MAX_IMAGES_PER_PRODUCT}, 5MB each
+                Optional — up to {MAX_IMAGES_PER_PRODUCT}
               </span>
             </p>
             <div className="mt-2">

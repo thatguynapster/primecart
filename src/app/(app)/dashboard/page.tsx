@@ -85,9 +85,9 @@ export default async function OverviewPage() {
         shopLabel={`${storefront.subdomain}.${getRootDomain()}`}
       />
 
-      <div className="flex flex-col gap-4 px-6 pt-5 pb-10">
+      <div className="flex flex-col gap-4 px-4 pt-5 pb-10 sm:px-6">
         {/* KPI row */}
-        <div className="grid gap-3.5 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3.5 xl:grid-cols-4">
           {cards.map((card) => (
             <Card key={card.label} className="flex flex-col gap-1.5 px-4 py-3.5">
               <Kicker className="text-nk-neutral-500">{card.label}</Kicker>
@@ -113,7 +113,7 @@ export default async function OverviewPage() {
               </span>
             </div>
 
-            <div className="flex h-50 items-end gap-2">
+            <div className="flex h-50 items-end gap-1 sm:gap-2">
               {series.map((day, index) => (
                 <div
                   key={index}
@@ -186,7 +186,7 @@ export default async function OverviewPage() {
             ) : (
               best.map((item) => (
                 <div key={item.name} className="flex items-center gap-3 py-1.75">
-                  <span className="w-37.5 truncate text-sm text-nk-neutral-300">
+                  <span className="w-28 flex-none truncate sm:w-37.5 text-sm text-nk-neutral-300">
                     {item.name}
                   </span>
                   <Bar value={item.sold / bestMax} />

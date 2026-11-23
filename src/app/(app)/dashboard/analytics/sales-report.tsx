@@ -36,7 +36,7 @@ export function SalesReport({
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <span className="text-sm text-nk-neutral-500">
           Total: <span className="font-medium text-nk-text">{formatGhs(total)}</span>
         </span>
@@ -58,11 +58,11 @@ export function SalesReport({
         </div>
       </div>
 
-      <div className="flex h-57.5 items-end gap-2">
+      <div className="flex h-57.5 items-end gap-1 sm:gap-2">
         {series.map((bar, index) => (
           <div
             key={`${granularity}-${index}`}
-            className="flex h-full flex-1 flex-col items-center justify-end gap-2"
+            className="flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-2"
           >
             <div
               style={{ height: (bar.value / max) * 210 }}
@@ -71,7 +71,7 @@ export function SalesReport({
               }`}
               title={`${bar.label}: ${formatGhs(bar.value)}`}
             />
-            <span className="truncate text-xs text-nk-neutral-600">{bar.label}</span>
+            <span className="max-w-full truncate text-[10px] sm:text-xs text-nk-neutral-600">{bar.label}</span>
           </div>
         ))}
       </div>

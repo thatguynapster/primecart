@@ -150,7 +150,7 @@ export async function createProduct(
     fieldErrors.images = `Up to ${MAX_IMAGES_PER_PRODUCT} photos.`;
   } else {
     for (const file of files) {
-      const invalid = validateImageFile(file);
+      const invalid = await validateImageFile(file);
       if (invalid) {
         fieldErrors.images = invalid;
         break;
@@ -176,6 +176,7 @@ export async function createProduct(
     },
   });
 
+  let photosFailed = false;
   if (files.length > 0) {
     const urls: string[] = [];
     try {
@@ -193,7 +194,9 @@ export async function createProduct(
         where: { merchantId: merchant.id, id: product.id },
         data: { images: urls },
       });
-    } catch {
+    } catch (error) {
+      console.error(`Photo upload failed for new product ${product.id}:`, error);
+      photosFailed = true;
       // The product is already saved, so the merchant is sent to it either way
       // rather than losing everything they typed. Anything uploaded before the
       // failure is removed, and they can add photos again from the product page.
@@ -202,7 +205,7 @@ export async function createProduct(
   }
 
   revalidatePath("/dashboard/products");
-  redirect(`/dashboard/products/${product.id}`);
+  redirect(`/dashboard/products/${product.id}${photosFailed ? "?photos=failed" : ""}`);
 }
 
 export async function updateProductDetails(

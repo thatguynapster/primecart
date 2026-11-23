@@ -96,7 +96,12 @@ export function OnboardingForm({
   const fieldErrors = state.fieldErrors ?? {};
 
   return (
-    <form action={formAction} className="space-y-7">
+    // React resets a form after its action; keep what was typed on an error.
+    <form
+      action={formAction}
+      onReset={(event) => event.preventDefault()}
+      className="space-y-7"
+    >
       {state.error && (
         <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-[14px] text-red-700">
           {state.error}

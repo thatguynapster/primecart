@@ -81,7 +81,7 @@ export default async function ProductsPage({
         shopLabel={`${storefront.subdomain}.${getRootDomain()}`}
       />
 
-      <div className="flex flex-col gap-3 px-6 pt-5 pb-10">
+      <div className="flex flex-col gap-3 px-4 pt-5 pb-10 sm:px-6">
         <div className="flex flex-wrap items-center gap-1.5">
           {chips.map((chip) => {
             const isActive = chip.key === filter;

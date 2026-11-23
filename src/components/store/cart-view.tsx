@@ -357,7 +357,9 @@ export function CartView({
                 className={`mt-1.5 ${inputClass}`}
               />
               <p className="mt-1 text-[12px] text-neutral-500">
-                Your receipt goes here.
+                {paymentsEnabled
+                  ? "Your receipt goes here."
+                  : "We'll send your order details here."}
               </p>
             </div>
 

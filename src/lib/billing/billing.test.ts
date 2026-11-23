@@ -11,6 +11,7 @@ import {
   parseInterval,
   periodFor,
   pricePesewas,
+  quoteCovers,
 } from "./plans.ts";
 import { daysLeft, effectiveStatus } from "./status.ts";
 import { normalizeGhanaPhone, waMeLink } from "../phone.ts";
@@ -48,6 +49,22 @@ describe("pricePesewas", () => {
   it("list price once the period starts at or after the deal ends", () => {
     assert.equal(pricePesewas(founding, "MONTHLY", d("2027-11-18T00:00:00Z")), 8900);
     assert.equal(pricePesewas(founding, "YEARLY", d("2028-01-01T00:00:00Z")), 89000);
+  });
+});
+
+describe("quoteCovers", () => {
+  const start = d("2026-12-01T00:00:00Z");
+  it("list-price payment started before the merchant became founding still applies", () => {
+    assert.equal(quoteCovers(8900, pricePesewas(founding, "MONTHLY", start)), true);
+  });
+  it("exact price applies", () => {
+    assert.equal(quoteCovers(4450, pricePesewas(founding, "MONTHLY", start)), true);
+    assert.equal(quoteCovers(8900, pricePesewas(none, "MONTHLY", start)), true);
+  });
+  it("paying less is rejected: founding quote after the deal ended, or tampered", () => {
+    assert.equal(quoteCovers(4450, pricePesewas(founding, "MONTHLY", d("2027-12-01T00:00:00Z"))), false);
+    assert.equal(quoteCovers(100, pricePesewas(none, "MONTHLY", start)), false);
+    assert.equal(quoteCovers(8899.5, 8900), false);
   });
 });
 

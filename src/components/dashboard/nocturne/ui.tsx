@@ -13,7 +13,7 @@ import type { ComponentProps, ReactNode } from "react";
 // --- buttons ---------------------------------------------------------------
 
 const BTN_BASE =
-  "inline-flex items-center justify-center gap-1.5 rounded-md border px-2.5 py-1.25 text-sm leading-tight font-medium cursor-pointer transition-colors disabled:opacity-45 disabled:cursor-not-allowed";
+  "inline-flex items-center justify-center gap-1.5 rounded-md border px-3 py-2 md:px-2.5 md:py-1.25 text-sm leading-tight font-medium cursor-pointer transition-colors disabled:opacity-45 disabled:cursor-not-allowed";
 
 export function btnPrimary(extra = "") {
   return `${BTN_BASE} border-nk-accent text-nk-accent bg-transparent hover:bg-nk-accent/12 active:bg-nk-accent/20 ${extra}`;

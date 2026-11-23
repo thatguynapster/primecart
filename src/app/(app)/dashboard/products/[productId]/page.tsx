@@ -17,7 +17,7 @@ export default async function ProductDetailPage({
   const merchant = await requireMerchant();
   const storefront = merchant.storefront!;
   const { productId } = await params;
-  const { from } = await searchParams;
+  const { from, photos } = await searchParams;
 
   // Only ever follow a `from` that actually points back into this list — a
   // stray or tampered value falls back to the bare list route rather than
@@ -72,6 +72,15 @@ export default async function ProductDetailPage({
       </div>
 
       <div className="mt-8 space-y-8">
+        {photos === "failed" && product.images.length === 0 && (
+          <p
+            role="alert"
+            className="rounded-md border border-red-900/60 bg-red-950/40 px-4 py-3 text-sm text-red-300"
+          >
+            Your product is saved, but its photos couldn&rsquo;t be uploaded.
+            Please add them again below.
+          </p>
+        )}
         <ProductImages
           productId={product.id}
           images={product.images}

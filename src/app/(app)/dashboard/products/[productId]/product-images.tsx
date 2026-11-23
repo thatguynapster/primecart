@@ -155,7 +155,7 @@ export function ProductImages({
       </h2>
       <p className="mt-2 text-sm leading-relaxed text-nk-neutral-400">
         The first photo is the one customers see in your shop listing. Up to{" "}
-        {MAX_IMAGES_PER_PRODUCT} per product, 5MB each.
+        {MAX_IMAGES_PER_PRODUCT} per product.
       </p>
 
       {!configured ? (
@@ -180,7 +180,13 @@ export function ProductImages({
           )}
 
           {remaining > 0 ? (
-            <form action={formAction} className="mt-5 space-y-4">
+            // Cancelling React's post-action reset keeps the selection after an
+            // error; after a success the remount below clears it.
+            <form
+              action={formAction}
+              onReset={(event) => event.preventDefault()}
+              className="mt-5 space-y-4"
+            >
               <input type="hidden" name="productId" value={productId} />
               <FormError message={state.error} />
 

@@ -40,6 +40,7 @@ export default function PrivacyPage() {
       <p>When you order from a shop on PrimeCart, we collect on the shop&rsquo;s behalf:</p>
       <ul>
         <li>Your name, email address, WhatsApp number and delivery address.</li>
+        <li>A scrambled form of your IP address and phone number, kept for up to a day, to stop fake orders.</li>
         <li>What you ordered, any personalisation you asked for, and any notes.</li>
         <li>Whether and how you paid. If you pay online, Paystack processes the payment; we never see your card or MoMo PIN.</li>
       </ul>

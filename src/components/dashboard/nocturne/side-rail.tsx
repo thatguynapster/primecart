@@ -63,7 +63,7 @@ export function SideRail({
   return (
     <aside
       style={{ width: collapsed ? 64 : 216 }}
-      className="sticky top-0 flex h-screen flex-none flex-col gap-4.5 overflow-hidden border-r border-nk-neutral-800 bg-nk-neutral-900 px-2.5 py-4 transition-[width] duration-150 ease-out"
+      className="sticky top-0 hidden h-screen md:flex flex-none flex-col gap-4.5 overflow-hidden border-r border-nk-neutral-800 bg-nk-neutral-900 px-2.5 py-4 transition-[width] duration-150 ease-out"
     >
       <div className="flex items-center gap-2.5 px-2 py-1">
         <span className="grid size-6.5 flex-none place-items-center rounded-lg border border-nk-accent text-sm font-semibold text-nk-accent-300">

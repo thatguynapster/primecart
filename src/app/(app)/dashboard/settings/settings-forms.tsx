@@ -171,6 +171,7 @@ export function LogoForm({
           // Remounting after a save clears the picked file and its preview.
           key={state.savedAt ?? 0}
           action={formAction}
+          onReset={(event) => event.preventDefault()}
           className="mt-5 space-y-4"
         >
           <FormError message={state.error} />
@@ -298,6 +299,7 @@ function HeroBannerForm({
           <form
             key={imageState.savedAt ?? 0}
             action={imageFormAction}
+            onReset={(event) => event.preventDefault()}
             className="mt-4 space-y-4"
           >
             <FormError message={imageState.error} />
