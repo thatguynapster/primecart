@@ -27,6 +27,9 @@ const inputClass =
  * is purely informational, though — the `checkout` action re-derives price and
  * stock from the database again regardless, so nothing here is trusted.
  *
+ * `paymentsEnabled` and `deliveryOptions` come from a cached page, so both are
+ * refreshed when the cart opens and again at "Proceed to checkout".
+ *
  * `paymentsEnabled` (D-18a) only picks the labels: "Pay now" through
  * Paystack, or "Place order" with payment arranged on WhatsApp. The server
  * action decides the real path from the database, and either way returns a
@@ -35,7 +38,7 @@ const inputClass =
 export function CartView({
   subdomain,
   storeName,
-  paymentsEnabled,
+  paymentsEnabled: initialPaymentsEnabled,
   deliveryOptions,
 }: {
   subdomain: string;
@@ -59,8 +62,8 @@ export function CartView({
   // opens — a cart with items in it isn't necessarily a decision to check out.
   const [checkingOut, setCheckingOut] = useState(false);
 
-  // Delivery choices. Replaced by the server's current list when checkout
-  // finds the one this page loaded with is out of date.
+  // Both replaced by the server's current values, here and by checkout.
+  const [paymentsEnabled, setPaymentsEnabled] = useState(initialPaymentsEnabled);
   const [options, setOptions] = useState(deliveryOptions);
   const [chosenId, setChosenId] = useState("");
   const delivery =
@@ -109,6 +112,28 @@ export function CartView({
     };
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      try {
+        const response = await fetch("/api/checkout-settings", { cache: "no-store" });
+        if (!response.ok) return;
+        const data = await response.json();
+        if (cancelled) return;
+        setPaymentsEnabled(data.paymentsEnabled);
+        setOptions(data.deliveryOptions);
+      } catch {
+        // Checkout compares against the live settings anyway.
+      }
+    }
+
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [checkingOut]);
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setFormError(null);
@@ -133,11 +158,15 @@ export function CartView({
         notes: String(data.get("notes") ?? "") || undefined,
         deliveryOptionId: delivery?.id,
         shownDeliveryFee: delivery?.fee,
+        shownPaymentsEnabled: paymentsEnabled,
       });
 
       if (!result.ok) {
         setFormError(result.error);
         if (result.deliveryOptions) setOptions(result.deliveryOptions);
+        if (result.paymentsEnabled !== undefined) {
+          setPaymentsEnabled(result.paymentsEnabled);
+        }
         setSubmitting(false);
         return;
       }
