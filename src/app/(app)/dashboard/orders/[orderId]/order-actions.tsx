@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useRef, useState } from "react";
 import type { OrderStatus, PaymentStatus } from "@prisma/client";
 
 import { ButtonPrimary, ButtonSecondary, btnSecondary } from "@/components/dashboard/nocturne/ui";
@@ -39,6 +39,8 @@ export function OrderActions({
   const [pending, setPending] = useState<Pending>(null);
   const [choosingMethod, setChoosingMethod] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const cancelDialog = useRef<HTMLDialogElement>(null);
+  const cancelTitleId = useId();
 
   const next = nextStatus(status);
   const cancellable = canCancel(status);
@@ -61,6 +63,7 @@ export function OrderActions({
       setError("Something went wrong. Please try again.");
     } finally {
       setPending(null);
+      cancelDialog.current?.close();
     }
   }
 
@@ -106,8 +109,11 @@ export function OrderActions({
         )}
 
         {cancellable && !choosingMethod && (
-          <ButtonSecondary onClick={() => run("cancel")} disabled={pending !== null}>
-            {pending === "cancel" ? "Cancelling…" : "Cancel order"}
+          <ButtonSecondary
+            onClick={() => cancelDialog.current?.showModal()}
+            disabled={pending !== null}
+          >
+            Cancel order
           </ButtonSecondary>
         )}
       </div>
@@ -147,6 +153,44 @@ export function OrderActions({
           )}
         </div>
       )}
+
+      {/* Cancelling can't be undone, so it always asks first. */}
+      <dialog
+        ref={cancelDialog}
+        aria-labelledby={cancelTitleId}
+        onCancel={(event) => {
+          if (pending !== null) event.preventDefault();
+        }}
+        className="m-auto w-[calc(100%-2rem)] max-w-sm rounded-md border border-nk-neutral-800 bg-nk-surface p-6 text-nk-text backdrop:bg-black/60"
+      >
+        <h2 id={cancelTitleId} className="text-base font-medium tracking-tight">
+          Cancel this order?
+        </h2>
+        <p className="mt-2 text-sm leading-relaxed text-nk-neutral-400">
+          This can&rsquo;t be undone.{" "}
+          {awaitingStock
+            ? "No stock has been taken for it."
+            : "Its items go back into your stock."}
+        </p>
+        {paymentStatus === "PAID" && (
+          <p className="mt-2 text-sm leading-relaxed text-nk-accent-300">
+            This order is paid. Cancelling doesn&rsquo;t refund the buyer:
+            you&rsquo;ll need to arrange that with them.
+          </p>
+        )}
+        <div className="mt-5 flex flex-wrap justify-end gap-3">
+          {/* First in the dialog, so it gets focus and Enter is safe. */}
+          <ButtonSecondary
+            onClick={() => cancelDialog.current?.close()}
+            disabled={pending !== null}
+          >
+            Keep order
+          </ButtonSecondary>
+          <ButtonPrimary onClick={() => run("cancel")} disabled={pending !== null}>
+            {pending === "cancel" ? "Cancelling…" : "Cancel order"}
+          </ButtonPrimary>
+        </div>
+      </dialog>
 
       {error && (
         <p
