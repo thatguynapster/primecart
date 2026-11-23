@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { checkCronAuth } from "@/lib/cron";
+import { retryQueuedEmails } from "@/lib/notifications/resend";
 import { expireAbandonedOrders } from "@/lib/orders/expire";
 import { sendPaymentReminders } from "@/lib/orders/reminders";
 
@@ -9,6 +10,8 @@ import { sendPaymentReminders } from "@/lib/orders/reminders";
  * payment window has passed (24 hours for checkout-on storefront orders since
  * D-18c), then sends the 30-minute payment reminders (T10). Expiry runs
  * first so an order that just lapsed is never reminded.
+ *
+ * Last, retries emails that failed to send.
  *
  * GET, per the handover's own sample. cron-job.org supports either GET or
  * POST for this.
@@ -19,5 +22,6 @@ export async function GET(request: Request) {
 
   const expired = await expireAbandonedOrders();
   const reminders = await sendPaymentReminders();
-  return NextResponse.json({ ok: true, ...expired, ...reminders });
+  const emails = await retryQueuedEmails();
+  return NextResponse.json({ ok: true, ...expired, ...reminders, ...emails });
 }

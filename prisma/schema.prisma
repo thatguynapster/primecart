@@ -299,6 +299,24 @@ model SubscriptionPayment {
   @@index([merchantId, createdAt])
 }
 
+// ============================================
+// QUEUED EMAIL
+// ============================================
+// An email that failed to send, kept only until the 5-minute cron delivers it
+// or gives up (under 24 hours). See src/lib/notifications/resend.ts.
+model QueuedEmail {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  to             String
+  subject        String
+  html           String
+  idempotencyKey String
+  failures       Int
+  nextAttemptAt  DateTime
+  createdAt      DateTime @default(now())
+
+  @@index([nextAttemptAt])
+}
+
 // Snapshot pattern: product name, variant name, SKU and price are copied in at
 // order time. Never read live product data from a historical order.
 type OrderLineItem {
