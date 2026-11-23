@@ -11,7 +11,7 @@ import type { StorefrontMerchant } from "@/lib/merchant/lookup";
  */
 
 /** Bump when the card's design changes, so cached cards are replaced. */
-const DESIGN = 2;
+const DESIGN = 3;
 
 function version(...parts: (string | null)[]): string {
   return createHash("sha256")

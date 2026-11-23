@@ -34,7 +34,7 @@ async function embed(url: string | null, kind: "photo" | "logo"): Promise<string
   try {
     const image = sharp(bytes);
     if (kind === "logo") {
-      // PNG keeps transparency, so the card's colour shows behind the logo.
+      // PNG keeps transparency, so the logo sits cleanly on its white tile.
       const png = await image.resize(192, 192, { fit: "inside" }).png().toBuffer();
       return `data:image/png;base64,${png.toString("base64")}`;
     }
@@ -119,13 +119,23 @@ export async function GET(
           }}
         >
           {logo && (
-            // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
-            <img
-              src={logo}
-              width={96}
-              height={96}
-              style={{ borderRadius: 20, objectFit: "contain", marginBottom: 32 }}
-            />
+            // On white, like the shop's header: a logo in the shop's own colour
+            // would vanish against the card.
+            <div
+              style={{
+                width: 112,
+                height: 112,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "#ffffff",
+                borderRadius: 24,
+                marginBottom: 32,
+              }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text */}
+              <img src={logo} width={88} height={88} style={{ objectFit: "contain" }} />
+            </div>
           )}
           <div style={{ fontSize: name.length > 22 ? 60 : 80, fontWeight: 700, lineHeight: 1.1 }}>
             {name}
