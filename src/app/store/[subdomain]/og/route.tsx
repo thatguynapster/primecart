@@ -1,12 +1,10 @@
 import { ImageResponse } from "next/og";
 import sharp from "sharp";
 
-import { getRootDomain, getStorefrontOrigin } from "@/lib/domain";
-import { sniffImageType } from "@/lib/images/sniff";
+import { getRootDomain } from "@/lib/domain";
 import { getMerchantBySubdomain } from "@/lib/merchant/lookup";
 import { onBrandColor, safeBrandColor } from "@/lib/storefront/brand";
-import { getPreviewPhoto } from "@/lib/storefront/catalogue";
-import { previewPhotoUrl } from "@/lib/storefront/preview";
+import { getPreviewPhoto, getStorefrontProduct } from "@/lib/storefront/catalogue";
 
 /**
  * The shop's link-preview card. A route handler, not `opengraph-image.tsx`:
@@ -14,23 +12,64 @@ import { previewPhotoUrl } from "@/lib/storefront/preview";
  * would rewrite a second time into a 404.
  */
 
-const MAX_PHOTO_BYTES = 1_500_000;
+/** Uploads are at most 4 MB (src/lib/r2.ts). */
+const MAX_SOURCE_BYTES = 5 * 1024 * 1024;
 
-/** As a data URI, or null: a missing photo must never break the card. */
-async function loadPhoto(url: string): Promise<string | null> {
+/** A stored image's bytes, or null: a missing photo must never break a preview. */
+async function download(url: string): Promise<Buffer | null> {
   try {
-    const response = await fetch(url, {
-      headers: { Accept: "image/jpeg,image/png" },
-      signal: AbortSignal.timeout(5000),
-    });
+    const response = await fetch(url, { signal: AbortSignal.timeout(5000) });
     if (!response.ok) return null;
-    const bytes = new Uint8Array(await response.arrayBuffer());
-    const type = sniffImageType(bytes);
-    // The renderer can't read WebP.
-    if (bytes.length > MAX_PHOTO_BYTES || (type !== "image/jpeg" && type !== "image/png")) {
-      return null;
+    const bytes = Buffer.from(await response.arrayBuffer());
+    return bytes.length <= MAX_SOURCE_BYTES ? bytes : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Resized, and converted because the card renderer can't read WebP. */
+async function embed(url: string | null, kind: "photo" | "logo"): Promise<string | null> {
+  const bytes = url ? await download(url) : null;
+  if (!bytes) return null;
+  try {
+    const image = sharp(bytes);
+    if (kind === "logo") {
+      // PNG keeps transparency, so the card's colour shows behind the logo.
+      const png = await image.resize(192, 192, { fit: "inside" }).png().toBuffer();
+      return `data:image/png;base64,${png.toString("base64")}`;
     }
-    return `data:${type};base64,${Buffer.from(bytes).toString("base64")}`;
+    const jpeg = await image
+      .resize(480, 630, { fit: "cover" })
+      .flatten({ background: "#ffffff" })
+      .jpeg({ quality: 80 })
+      .toBuffer();
+    return `data:image/jpeg;base64,${jpeg.toString("base64")}`;
+  } catch {
+    return null;
+  }
+}
+
+function jpegResponse(jpeg: Buffer): Response {
+  return new Response(new Uint8Array(jpeg), {
+    headers: {
+      "Content-Type": "image/jpeg",
+      // The URL carries a version, so a change gets a new address.
+      "Cache-Control": "public, max-age=3600, s-maxage=86400",
+    },
+  });
+}
+
+/** A product's own photo, small and on white: cut-outs would go black as JPEG. */
+async function productPhoto(merchantId: string, productId: string): Promise<Buffer | null> {
+  try {
+    const product = await getStorefrontProduct(merchantId, productId);
+    const bytes = product?.images[0] ? await download(product.images[0]) : null;
+    if (!bytes) return null;
+    return await sharp(bytes)
+      .resize(1000, 1000, { fit: "inside", withoutEnlargement: true })
+      .flatten({ background: "#ffffff" })
+      .jpeg({ quality: 78 })
+      .toBuffer();
   } catch {
     return null;
   }
@@ -41,7 +80,7 @@ function shorten(text: string, max: number): string {
 }
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ subdomain: string }> }
 ) {
   const { subdomain } = await params;
@@ -50,11 +89,17 @@ export async function GET(
     return new Response("Not found", { status: 404 });
   }
 
-  const origin = getStorefrontOrigin(merchant.subdomain);
+  const productId = new URL(request.url).searchParams.get("product");
+  if (productId) {
+    const photo = await productPhoto(merchant.id, productId);
+    if (photo) return jpegResponse(photo);
+    // Otherwise the shop's card.
+  }
+
   const photoUrl = await getPreviewPhoto(merchant);
   const [photo, logo] = await Promise.all([
-    photoUrl ? loadPhoto(previewPhotoUrl(origin, photoUrl)) : null,
-    merchant.logoUrl ? loadPhoto(previewPhotoUrl(origin, merchant.logoUrl)) : null,
+    embed(photoUrl, "photo"),
+    embed(merchant.logoUrl, "logo"),
   ]);
 
   const background = safeBrandColor(merchant.primaryColor);
@@ -79,7 +124,7 @@ export async function GET(
               src={logo}
               width={96}
               height={96}
-              style={{ borderRadius: 20, objectFit: "cover", marginBottom: 32 }}
+              style={{ borderRadius: 20, objectFit: "contain", marginBottom: 32 }}
             />
           )}
           <div style={{ fontSize: name.length > 22 ? 60 : 80, fontWeight: 700, lineHeight: 1.1 }}>
@@ -111,11 +156,5 @@ export async function GET(
   const png = Buffer.from(await card.arrayBuffer());
   const jpeg = await sharp(png).jpeg({ quality: 82 }).toBuffer();
 
-  return new Response(new Uint8Array(jpeg), {
-    headers: {
-      "Content-Type": "image/jpeg",
-      // The URL carries a version, so a change gets a new address.
-      "Cache-Control": "public, max-age=3600, s-maxage=86400",
-    },
-  });
+  return jpegResponse(jpeg);
 }

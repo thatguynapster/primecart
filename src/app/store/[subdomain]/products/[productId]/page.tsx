@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 
 import { ProductBuy } from "@/components/store/product-buy";
 import { getStorefrontOrigin } from "@/lib/domain";
-import { previewPhotoUrl } from "@/lib/storefront/preview";
+import { productPreviewUrl } from "@/lib/storefront/preview";
 import { getMerchantBySubdomain } from "@/lib/merchant/lookup";
 import {
   getStorefrontProduct,
@@ -25,10 +25,7 @@ export async function generateMetadata({
   const title = `${product.name} — ${merchant.businessName}`;
   const description = product.description ?? undefined;
   const origin = getStorefrontOrigin(subdomain);
-  // A product with no photo falls back to the shop's card.
-  const images = product.images[0]
-    ? [previewPhotoUrl(origin, product.images[0])]
-    : [`${origin}/og`];
+  const images = [productPreviewUrl(origin, product)];
 
   return {
     title,
