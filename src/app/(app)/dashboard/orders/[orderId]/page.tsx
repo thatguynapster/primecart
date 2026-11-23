@@ -139,7 +139,7 @@ export default async function OrderDetailPage({
         shopLabel={`${storefront.subdomain}.${getRootDomain()}`}
       />
 
-      <main className="mx-auto max-w-3xl px-5 py-10 sm:px-8 sm:py-14">
+      <main className="mx-auto w-full max-w-3xl px-5 py-10 sm:px-8 sm:py-14">
       <Link
         href={backHref}
         className="text-sm text-nk-neutral-500 hover:text-nk-text"
@@ -273,7 +273,7 @@ export default async function OrderDetailPage({
         </div>
       </Card>
 
-      <div className="mt-8 grid gap-6 sm:grid-cols-2">
+      <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2">
         <Card className="p-5">
           <h2 className="text-sm font-medium tracking-tight text-nk-text">
             Customer

@@ -52,7 +52,7 @@ export default async function ProductDetailPage({
         shopLabel={`${storefront.subdomain}.${getRootDomain()}`}
       />
 
-      <main className="mx-auto max-w-3xl px-5 py-10 sm:px-8 sm:py-14">
+      <main className="mx-auto w-full max-w-3xl px-5 py-10 sm:px-8 sm:py-14">
       <Link
         href={backHref}
         className="text-sm text-nk-neutral-500 hover:text-nk-text"

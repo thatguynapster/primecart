@@ -239,7 +239,7 @@ export function NewOrderForm({ products }: { products: PickableProduct[] }) {
       <div className="space-y-5 rounded-md border border-nk-neutral-800 bg-nk-surface p-6 sm:p-8">
         <h2 className="text-lg font-medium tracking-tight">Customer</h2>
 
-        <div className="grid gap-5 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
           <Field label="Name" htmlFor={ids.name} error={fieldErrors.name}>
             <input id={ids.name} name="name" className={inputClass} />
           </Field>
@@ -252,7 +252,7 @@ export function NewOrderForm({ products }: { products: PickableProduct[] }) {
           <input id={ids.email} name="email" type="email" className={inputClass} />
         </Field>
 
-        <div className="grid gap-5 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
           <Field label="Delivery address" htmlFor={ids.address} hint="Optional">
             <input id={ids.address} name="address" className={inputClass} />
           </Field>
