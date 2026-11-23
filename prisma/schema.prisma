@@ -58,6 +58,10 @@ model Merchant {
   // orders without paying and the merchant arranges payment on WhatsApp.
   storefrontPaymentsEnabled Boolean?
 
+  // The shop's delivery areas and prices, plus pickup and "agreed on WhatsApp".
+  // Empty = shoppers aren't asked and no fee is added (as before).
+  deliveryOptions DeliveryOption[]
+
   // Billing reminder emails already sent, keyed "<kind>:<date ISO>" so each
   // goes once per trial/period end (src/lib/billing/reminders.ts).
   billingReminderKeys String[]
@@ -69,6 +73,15 @@ model Merchant {
 
   // No @@index([email]) or @@index([clerkUserId]) — @unique already creates
   // those indexes, and declaring them twice fails schema validation.
+}
+
+// Rules in src/lib/orders/delivery.ts.
+type DeliveryOption {
+  id   String
+  kind String // "AREA" | "PICKUP" | "QUOTE"
+  name String
+  fee  Float // GHS; 0 for PICKUP and QUOTE
+  note String? // pickup: where and when to collect
 }
 
 // storefront.subdomain and storefront.customDomain need indexes that Prisma
@@ -218,8 +231,16 @@ model Order {
   paymentStatus PaymentStatus @default(UNPAID)
   paymentRef    String?
 
-  subtotal Float
-  total    Float
+  subtotal Float // items only
+  total    Float // subtotal + deliveryFee
+
+  // Snapshot of the buyer's delivery choice. All null on older orders. The fee
+  // is null while it is still to be agreed (kind QUOTE). Never counted as
+  // sales: revenue is total minus deliveryFee.
+  deliveryKind String? // "AREA" | "PICKUP" | "QUOTE"
+  deliveryName String?
+  deliveryNote String?
+  deliveryFee  Float?
 
   // DEV-6 (Phase 15). PrimeCart's cut on this order, in GHS, at the rate/cap
   // in force when it was placed. 0 for MANUAL/WHATSAPP orders. Null only on

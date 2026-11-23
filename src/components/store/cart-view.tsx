@@ -7,6 +7,7 @@ import { useEffect, useId, useState } from "react";
 import { checkout } from "@/app/store/[subdomain]/cart/actions";
 import { getDashboardOrigin } from "@/lib/domain";
 import { formatGhs } from "@/lib/format";
+import { addGhs, deliveryAmountText, type DeliveryOption } from "@/lib/orders/delivery";
 import { cartTotal, useCartStore } from "@/lib/storefront/cart";
 import { useIsClient } from "@/lib/use-is-client";
 
@@ -35,10 +36,12 @@ export function CartView({
   subdomain,
   storeName,
   paymentsEnabled,
+  deliveryOptions,
 }: {
   subdomain: string;
   storeName: string;
   paymentsEnabled: boolean;
+  deliveryOptions: DeliveryOption[];
 }) {
   const useStore = useCartStore(subdomain);
   const lines = useStore((state) => state.lines);
@@ -56,7 +59,18 @@ export function CartView({
   // opens — a cart with items in it isn't necessarily a decision to check out.
   const [checkingOut, setCheckingOut] = useState(false);
 
+  // Delivery choices. Replaced by the server's current list when checkout
+  // finds the one this page loaded with is out of date.
+  const [options, setOptions] = useState(deliveryOptions);
+  const [chosenId, setChosenId] = useState("");
+  const delivery =
+    options.length === 1
+      ? options[0]
+      : (options.find((option) => option.id === chosenId) ?? null);
+  const isPickup = delivery?.kind === "PICKUP";
+
   const ids = {
+    delivery: useId(),
     name: useId(),
     phone: useId(),
     email: useId(),
@@ -117,10 +131,13 @@ export function CartView({
         city: String(data.get("city") ?? ""),
         region: String(data.get("region") ?? "") || undefined,
         notes: String(data.get("notes") ?? "") || undefined,
+        deliveryOptionId: delivery?.id,
+        shownDeliveryFee: delivery?.fee,
       });
 
       if (!result.ok) {
         setFormError(result.error);
+        if (result.deliveryOptions) setOptions(result.deliveryOptions);
         setSubmitting(false);
         return;
       }
@@ -161,7 +178,8 @@ export function CartView({
     );
   }
 
-  const total = cartTotal(lines);
+  const itemsTotal = cartTotal(lines);
+  const total = addGhs(itemsTotal, delivery?.fee ?? 0);
   const problems = lines.filter((line) => {
     const current = live?.[line.variantId];
     if (!current) return live !== null; // vanished from the catalogue
@@ -283,6 +301,23 @@ export function CartView({
       {/* checkout */}
       <div>
         <div className="rounded-2xl border border-neutral-200 p-6">
+          {checkingOut && delivery && (
+            <div className="mb-3 space-y-1.5 border-b border-neutral-200 pb-3 text-[13.5px] text-neutral-600">
+              <div className="flex justify-between gap-3">
+                <span>Items</span>
+                <span className="tabular-nums">{formatGhs(itemsTotal)}</span>
+              </div>
+              <div className="flex justify-between gap-3">
+                <span>{isPickup ? "Pickup" : "Delivery"}</span>
+                <span className="tabular-nums">
+                  {deliveryAmountText(
+                    delivery.kind === "QUOTE" ? null : delivery.fee,
+                    formatGhs
+                  )}
+                </span>
+              </div>
+            </div>
+          )}
           <div className="flex items-baseline justify-between">
             <span className="text-[14px] text-neutral-600">Total</span>
             <span className="text-xl font-semibold tabular-nums">
@@ -363,6 +398,45 @@ export function CartView({
               </p>
             </div>
 
+            {options.length > 0 && (
+              <div>
+                <label htmlFor={ids.delivery} className="text-[13px] font-medium">
+                  Delivery or pickup
+                </label>
+                <select
+                  id={ids.delivery}
+                  required
+                  value={delivery?.id ?? ""}
+                  onChange={(event) => setChosenId(event.target.value)}
+                  className={`mt-1.5 bg-white ${inputClass}`}
+                >
+                  {options.length > 1 && (
+                    <option value="" disabled>
+                      Choose one
+                    </option>
+                  )}
+                  {options.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.kind === "QUOTE"
+                        ? "Somewhere else: fee agreed on WhatsApp"
+                        : `${option.name}: ${deliveryAmountText(option.fee, formatGhs)}`}
+                    </option>
+                  ))}
+                </select>
+                {isPickup && delivery.note && (
+                  <p className="mt-1 text-[12px] text-neutral-500">{delivery.note}</p>
+                )}
+                {delivery?.kind === "QUOTE" && (
+                  <p className="mt-1 text-[12px] text-neutral-500">
+                    {storeName} will agree the delivery fee with you on WhatsApp.
+                    It isn&rsquo;t included in this total.
+                  </p>
+                )}
+              </div>
+            )}
+
+            {!isPickup && (
+              <>
             <div>
               <label htmlFor={ids.address} className="text-[13px] font-medium">
                 Delivery address
@@ -389,6 +463,8 @@ export function CartView({
                 <input id={ids.region} name="region" className={`mt-1.5 ${inputClass}`} />
               </div>
             </div>
+              </>
+            )}
 
             <div>
               <label htmlFor={ids.notes} className="text-[13px] font-medium">

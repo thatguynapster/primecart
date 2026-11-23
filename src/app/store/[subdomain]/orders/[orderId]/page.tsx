@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { formatDeadline, formatGhs, isPast, timeLeftUntil } from "@/lib/format";
 import { getMerchantBySubdomain } from "@/lib/merchant/lookup";
+import { deliveryAmountText, deliveryLine } from "@/lib/orders/delivery";
 import { waMeLink } from "@/lib/phone";
 import { prisma } from "@/lib/prisma";
 import { PayNowButton } from "./pay-now";
@@ -76,6 +77,8 @@ export default async function OrderStatusPage({
   const isConfirmedUnpaid =
     !isPaid && !isOpenUnpaid && !isExpired && !isCancelled;
 
+  const delivery = deliveryLine(order);
+  const isPickup = order.deliveryKind === "PICKUP";
   const buyerNumber = order.shippingAddress?.phone ?? null;
   const storeWhatsapp = merchant.whatsappNumber
     ? waMeLink(
@@ -226,6 +229,15 @@ export default async function OrderStatusPage({
           </div>
         ))}
 
+        {delivery && (
+          <div className="flex items-center justify-between gap-4 p-4">
+            <p className="min-w-0 text-[14px]">{delivery.label}</p>
+            <p className="text-[14px] font-medium tabular-nums">
+              {deliveryAmountText(delivery.amount, formatGhs)}
+            </p>
+          </div>
+        )}
+
         <div className="flex items-center justify-between p-4">
           <p className="text-[14px] font-medium">Total</p>
           <p className="text-[16px] font-semibold tabular-nums">
@@ -236,12 +248,20 @@ export default async function OrderStatusPage({
 
       {order.shippingAddress && (
         <div className="mt-6">
-          <p className="text-[13px] font-medium text-neutral-700">Delivery to</p>
+          <p className="text-[13px] font-medium text-neutral-700">
+            {isPickup ? "Pickup" : "Delivery to"}
+          </p>
           <p className="mt-1 text-[13.5px] text-neutral-600">
             {order.shippingAddress.name} · {order.shippingAddress.phone}
             <br />
-            {order.shippingAddress.address}, {order.shippingAddress.city}
-            {order.shippingAddress.region ? `, ${order.shippingAddress.region}` : ""}
+            {isPickup ? (
+              order.deliveryNote
+            ) : (
+              <>
+                {order.shippingAddress.address}, {order.shippingAddress.city}
+                {order.shippingAddress.region ? `, ${order.shippingAddress.region}` : ""}
+              </>
+            )}
           </p>
         </div>
       )}

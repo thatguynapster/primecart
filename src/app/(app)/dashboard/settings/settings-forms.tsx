@@ -494,8 +494,8 @@ export function CheckoutAddonForm({
       </div>
       <p className="mt-2 text-sm leading-relaxed text-nk-neutral-400">
         Shoppers pay online by MoMo or card and you&rsquo;re paid the next
-        working day. PrimeCart keeps 3% of each order, and that includes all
-        payment fees. Stock is held for 24 hours while a shopper pays.
+        working day. PrimeCart keeps 3% of each payment, delivery
+        included, and that covers all payment fees. Stock is held for 24 hours while a shopper pays.
       </p>
       <p className="mt-2 text-sm text-nk-neutral-500">
         For example, on a GHS 200 order the shopper pays GHS 200.00, PrimeCart

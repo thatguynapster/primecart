@@ -26,7 +26,7 @@ export default async function CustomerDetailPage({
 
   const orders = await getCustomerOrders(merchant.id, customerId);
   const paidOrders = orders.filter((order) => order.paymentStatus === "PAID");
-  const totalSpent = paidOrders.reduce((sum, order) => sum + order.total, 0);
+  const totalSpent = paidOrders.reduce((sum, order) => sum + order.total - (order.deliveryFee ?? 0), 0);
   const lastOrder = orders[0] ?? null;
 
   return (

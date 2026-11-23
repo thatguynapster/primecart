@@ -16,6 +16,16 @@ import { LEGACY_D16_FEE_CAP_PESEWAS, STOREFRONT_FEE_RATE } from "@/lib/paystack"
  * the same raw-pipeline plumbing, so it is shared rather than duplicated.
  */
 
+/**
+ * An order's sales value: what was paid minus the delivery fee, which mostly
+ * goes to a rider and isn't the shop's revenue. Orders from before delivery
+ * fees have no such field. The 3% on delivery still counts as a cost, since
+ * the merchant pays it (platformFee is on the full total).
+ */
+const SALES = {
+	$subtract: ["$total", { $ifNull: ["$deliveryFee", 0] }]
+};
+
 function daysAgo(days: number): Date {
 	return new Date(Date.now() - days * 86_400_000);
 }
@@ -48,7 +58,7 @@ export async function getOverviewKpis(
 			{
 				$group: {
 					_id: null,
-					revenue: { $sum: "$total" },
+					revenue: { $sum: SALES },
 					orders: { $sum: 1 }
 				}
 			}
@@ -117,7 +127,7 @@ async function dailyPaidTotals(
 				_id: {
 					$dateToString: { format: "%Y-%m-%d", date: "$createdAt" }
 				},
-				total: { $sum: "$total" }
+				total: { $sum: SALES }
 			}
 		}
 	]);
@@ -421,7 +431,7 @@ export async function listCustomers(
 								$sum: {
 									$cond: [
 										{ $eq: ["$paymentStatus", "PAID"] },
-										"$total",
+										SALES,
 										0
 									]
 								}
@@ -608,7 +618,7 @@ export async function getAnalyticsKpis(
 			{
 				$group: {
 					_id: null,
-					revenue: { $sum: "$total" },
+					revenue: { $sum: SALES },
 					orders: { $sum: 1 }
 				}
 			}
@@ -672,7 +682,7 @@ export async function getMonthlyRevenue(merchantId: string): Promise<DayBar[]> {
 		{
 			$group: {
 				_id: { $dateToString: { format: "%Y-%m", date: "$createdAt" } },
-				total: { $sum: "$total" }
+				total: { $sum: SALES }
 			}
 		}
 	]);

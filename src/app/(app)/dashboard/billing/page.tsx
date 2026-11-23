@@ -138,8 +138,8 @@ export default async function BillingPage({
           />
           <p className="mt-5 border-t border-nk-neutral-800 pt-4 text-xs leading-relaxed text-nk-neutral-500">
             Online checkout on your storefront is optional and costs nothing
-            extra here: PrimeCart keeps 3% of each order paid online, payment
-            fees included.
+            extra here: PrimeCart keeps 3% of each order paid online,
+            delivery included, with payment fees covered.
           </p>
         </Card>
 

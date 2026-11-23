@@ -7,6 +7,7 @@ import type { Order, OrderStatus } from "@prisma/client";
 import { findOrCreateCustomer } from "@/lib/customers/find-or-create";
 import { LAPSED_MESSAGE, isLapsed } from "@/lib/billing/state";
 import { requireMerchant } from "@/lib/merchant/current";
+import { addGhs, parseFee } from "@/lib/orders/delivery";
 import { generateOrderNumber } from "@/lib/orders/order-number";
 import { OversellError, reserveStock, restoreStock, type StockLine } from "@/lib/orders/stock";
 import { canCancel, holdsReservedStock, nextStatus } from "@/lib/orders/transitions";
@@ -237,6 +238,43 @@ export async function markOrderPaid(
   return result;
 }
 
+/**
+ * Sets the delivery fee on an unpaid checkout-off order, until the merchant
+ * confirms it or marks it paid. Never on a checkout-on order: its Paystack
+ * links are for a fixed amount. Open to lapsed merchants, like confirming.
+ */
+export async function setDeliveryFee(
+  orderId: string,
+  value: string
+): Promise<OrderActionResult> {
+  const merchant = await requireMerchant();
+
+  const fee = parseFee(value);
+  if (fee == null) return { error: "Enter an amount like 25 or 25.50. Use 0 for free." };
+
+  const order = await prisma.order.findFirst({
+    where: { merchantId: merchant.id, id: orderId },
+  });
+  if (!order) return { error: "Order not found." };
+  if (order.deliveryKind === "PICKUP") return { error: "A pickup order has no delivery fee." };
+
+  // The where clause is the guard: nothing changes if the order was paid,
+  // confirmed or cancelled in the meantime.
+  const { count } = await prisma.order.updateMany({
+    where: {
+      id: orderId,
+      merchantId: merchant.id,
+      status: "PENDING",
+      paymentStatus: "UNPAID",
+      stockReserved: false,
+    },
+    data: { deliveryFee: fee, total: addGhs(order.subtotal, fee) },
+  });
+
+  revalidateOrder(orderId);
+  return count === 0 ? { error: "The delivery fee on this order can't be changed any more." } : {};
+}
+
 // ---------------------------------------------------------------------------
 // Manual order creation
 // ---------------------------------------------------------------------------
@@ -296,10 +334,16 @@ export async function createManualOrder(
   const region = String(formData.get("region") ?? "").trim();
   const notes = String(formData.get("notes") ?? "").trim();
   const markPaid = formData.get("markPaid") === "on";
+  const rawDeliveryFee = String(formData.get("deliveryFee") ?? "").trim();
+  const deliveryFee = rawDeliveryFee ? parseFee(rawDeliveryFee) : null;
 
   const fieldErrors: Record<string, string> = {};
   if (!name) fieldErrors.name = "Enter the customer's name.";
   if (!phone) fieldErrors.phone = "Enter a phone number.";
+
+  if (rawDeliveryFee && deliveryFee == null) {
+    fieldErrors.deliveryFee = "Enter an amount like 25 or 25.50.";
+  }
 
   const requestedLines = parseLines(formData);
   if (requestedLines.length === 0) {
@@ -389,7 +433,8 @@ export async function createManualOrder(
       source,
       paymentStatus: markPaid ? "PAID" : "UNPAID",
       subtotal,
-      total: subtotal,
+      total: addGhs(subtotal, deliveryFee ?? 0),
+      deliveryFee,
       // 0, not null — this order was never subject to the storefront fee, as
       // opposed to a pre-D-16 storefront order where it's genuinely unknown
       // (see getProfitSummary's fallback in src/lib/dashboard/queries.ts).
