@@ -64,6 +64,7 @@ export function OnboardingForm({
     businessName: useId(),
     subdomain: useId(),
     description: useId(),
+    whatsapp: useId(),
     primaryColor: useId(),
   };
 
@@ -171,6 +172,30 @@ export function OnboardingForm({
             }
           />
         )}
+      </div>
+
+      <div>
+        <label
+          htmlFor={ids.whatsapp}
+          className="block text-[14px] font-medium text-neutral-900"
+        >
+          WhatsApp number
+        </label>
+        <input
+          id={ids.whatsapp}
+          name="whatsappNumber"
+          type="tel"
+          inputMode="tel"
+          autoComplete="tel"
+          placeholder="024 400 0000"
+          className="mt-2 w-full rounded-xl border border-neutral-300 bg-white px-4 py-2.5 text-base outline-none focus:border-neutral-900"
+        />
+        {!fieldErrors.whatsappNumber && (
+          <p className="mt-1.5 text-[13px] text-neutral-500">
+            Shown on your shop so shoppers can message you about their orders.
+          </p>
+        )}
+        <FieldError message={fieldErrors.whatsappNumber} />
       </div>
 
       <div>

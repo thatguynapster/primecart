@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { TRIAL_DAYS, addDays } from "@/lib/billing/plans";
 import { requireMerchant } from "@/lib/merchant/current";
 import { invalidateStorefront } from "@/lib/merchant/lookup";
+import { GHANA_PHONE_ERROR, normalizeGhanaPhone } from "@/lib/phone";
 import { prisma } from "@/lib/prisma";
 import { checkSubdomainAvailable } from "@/lib/storefront/subdomain";
 
@@ -38,7 +39,14 @@ export async function completeOnboarding(
   const description = String(formData.get("description") ?? "").trim();
   const primaryColor = String(formData.get("primaryColor") ?? "#000000").trim();
 
+  // Shoppers message this number about their orders, so the shop can't open
+  // without one.
+  const whatsappNumber = normalizeGhanaPhone(
+    String(formData.get("whatsappNumber") ?? "")
+  );
+
   const fieldErrors: Record<string, string> = {};
+  if (!whatsappNumber) fieldErrors.whatsappNumber = GHANA_PHONE_ERROR;
 
   if (!businessName) {
     fieldErrors.businessName = "Enter your business name.";
@@ -94,6 +102,7 @@ export async function completeOnboarding(
             businessName,
             description: description || null,
             primaryColor,
+            whatsappNumber,
             // Live immediately — storefronts are not manually reviewed, and a
             // lapsed subscription never takes a shop down (D-18f).
             isActive: true,
