@@ -279,6 +279,32 @@ check((await dst.collection("Merchant").countDocuments()) === (await src.collect
   console.error = quiet;
   check((await queue.countDocuments()) === 0, "given up and removed after the last retry");
 
+  // Delivery fees: documents from before the fields existed, and revenue.
+  const oldMerchant = new ObjectId();
+  await ops.collection("Merchant").insertOne({ _id: oldMerchant, clerkUserId: "d1", email: "d1@x.test", name: "D", createdAt: new Date(), updatedAt: new Date(), storefront: store("delivery") });
+  const where = { id: oldMerchant.toHexString() };
+  check((await prisma.merchant.findUnique({ where })).deliveryOptions.length === 0, "a merchant without deliveryOptions loads with none");
+  await prisma.merchant.update({ where, data: { deliveryOptions: { set: [{ id: "a", kind: "AREA", name: "Accra", fee: 25, note: null }] } } });
+  check((await prisma.merchant.findUnique({ where })).deliveryOptions[0].fee === 25, "delivery options save and load");
+  await prisma.merchant.update({ where, data: { deliveryOptions: { set: [] } } });
+  check((await prisma.merchant.findUnique({ where })).deliveryOptions.length === 0, "delivery options can be cleared");
+
+  const paid = { merchantId: oldMerchant, status: "CONFIRMED", source: "STOREFRONT", paymentStatus: "PAID", lineItems: [], createdAt: new Date(), updatedAt: new Date() };
+  const buyer = new ObjectId();
+  await ops.collection("Customer").insertOne({ _id: buyer, merchantId: oldMerchant, name: "B", createdAt: new Date(), updatedAt: new Date() });
+  await ops.collection("Order").insertMany([
+    { ...paid, customerId: buyer, orderNumber: "1", subtotal: 100, total: 100 },
+    { ...paid, customerId: buyer, orderNumber: "2", subtotal: 50, total: 80, deliveryKind: "AREA", deliveryFee: 30 },
+    { ...paid, customerId: buyer, orderNumber: "3", subtotal: 20, total: 20, deliveryKind: "QUOTE", deliveryFee: null },
+  ]);
+  const reports = await import("../src/lib/dashboard/queries.ts");
+  const kpis = await reports.getOverviewKpis(where.id);
+  check(kpis.revenue === 170 && kpis.orders === 3, `revenue leaves out delivery fees (got ${kpis.revenue})`);
+  const sum = (bars) => bars.reduce((t, bar) => t + bar.value, 0);
+  check(sum(await reports.getSalesSeries(where.id)) === 170 && sum(await reports.getMonthlyRevenue(where.id)) === 170, "sales charts leave out delivery fees");
+  check((await reports.getAnalyticsKpis(where.id)).revenue === 170, "analytics revenue leaves out delivery fees");
+  check((await reports.listCustomers(where.id))[0].spent === 170, "customer spend leaves out delivery fees");
+
   await prisma.$disconnect();
   server.close();
 }

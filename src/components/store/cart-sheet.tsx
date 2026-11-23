@@ -10,6 +10,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { CartView } from "@/components/store/cart-view";
+import type { DeliveryOption } from "@/lib/orders/delivery";
 import { brandStyle } from "@/lib/storefront/brand";
 import { cartCount, useCartStore } from "@/lib/storefront/cart";
 import { useIsClient } from "@/lib/use-is-client";
@@ -31,11 +32,13 @@ export function CartSheet({
   primaryColor,
   storeName,
   paymentsEnabled,
+  deliveryOptions,
 }: {
   subdomain: string;
   primaryColor: string;
   storeName: string;
   paymentsEnabled: boolean;
+  deliveryOptions: DeliveryOption[];
 }) {
   const useStore = useCartStore(subdomain);
   const lines = useStore((state) => state.lines);
@@ -78,6 +81,7 @@ export function CartSheet({
             subdomain={subdomain}
             storeName={storeName}
             paymentsEnabled={paymentsEnabled}
+            deliveryOptions={deliveryOptions}
           />
         </div>
       </SheetContent>

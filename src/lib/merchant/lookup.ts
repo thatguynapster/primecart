@@ -1,3 +1,4 @@
+import type { DeliveryOption } from "@/lib/orders/delivery";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -67,6 +68,8 @@ export type StorefrontMerchant = {
    * checkout action re-reads it fresh before deciding anything.
    */
   storefrontPaymentsEnabled: boolean;
+  /** Same staleness rule: shown in the cart, re-read fresh at checkout. */
+  deliveryOptions: DeliveryOption[];
 };
 
 const storefrontCache = new Map<string, CacheEntry<StorefrontMerchant | null>>();
@@ -80,7 +83,12 @@ export async function getMerchantBySubdomain(
 
   const merchant = await prisma.merchant.findFirst({
     where: { storefront: { is: { subdomain } } },
-    select: { id: true, storefront: true, storefrontPaymentsEnabled: true },
+    select: {
+      id: true,
+      storefront: true,
+      storefrontPaymentsEnabled: true,
+      deliveryOptions: true,
+    },
   });
 
   const data: StorefrontMerchant | null = merchant?.storefront
@@ -102,6 +110,7 @@ export async function getMerchantBySubdomain(
         instagramUrl: merchant.storefront.instagramUrl,
         whatsappNumber: merchant.storefront.whatsappNumber,
         storefrontPaymentsEnabled: merchant.storefrontPaymentsEnabled === true,
+        deliveryOptions: merchant.deliveryOptions,
       }
     : null;
 

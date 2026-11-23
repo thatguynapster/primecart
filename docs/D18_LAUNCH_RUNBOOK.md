@@ -93,7 +93,7 @@ Record the date in TASKS.md's Phase 18 "Restore drills" table. (The backup → r
 ## 6. Acceptance checklist on dev (brief T13)
 
 Already verified offline (no database needed):
-- [x] Prices, intervals, founding 50% on all intervals, period stacking, pay-during-trial starts at `trialEndsAt`, pay-while-lapsed starts now, month-end clamping, Ghana phone normalisation (`npm test`, 26 checks)
+- [x] Prices, intervals, founding 50% on all intervals, period stacking, pay-during-trial starts at `trialEndsAt`, pay-while-lapsed starts now, month-end clamping, Ghana phone normalisation (`npm test`, 38 checks)
 - [x] `db:backfill-d18` run twice: second run changes nothing; checkout-on merchant stays on; founding end date doesn't move; open Paystack orders untouched (`npm run test:db`)
 - [x] Merchants who signed up 13–24 Aug 2026 (stale Phase 13 `subscriptionStatus`, no D-18 dates) get a fresh 14-day trial, not "Expired" (`npm run test:db`; found on dev, see below)
 - [x] Backup → restore keeps every BSON type and the unique subdomain index; restore refuses a non-empty target (`npm run test:db`)
@@ -122,6 +122,15 @@ Launch hardening (2026-11-23), to check on dev:
 - [ ] Checkout-off order: the buyer gets an email with a working order link
 - [ ] Unknown product link shows the shop's "Page not found"
 - [ ] Sixth order from one phone number within an hour is refused
+
+Delivery fees (2026-11-23), to check on dev:
+- [ ] Settings > Delivery: add areas, pickup and "agreed on WhatsApp"; save, reload, they're still there
+- [ ] Checkout off: each option gives the right total, order page and emails; pickup asks for no address
+- [ ] Agreed-on-WhatsApp order: merchant sets the fee, the buyer's order page updates; locked once confirmed
+- [ ] Fee changed in settings while a cart is open: the buyer sees the new fee before ordering
+- [ ] Checkout on: Paystack amount includes the fee, the webhook confirms the order, split is 3% of the total
+- [ ] Manual order with a fee; Overview revenue leaves delivery out
+- [ ] Shop with no options: checkout is unchanged
 
 ## 7. Production deploy
 

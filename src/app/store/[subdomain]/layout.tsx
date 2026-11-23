@@ -115,6 +115,7 @@ export default async function StorefrontLayout({
               primaryColor={merchant.primaryColor}
               storeName={merchant.businessName}
               paymentsEnabled={merchant.storefrontPaymentsEnabled}
+              deliveryOptions={merchant.deliveryOptions}
             />
           </div>
         </div>

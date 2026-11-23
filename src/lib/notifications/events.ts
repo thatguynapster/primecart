@@ -1,6 +1,12 @@
 import type { DormantMerchant } from "@/lib/admin/dormancy";
 import { getDashboardOrigin } from "@/lib/domain";
 import { formatDeadline, formatGhs, formatLongDate, formatRelativeDate } from "@/lib/format";
+import {
+  deliveryAmountText,
+  deliveryFeeUnagreed,
+  deliveryLine,
+  type OrderDelivery,
+} from "@/lib/orders/delivery";
 import { waMeLink } from "@/lib/phone";
 import { sendEmail } from "./resend";
 
@@ -40,6 +46,13 @@ function escapeHtml(value: string): string {
     .replace(/'/g, "&#39;");
 }
 
+/** "Delivery: Accra — GH₵25.00", or "" for an order with no delivery choice. */
+function deliveryHtml(delivery: OrderDelivery): string {
+  const line = deliveryLine(delivery);
+  if (!line) return "";
+  return `${escapeHtml(line.label)} — ${deliveryAmountText(line.amount, formatGhs)}`;
+}
+
 /**
  * Event 1 — a new order for the merchant.
  *
@@ -63,6 +76,7 @@ export async function notifyNewOrder(params: {
   buyerWhatsapp?: string | null;
   /** Used in the pre-filled WhatsApp message. */
   storeName?: string | null;
+  delivery: OrderDelivery;
   /**
    * DEV-7 (Phase 15), §B.7 — so the merchant sees what to engrave without
    * opening the dashboard. Only lines carrying customization text are shown;
@@ -91,7 +105,9 @@ export async function notifyNewOrder(params: {
           .join("")}</ul>`
       : "";
 
-  const summary = `<p><strong>${escapeHtml(params.orderNumber)}</strong> from ${escapeHtml(params.customerName)}, ${formatGhs(params.total)}.</p>`;
+  const summary = `<p><strong>${escapeHtml(params.orderNumber)}</strong> from ${escapeHtml(params.customerName)}, ${formatGhs(params.total)}.</p>${
+    deliveryHtml(params.delivery) ? `<p>${deliveryHtml(params.delivery)}</p>` : ""
+  }`;
 
   let subject: string;
   let html: string;
@@ -117,6 +133,7 @@ export async function notifyNewOrder(params: {
                orderNumber: params.orderNumber,
                storeName: params.storeName ?? null,
                total: params.total,
+               deliveryToAgree: deliveryFeeUnagreed(params.delivery),
              })
            )
          )}" style="${BUTTON}">Message on WhatsApp</a>&nbsp;`
@@ -150,6 +167,7 @@ export async function notifyBuyerOrderReceived(params: {
   orderNumber: string;
   orderUrl: string;
   total: number;
+  delivery: OrderDelivery;
   lines: {
     productName: string;
     variantName: string;
@@ -183,7 +201,9 @@ export async function notifyBuyerOrderReceived(params: {
       html: layout(
         `${store} received your order`,
         `<p>${store} will contact you on WhatsApp to confirm order <strong>${escapeHtml(params.orderNumber)}</strong> and arrange payment. You haven&rsquo;t been charged anything.</p>
-         <ul style="margin:12px 0;padding-left:20px;">${items}</ul>
+         <ul style="margin:12px 0;padding-left:20px;">${items}${
+           deliveryHtml(params.delivery) ? `<li>${deliveryHtml(params.delivery)}</li>` : ""
+         }</ul>
          <p><strong>Total: ${formatGhs(params.total)}</strong></p>
          <a href="${escapeHtml(params.orderUrl)}" style="${BUTTON}">View your order</a>${whatsapp}`
       ),
@@ -199,9 +219,11 @@ export function newOrderWhatsappMessage(params: {
   orderNumber: string;
   storeName: string | null;
   total: number;
+  /** The total leaves out a delivery fee still to be agreed. */
+  deliveryToAgree?: boolean;
 }): string {
   const from = params.storeName ? ` from ${params.storeName}` : "";
-  return `Hi ${params.customerName}, thanks for your order ${params.orderNumber}${from} (${formatGhs(params.total)}). I'm confirming it now. How would you like to pay?`;
+  return `Hi ${params.customerName}, thanks for your order ${params.orderNumber}${from} (${formatGhs(params.total)}${params.deliveryToAgree ? " plus delivery" : ""}). I'm confirming it now. How would you like to pay?`;
 }
 
 /**

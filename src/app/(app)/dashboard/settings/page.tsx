@@ -7,6 +7,7 @@ import {
   type PaystackSubaccountDetails,
 } from "@/lib/paystack";
 import { isImageUploadConfigured } from "@/lib/r2";
+import { DeliveryForm } from "./delivery-form";
 import {
   BannerForm,
   CheckoutAddonForm,
@@ -85,6 +86,8 @@ export default async function SettingsPage() {
           {hasSubaccount && (
             <PayoutForm banks={banks} hasSubaccount current={currentPayout} />
           )}
+
+          <DeliveryForm options={merchant.deliveryOptions} />
 
           <SocialsForm
             facebookUrl={storefront.facebookUrl}

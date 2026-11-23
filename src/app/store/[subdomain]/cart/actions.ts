@@ -7,6 +7,7 @@ import { findOrCreateCustomer } from "@/lib/customers/find-or-create";
 import { getStorefrontOrigin } from "@/lib/domain";
 import { getMerchantBySubdomain } from "@/lib/merchant/lookup";
 import { notifyBuyerOrderReceived, notifyNewOrder } from "@/lib/notifications/events";
+import { addGhs, chooseDelivery, type DeliveryOption } from "@/lib/orders/delivery";
 import { generateOrderNumber } from "@/lib/orders/order-number";
 import { validateCustomization } from "@/lib/products/customization";
 import { expireOrder } from "@/lib/orders/expire";
@@ -67,11 +68,20 @@ export type CheckoutInput = {
   city: string;
   region?: string;
   notes?: string;
+  /** Which of the shop's delivery options was picked. */
+  deliveryOptionId?: string;
+  /** Compared with the real fee, never used as a price. */
+  shownDeliveryFee?: number;
 };
 
 export type CheckoutResult =
   | { ok: true; redirectUrl: string }
-  | { ok: false; error: string };
+  | {
+      ok: false;
+      error: string;
+      /** Set when the page's delivery options are out of date. */
+      deliveryOptions?: DeliveryOption[];
+    };
 
 const HOLD_MS = STOREFRONT_PAYMENT_HOLD_HOURS * 60 * 60 * 1000;
 
@@ -137,11 +147,8 @@ export async function checkout(
   const region = input.region?.trim() || null;
   const notes = input.notes?.trim() || null;
 
-  if (!name || !email || !rawPhone || !address || !city) {
-    return {
-      ok: false,
-      error: "Fill in your name, email, WhatsApp number, address and city.",
-    };
+  if (!name || !email || !rawPhone) {
+    return { ok: false, error: "Fill in your name, email and WhatsApp number." };
   }
 
   if (
@@ -178,12 +185,32 @@ export async function checkout(
       email: true,
       paystackSubaccountCode: true,
       storefrontPaymentsEnabled: true,
+      deliveryOptions: true,
     },
   });
   if (!merchant) {
     return { ok: false, error: "This store is not accepting orders right now." };
   }
   const merchantId = merchant.id;
+
+  // ---- delivery -------------------------------------------------------------
+  // Priced from the list just read, never from the client.
+  const delivery = chooseDelivery(
+    merchant.deliveryOptions,
+    input.deliveryOptionId,
+    input.shownDeliveryFee
+  );
+  if (!delivery.ok) {
+    return {
+      ok: false,
+      error: delivery.error,
+      deliveryOptions: merchant.deliveryOptions,
+    };
+  }
+  const isPickup = delivery.option?.kind === "PICKUP";
+  if (!isPickup && (!address || !city)) {
+    return { ok: false, error: "Fill in your delivery address and city." };
+  }
 
   if (!(await mayPlaceOrder(merchantId, phone))) {
     return {
@@ -271,6 +298,7 @@ export async function checkout(
     customizationFee: line.customizationFee,
   }));
   const subtotal = lineItems.reduce((sum, item) => sum + item.subtotal, 0);
+  const total = addGhs(subtotal, delivery.fee);
 
   const orderBase = {
     merchantId,
@@ -279,9 +307,18 @@ export async function checkout(
     source: "STOREFRONT" as const,
     paymentStatus: "UNPAID" as const,
     subtotal,
-    total: subtotal, // No delivery fee or discount yet (D-18g).
+    total,
+    deliveryKind: delivery.option?.kind ?? null,
+    deliveryName: delivery.option?.name ?? null,
+    deliveryNote: delivery.option?.note ?? null,
+    // Null, not 0, while the fee is still to be agreed with the merchant.
+    deliveryFee:
+      delivery.option && delivery.option.kind !== "QUOTE" ? delivery.fee : null,
     lineItems,
-    shippingAddress: { name, phone, address, city, region },
+    // A pickup keeps the buyer's name and number, with no address.
+    shippingAddress: isPickup
+      ? { name, phone, address: "", city: "", region: null }
+      : { name, phone, address, city, region },
     notes,
   };
 
@@ -322,6 +359,7 @@ export async function checkout(
         paid: false,
         buyerWhatsapp: phone,
         storeName: storefront.businessName,
+        delivery: order,
         lines: lineItems,
       }),
       notifyBuyerOrderReceived({
@@ -332,6 +370,7 @@ export async function checkout(
         orderNumber: order.orderNumber,
         orderUrl,
         total: order.total,
+        delivery: order,
         lines: lineItems,
       }),
     ]);
@@ -349,8 +388,9 @@ export async function checkout(
 
   // Snapshotted at the rate in force now (DEV-6), via the same helper
   // `initializeTransaction` uses for `transaction_charge`, so the two can
-  // never disagree. 3%, uncapped (D-18b).
-  const platformFee = storefrontFeePesewas(Math.round(subtotal * 100)) / 100;
+  // never disagree. 3%, uncapped (D-18b), on the whole payment including
+  // delivery, because Paystack's own charge is on the whole payment too.
+  const platformFee = storefrontFeePesewas(Math.round(total * 100)) / 100;
 
   let orderId: string;
   try {
@@ -379,7 +419,7 @@ export async function checkout(
   try {
     const transaction = await initializeTransaction({
       email,
-      amountInPesewas: Math.round(subtotal * 100),
+      amountInPesewas: Math.round(total * 100),
       subaccount: merchant.paystackSubaccountCode!,
       reference,
       callbackUrl: `${getStorefrontOrigin(subdomain)}/orders/${orderId}`,

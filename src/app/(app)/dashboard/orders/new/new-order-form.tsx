@@ -8,6 +8,7 @@ import { useFormStatus } from "react-dom";
 import { Field, FormError, inputClass } from "@/components/dashboard/fields";
 import { ButtonSecondary } from "@/components/dashboard/nocturne/ui";
 import { formatGhs } from "@/lib/format";
+import { addGhs, parseFee } from "@/lib/orders/delivery";
 import { createManualOrder, type FormState } from "../actions";
 
 type PickableVariant = { id: string; name: string; price: number; stock: number };
@@ -51,6 +52,7 @@ export function NewOrderForm({ products }: { products: PickableProduct[] }) {
     { key: 0, productId: "", variantId: "", quantity: 1, customization: "" },
   ]);
   const [nextKey, setNextKey] = useState(1);
+  const [deliveryFee, setDeliveryFee] = useState("");
 
   const ids = {
     name: useId(),
@@ -59,6 +61,7 @@ export function NewOrderForm({ products }: { products: PickableProduct[] }) {
     address: useId(),
     city: useId(),
     region: useId(),
+    deliveryFee: useId(),
     notes: useId(),
     source: useId(),
     markPaid: useId(),
@@ -86,10 +89,11 @@ export function NewOrderForm({ products }: { products: PickableProduct[] }) {
     setRows((current) => current.filter((row) => row.key !== key));
   }
 
-  const total = rows.reduce((sum, row) => {
+  const itemsTotal = rows.reduce((sum, row) => {
     const variant = variantsFor(row.productId).find((v) => v.id === row.variantId);
     return sum + (variant ? variant.price * row.quantity : 0);
   }, 0);
+  const total = addGhs(itemsTotal, parseFee(deliveryFee) ?? 0);
 
   return (
     // React resets a form after its action; keep what was typed on an error.
@@ -225,6 +229,23 @@ export function NewOrderForm({ products }: { products: PickableProduct[] }) {
             <ButtonSecondary type="button" onClick={addRow}>
               Add item
             </ButtonSecondary>
+
+            <Field
+              label="Delivery fee (GHS)"
+              htmlFor={ids.deliveryFee}
+              hint="Optional"
+              error={fieldErrors.deliveryFee}
+              className="max-w-40"
+            >
+              <input
+                id={ids.deliveryFee}
+                name="deliveryFee"
+                inputMode="decimal"
+                value={deliveryFee}
+                onChange={(event) => setDeliveryFee(event.target.value)}
+                className={inputClass}
+              />
+            </Field>
 
             <div className="flex items-baseline justify-between border-t border-nk-neutral-800 pt-4">
               <span className="text-sm text-nk-neutral-400">Total</span>

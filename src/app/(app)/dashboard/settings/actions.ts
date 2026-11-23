@@ -1,5 +1,7 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
+
 import { revalidatePath } from "next/cache";
 
 import { LAPSED_MESSAGE, isLapsed } from "@/lib/billing/state";
@@ -14,6 +16,7 @@ import {
   updateStorefrontHero,
   updateStorefrontSocials,
 } from "@/lib/merchant/storefront";
+import { parseDeliveryForm } from "@/lib/orders/delivery";
 import { PaystackError, createSubaccount, updateSubaccount } from "@/lib/paystack";
 import { prisma } from "@/lib/prisma";
 import {
@@ -345,6 +348,59 @@ export async function disableStorefrontPayments(): Promise<SettingsState> {
   await prisma.merchant.update({
     where: { id: merchant.id },
     data: { storefrontPaymentsEnabled: false },
+  });
+
+  invalidateStorefront(storefront.subdomain);
+  revalidatePath("/dashboard/settings");
+  return { savedAt: Date.now() };
+}
+
+// ---------------------------------------------------------------------------
+// Delivery
+// ---------------------------------------------------------------------------
+
+/** Replaces the shop's whole list. Orders keep their own snapshot. */
+export async function updateDelivery(
+  _prev: SettingsState,
+  formData: FormData
+): Promise<SettingsState> {
+  const merchant = await requireMerchant();
+  if (isLapsed(merchant)) return { error: LAPSED_MESSAGE };
+  const storefront = merchant.storefront;
+  if (!storefront) return { error: "Finish setting up your shop first." };
+
+  const ids = formData.getAll("areaId").map(String);
+  const names = formData.getAll("areaName").map(String);
+  // A row saved a moment ago still has no id in the open form. Matching by
+  // name keeps its id, so a buyer mid-checkout isn't told it changed.
+  const idByName = new Map(
+    merchant.deliveryOptions.map((option) => [option.name.toLowerCase(), option.id])
+  );
+  const fees = formData.getAll("areaFee").map(String);
+
+  const parsed = parseDeliveryForm(
+    {
+      areas: names.map((name, i) => ({
+        id: ids[i] || (idByName.get(name.trim().toLowerCase()) ?? ""),
+        name,
+        fee: fees[i] ?? "",
+      })),
+      pickup: formData.get("pickup") === "on",
+      pickupNote: String(formData.get("pickupNote") ?? ""),
+      quote: formData.get("quote") === "on",
+    },
+    new Set(
+      merchant.deliveryOptions
+        .filter((option) => option.kind === "AREA")
+        .map((option) => option.id)
+    ),
+    randomUUID
+  );
+  if (!parsed.ok) return { error: parsed.error };
+
+  await prisma.merchant.update({
+    where: { id: merchant.id },
+    data: { deliveryOptions: { set: parsed.options } },
   });
 
   invalidateStorefront(storefront.subdomain);

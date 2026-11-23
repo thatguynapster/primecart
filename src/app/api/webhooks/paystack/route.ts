@@ -111,6 +111,7 @@ async function settleFromPending(order: Order, reference: string): Promise<boole
         customerName: customerNameOf(order),
         total: order.total,
         paid: true,
+        delivery: order,
         lines: notificationLinesOf(order),
       });
     }
@@ -203,6 +204,7 @@ async function settleFromExpired(order: Order, reference: string): Promise<void>
       customerName: customerNameOf(order),
       total: order.total,
       paid: true,
+      delivery: order,
       lines: notificationLinesOf(order),
     });
   }

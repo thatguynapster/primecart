@@ -51,7 +51,7 @@ export default function TermsPage() {
       <h2>4. Online checkout (optional)</h2>
       <ul>
         <li>Online checkout is off unless you switch it on. While it&rsquo;s off, shoppers place orders without paying and you arrange payment with them directly. PrimeCart charges no fee on those orders.</li>
-        <li>When it&rsquo;s on, shoppers pay by mobile money or card through Paystack. PrimeCart keeps <strong>3% of each order paid online</strong>, and that includes Paystack&rsquo;s payment fees. The rest is paid out to the account you gave us, normally the next working day, on Paystack&rsquo;s schedule.</li>
+        <li>When it&rsquo;s on, shoppers pay by mobile money or card through Paystack. PrimeCart keeps <strong>3% of each order paid online</strong>, including any delivery fee in it, and that includes Paystack&rsquo;s payment fees. The rest is paid out to the account you gave us, normally the next working day, on Paystack&rsquo;s schedule.</li>
         <li>Switching on requires a payout account that Paystack accepts. You must give accurate payout details.</li>
       </ul>
 

@@ -297,7 +297,7 @@ Because it runs on **every** deploy, every step must match only documents not ye
 ## 7. After launch (not now)
 
 - [ ] **WhatsApp notifications** via the WhatsApp Cloud API directly (not a BSP): merchant new-order alerts first, buyer payment reminders second. Needs Meta business verification, approved utility templates, per-message cost, and a PrimeCart sender number.
-- [ ] **Delivery fees** on checkout (D-18g).
+- [x] **Delivery fees** on checkout (D-18g): areas and prices per shop, pickup, agreed on WhatsApp (2026-11-23).
 - [ ] MoMo transaction ID on mark-as-paid.
 - [ ] Public pricing page.
 - [ ] Dormancy digest (D-17) counts paid orders only; checkout-off merchants who don't mark orders paid will be flagged. Revisit.

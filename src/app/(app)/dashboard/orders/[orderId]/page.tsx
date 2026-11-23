@@ -7,12 +7,18 @@ import { getRootDomain, getStorefrontOrigin } from "@/lib/domain";
 import { formatGhs, formatRelativeDate, isPast } from "@/lib/format";
 import { requireMerchant } from "@/lib/merchant/current";
 import { newOrderWhatsappMessage } from "@/lib/notifications/events";
+import {
+  deliveryAmountText,
+  deliveryFeeUnagreed,
+  deliveryLine,
+} from "@/lib/orders/delivery";
 import { getOrder } from "@/lib/orders/queries";
 import {
   LEGACY_D16_FEE_CAP_PESEWAS,
   STOREFRONT_FEE_RATE,
 } from "@/lib/paystack";
 import { waMeLink } from "@/lib/phone";
+import { DeliveryFeeForm } from "./delivery-fee-form";
 import { OrderActions } from "./order-actions";
 
 const PAYMENT_METHOD_LABELS: Record<string, string> = {
@@ -75,6 +81,8 @@ export default async function OrderDetailPage({
   // payment hold gets the storefront order page link (which has a fresh
   // "Pay now"); a checkout-off order gets the confirm-and-arrange-payment
   // opener; anything else a plain opener.
+  const delivery = deliveryLine(order);
+  const isPickup = order.deliveryKind === "PICKUP";
   const isOpenUnpaid = order.status === "PENDING" && order.paymentStatus === "UNPAID";
   const awaitingStock = isOpenUnpaid && order.stockReserved === false;
   const payLinkOpen =
@@ -103,6 +111,7 @@ export default async function OrderDetailPage({
                 orderNumber: order.orderNumber,
                 storeName: storefront.businessName,
                 total: order.total,
+                deliveryToAgree: deliveryFeeUnagreed(order),
               })
             ),
           }
@@ -248,6 +257,23 @@ export default async function OrderDetailPage({
             </div>
           ))}
 
+          {delivery && (
+            <div className="flex items-center justify-between gap-4 px-5 py-4">
+              <p className="min-w-0 text-sm">{delivery.label}</p>
+              <p className="text-sm font-medium tabular-nums">
+                {deliveryAmountText(delivery.amount, formatGhs)}
+              </p>
+            </div>
+          )}
+
+          {awaitingStock && !isPickup && (
+            <DeliveryFeeForm
+              key={order.deliveryFee ?? "none"}
+              orderId={order.id}
+              fee={order.deliveryFee}
+            />
+          )}
+
           <div className="flex items-center justify-between px-5 py-4">
             <p className="text-sm font-medium">Total</p>
             <p className="text-base font-semibold tabular-nums">
@@ -291,7 +317,14 @@ export default async function OrderDetailPage({
           <h2 className="text-sm font-medium tracking-tight text-nk-text">
             Delivery
           </h2>
-          {shipping ? (
+          {isPickup ? (
+            <p className="mt-2 text-sm text-nk-neutral-300">
+              Pickup: the buyer collects this order.
+              {order.deliveryNote && (
+                <span className="block text-nk-neutral-500">{order.deliveryNote}</span>
+              )}
+            </p>
+          ) : shipping ? (
             <p className="mt-2 text-sm text-nk-neutral-300">
               {shipping.address}
               <br />
