@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 import { getMerchantBySubdomain } from "@/lib/merchant/lookup";
 import { getStorefrontBestSellers } from "@/lib/storefront/bestsellers";
 import {
-  getPreviewPhoto,
   listCategoryTiles,
   listFeaturedProducts,
   listStorefrontCategories,
@@ -26,7 +25,7 @@ export async function generateMetadata({
 
   if (!merchant) return { title: "Shop" };
 
-  return shopPreview(merchant, await getPreviewPhoto(merchant));
+  return shopPreview(merchant);
 }
 
 /**

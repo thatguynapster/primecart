@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { getPreviewPhoto } from "@/lib/storefront/catalogue";
 import { shopPreview } from "@/lib/storefront/preview";
 import { getMerchantBySubdomain } from "@/lib/merchant/lookup";
 import {
@@ -31,7 +30,7 @@ export async function generateMetadata({
   if (!merchant) return { title: "Shop" };
 
   return {
-    ...shopPreview(merchant, await getPreviewPhoto(merchant)),
+    ...shopPreview(merchant),
     title: `${category ?? "Products"} — ${merchant.businessName}`,
   };
 }
