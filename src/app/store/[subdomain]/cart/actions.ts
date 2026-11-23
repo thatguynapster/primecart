@@ -72,6 +72,8 @@ export type CheckoutInput = {
   deliveryOptionId?: string;
   /** Compared with the real fee, never used as a price. */
   shownDeliveryFee?: number;
+  /** Whether the buyer was told they'd pay now. Compared, never trusted. */
+  shownPaymentsEnabled?: boolean;
 };
 
 export type CheckoutResult =
@@ -81,6 +83,8 @@ export type CheckoutResult =
       error: string;
       /** Set when the page's delivery options are out of date. */
       deliveryOptions?: DeliveryOption[];
+      /** Set when checkout was switched on or off since the page loaded. */
+      paymentsEnabled?: boolean;
     };
 
 const HOLD_MS = STOREFRONT_PAYMENT_HOLD_HOURS * 60 * 60 * 1000;
@@ -193,6 +197,24 @@ export async function checkout(
   }
   const merchantId = merchant.id;
 
+  // ---- online payment ------------------------------------------------------
+  // Never send a buyer to Paystack after telling them they won't pay now, or
+  // the reverse. A page from before this check sends nothing and is let through.
+  const paymentsEnabled = merchant.storefrontPaymentsEnabled === true;
+  if (
+    typeof input.shownPaymentsEnabled === "boolean" &&
+    input.shownPaymentsEnabled !== paymentsEnabled
+  ) {
+    return {
+      ok: false,
+      error: paymentsEnabled
+        ? "This shop now takes payment online. Press Pay now to continue."
+        : "This shop no longer takes payment online. Press Place order and they'll arrange payment with you.",
+      deliveryOptions: merchant.deliveryOptions,
+      paymentsEnabled,
+    };
+  }
+
   // ---- delivery -------------------------------------------------------------
   // Priced from the list just read, never from the client.
   const delivery = chooseDelivery(
@@ -205,6 +227,7 @@ export async function checkout(
       ok: false,
       error: delivery.error,
       deliveryOptions: merchant.deliveryOptions,
+      paymentsEnabled,
     };
   }
   const isPickup = delivery.option?.kind === "PICKUP";
@@ -218,7 +241,6 @@ export async function checkout(
       error: "Too many orders were placed in a short time. Please wait a while and try again, or message the shop.",
     };
   }
-  const paymentsEnabled = merchant.storefrontPaymentsEnabled === true;
 
   // Safety net (T5): checkout switched on without a payout account should be
   // impossible (settings creates the subaccount first), but if it happens,
