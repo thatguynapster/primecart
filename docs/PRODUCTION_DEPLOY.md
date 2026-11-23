@@ -2,7 +2,7 @@
 
 **For:** the owner. **Rewritten:** 2026-11-23. Replaces the earlier version (which described a removed Paystack plan and a removed trial cron job).
 
-**Assumes nothing has been deployed to production yet.** If an item already exists, check it against what's written here and tick it. Work top to bottom: later parts depend on earlier ones. Parts 1 to 10 come **before** the merge to `main`, because that merge starts the production build.
+**Assumes none of this version has been deployed to production yet.** An older version answers at `primecart.app` (checked 2026-11-23): it advertises the old pricing and its sign-up page is open, so do part 0 today. If an item already exists, check it against what's written here and tick it. Work top to bottom: later parts depend on earlier ones. Parts 1 to 10 come **before** the merge to `main`, because that merge starts the production build.
 
 **This repository is public.** Never put a key, password, connection string, backup or customer detail in it, in a commit message, or in a screenshot.
 
@@ -10,6 +10,12 @@
 - **[Keep]** = write the value down in your password manager; you need it later.
 
 ---
+
+## 0. Today: close sign-ups on the old site
+
+- [ ] **[Stop]** Clerk → the **production** instance → the sign-up restrictions settings → allow no new public sign-ups (Clerk calls this restricted mode). Existing merchants can still sign in. Then try signing up in a private window: it must be refused.
+- [ ] Atlas → production `Merchant`: check for accounts you don't recognise. Any with a shop get a 14-day trial on the deploy. Contact them, don't just delete them.
+- [ ] Don't delete the old deployment or the Clerk instance: existing merchants use both.
 
 ## 1. Decisions and accounts
 
@@ -184,8 +190,10 @@ Trials start on the production deploy, and the 12 founding months start on the d
   - the schema push and index creation
   - `D-18 backfill summary: {… "onboardedStillMissing":0}`
   - `"foundingIdsConfigured":N,"foundingIdsFound":N` with the same N
-- [ ] If it fails, the old site (or none) stays up. Fix and redeploy: every step is safe to run again.
+- [ ] If it fails, the old site stays up. Fix and redeploy: every step is safe to run again.
 - [ ] **Remove `FOUNDING_MERCHANT_IDS`** once the numbers match. The deal stays on the merchant's record. If you later reset a merchant to standard with the id still set, the next deploy makes them founding again.
+
+- [ ] **Re-open sign-ups** in Clerk (undo part 0), once 12a passes.
 
 ### 12a. Straight after
 
@@ -249,7 +257,7 @@ Only after the split and payout are proven: tell merchants they can switch check
 
 ## 15. If something goes wrong
 
-- **Bad code:** Vercel → Deployments → previous production deployment → **Instant Rollback**. Database changes so far only add fields, so older code keeps working. There is nothing to roll back to on the very first deploy: fix forward.
+- **Bad code:** Vercel → Deployments → previous production deployment → **Instant Rollback**. Database changes so far only add fields, so older code keeps working. For this first deploy, prefer fixing forward: the older version knows nothing about checkout-off orders, subscriptions or delivery fees, and shows the old pricing.
 - **Money problem:** switch checkout off in the affected shop's settings. To stop all online payment, disable the live key in Paystack.
 - **Bad data:** don't restore over the live database. Restore the newest backup into a **new, empty** database, check it, then change `DATABASE_URL` and redeploy. Orders since that backup must be added by hand.
 - **Leaked key:** replace it at the provider first, then in Vercel and GitHub, then redeploy.
