@@ -69,7 +69,7 @@ export function CartSheet({
 
       <SheetContent
         side="right"
-        className="w-full sm:max-w-md"
+        className="data-[side=right]:w-full data-[side=right]:sm:max-w-md"
         style={brandStyle(primaryColor)}
       >
         <SheetHeader>
