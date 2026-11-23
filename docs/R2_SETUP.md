@@ -76,7 +76,7 @@ Cloudflare documents a **partial (CNAME) setup** for domains whose DNS is hosted
 2. A separate domain for images, hosted fully on Cloudflare.
 3. Accept `r2.dev` at launch and revisit when traffic justifies it — the weakest option, but survivable at low volume.
 
-`R2_PUBLIC_URL` is a single environment variable, so switching later is a config change, not a code change.
+`R2_PUBLIC_URL` is one environment variable, but switching is not only configuration: `next.config.ts` allows images from `*.r2.dev` only, and links already saved on products keep the old address.
 
 ---
 

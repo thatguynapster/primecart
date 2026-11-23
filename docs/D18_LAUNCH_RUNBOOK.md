@@ -93,7 +93,7 @@ Record the date in TASKS.md's Phase 18 "Restore drills" table. (The backup → r
 ## 6. Acceptance checklist on dev (brief T13)
 
 Already verified offline (no database needed):
-- [x] Prices, intervals, founding 50% on all intervals, period stacking, pay-during-trial starts at `trialEndsAt`, pay-while-lapsed starts now, month-end clamping, Ghana phone normalisation (`npm test`, 38 checks)
+- [x] Prices, intervals, founding 50% on all intervals, period stacking, pay-during-trial starts at `trialEndsAt`, pay-while-lapsed starts now, month-end clamping, Ghana phone normalisation (`npm test`, 42 checks)
 - [x] `db:backfill-d18` run twice: second run changes nothing; checkout-on merchant stays on; founding end date doesn't move; open Paystack orders untouched (`npm run test:db`)
 - [x] Merchants who signed up 13–24 Aug 2026 (stale Phase 13 `subscriptionStatus`, no D-18 dates) get a fresh 14-day trial, not "Expired" (`npm run test:db`; found on dev, see below)
 - [x] Backup → restore keeps every BSON type and the unique subdomain index; restore refuses a non-empty target (`npm run test:db`)
@@ -132,7 +132,14 @@ Delivery fees (2026-11-23), to check on dev:
 - [ ] Manual order with a fee; Overview revenue leaves delivery out
 - [ ] Shop with no options: checkout is unchanged
 
+First day (2026-11-23), to check on dev:
+- [ ] Onboarding refuses a missing or non-Ghanaian WhatsApp number and keeps what was typed
+- [ ] Overview checklist: steps tick themselves, links land in the right place, hiding sticks
+- [ ] Shop and product links show a preview in WhatsApp
+
 ## 7. Production deploy
+
+> The complete list is now [`PRODUCTION_DEPLOY.md`](./PRODUCTION_DEPLOY.md). Use that one.
 
 1. Tell both merchants (brief §8): checkout is now **off**; shoppers order and they arrange payment on WhatsApp; they can switch it back on in Settings (no payout setup needed, their subaccounts are kept); 14-day trial starts at deploy.
 2. Steps 1–2 done. Merge to the production branch.
