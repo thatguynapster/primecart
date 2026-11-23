@@ -680,7 +680,10 @@ export function SocialsForm({
   const fieldErrors = state.fieldErrors ?? {};
 
   return (
-    <section className="rounded-md border border-nk-neutral-800 bg-nk-surface p-6 sm:p-8">
+    <section
+      id="socials"
+      className="scroll-mt-20 rounded-md border border-nk-neutral-800 bg-nk-surface p-6 sm:p-8"
+    >
       <h2 className="text-base font-medium tracking-tight">Socials</h2>
       <p className="mt-2 text-sm leading-relaxed text-nk-neutral-400">
         Shown as icons in your shop&rsquo;s footer. All optional — only the

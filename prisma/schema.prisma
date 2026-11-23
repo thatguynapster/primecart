@@ -58,6 +58,10 @@ model Merchant {
   // orders without paying and the merchant arranges payment on WhatsApp.
   storefrontPaymentsEnabled Boolean?
 
+  // First-day checklist (src/lib/onboarding/checklist.ts).
+  shopSharedAt  DateTime? // first use of a share or copy button
+  setupHiddenAt DateTime? // the merchant hid the list
+
   // The shop's delivery areas and prices, plus pickup and "agreed on WhatsApp".
   // Empty = shoppers aren't asked and no fee is added (as before).
   deliveryOptions DeliveryOption[]
