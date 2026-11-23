@@ -305,6 +305,21 @@ check((await dst.collection("Merchant").countDocuments()) === (await src.collect
   check((await reports.getAnalyticsKpis(where.id)).revenue === 170, "analytics revenue leaves out delivery fees");
   check((await reports.listCustomers(where.id))[0].spent === 170, "customer spend leaves out delivery fees");
 
+  // First-day checklist and link preview: products with and without photos.
+  const product = (name, extra) => ({ merchantId: oldMerchant, name, isActive: true, variants: [], createdAt: new Date(), updatedAt: new Date(), ...extra });
+  await ops.collection("Product").insertMany([
+    product("photo", { images: ["https://x.r2.dev/a.jpg"], createdAt: new Date(1) }),
+    product("empty", { images: [] }),
+    product("missing", {}),
+    product("archived", { images: ["https://x.r2.dev/b.jpg"], isActive: false }),
+  ]);
+  const photographed = { merchantId: where.id, isActive: true, images: { isEmpty: false } };
+  check((await prisma.product.count({ where: photographed })) === 1, "only active products with a photo count as photographed");
+  const preview = await prisma.product.findFirst({ where: photographed, orderBy: { createdAt: "desc" }, select: { images: true } });
+  check(preview?.images[0] === "https://x.r2.dev/a.jpg", "link preview picks a product that has a photo");
+  const fresh = await prisma.merchant.findUnique({ where });
+  check(fresh.shopSharedAt === null && fresh.setupHiddenAt === null, "existing merchants load with the checklist showing");
+
   await prisma.$disconnect();
   server.close();
 }

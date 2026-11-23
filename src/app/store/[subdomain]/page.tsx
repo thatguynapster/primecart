@@ -3,11 +3,13 @@ import { notFound } from "next/navigation";
 import { getMerchantBySubdomain } from "@/lib/merchant/lookup";
 import { getStorefrontBestSellers } from "@/lib/storefront/bestsellers";
 import {
+  getPreviewPhoto,
   listCategoryTiles,
   listFeaturedProducts,
   listStorefrontCategories,
   listStorefrontProducts,
 } from "@/lib/storefront/catalogue";
+import { shopPreview } from "@/lib/storefront/preview";
 import {
   CategoryTiles,
   Hero,
@@ -22,10 +24,9 @@ export async function generateMetadata({
   const { subdomain } = await params;
   const merchant = await getMerchantBySubdomain(subdomain);
 
-  return {
-    title: merchant?.businessName ?? "Shop",
-    description: merchant?.description ?? undefined,
-  };
+  if (!merchant) return { title: "Shop" };
+
+  return shopPreview(merchant, await getPreviewPhoto(merchant));
 }
 
 /**

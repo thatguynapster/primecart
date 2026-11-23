@@ -8,6 +8,8 @@ import {
   Storefront,
 } from "@phosphor-icons/react/dist/ssr";
 
+import { markShopShared } from "@/app/(app)/dashboard/setup-actions";
+
 /**
  * Top-bar shortcut to the merchant's live storefront: opens it in a new tab,
  * and copies the link so it can be dropped straight into WhatsApp/Instagram
@@ -19,6 +21,8 @@ export function ShopLink({ shopUrl, label }: { shopUrl: string; label: string })
   async function copy() {
     await navigator.clipboard.writeText(shopUrl);
     setCopied(true);
+    // Ticks "Share your shop" on the first-day checklist.
+    void markShopShared().catch(() => {});
     setTimeout(() => setCopied(false), 1800);
   }
 

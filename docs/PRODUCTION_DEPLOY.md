@@ -1,193 +1,273 @@
-# Going live on `primecart.app` — production deploy runbook
+# Production deploy: everything left to do
 
-This is the project owner's checklist — everything here needs access to Vercel, GitHub, MongoDB Atlas, Clerk, Paystack, and cron-job.org dashboards that I don't have. Follow it top to bottom; each section says what to do and how to know it worked. Tell me when you hit a step you want me to verify (I can check most things from the command line once a URL is live) or if any step surfaces something unexpected — several of these have "known behaviours" call-outs from when we set up `dev.primecart.app`, worth reading even if they seem to not apply.
+**For:** the owner. **Rewritten:** 2026-11-23. Replaces the earlier version (which described a removed Paystack plan and a removed trial cron job).
 
-**Where things stand right now**, so you know why each section exists:
+**Assumes nothing has been deployed to production yet.** If an item already exists, check it against what's written here and tick it. Work top to bottom: later parts depend on earlier ones. Parts 1 to 10 come **before** the merge to `main`, because that merge starts the production build.
 
-- `dev.primecart.app` is live and working — wildcard TLS, subdomain routing, Clerk (dev keys), Paystack (test mode) all verified end-to-end.
-- `primecart.app` (the apex/production domain) currently returns `DEPLOYMENT_NOT_FOUND` — no deployment has ever been assigned to it.
-- All the work since Phase 8 (dashboard, storefront redesign, subscriptions — everything `dev.primecart.app` is running) lives on the `feat/v2` branch. `main` is 40 commits behind and does not have any of it.
-- Vercel's Production Branch is (almost certainly) still `main` by default — that's what needs to change first.
+**This repository is public.** Never put a key, password, connection string, backup or customer detail in it, in a commit message, or in a screenshot.
 
----
-
-## 1. Merge `feat/v2` into `main`
-
-This is the actual "go live" trigger — Vercel builds a Production deployment automatically on every push/merge to the Production Branch, and until `main` has this code, `primecart.app` has nothing to serve.
-
-```bash
-git push -u origin feat/v2   # if not already pushed
-```
-
-Then, on GitHub: open a pull request from `feat/v2` into `main`, review it, and merge (a regular merge is fine — no need to squash 40 commits into one, the history is meaningful).
-
-```bash
-gh pr create --base main --head feat/v2 --title "Go live: merge v2 into main" --body "All Phase 8-14 work, ready for production."
-gh pr merge --merge
-```
-
-**Don't push to `main` yet if you're not ready for Vercel to attempt a Production build** — sections 2-6 below set up the environment variables and external services that build needs to succeed against. If you merge before finishing them, the deployment will build but fail at runtime (missing Clerk keys reproduce the exact `MIDDLEWARE_INVOCATION_FAILED` 500 we saw during the Phase 4 apex-domain check). Safe order: do sections 2-6 first, merge last (section 7 says so again).
+- **[Stop]** = don't deploy until this is done.
+- **[Keep]** = write the value down in your password manager; you need it later.
 
 ---
 
-## 2. MongoDB Atlas — production database
+## 1. Decisions and accounts
 
-The dev deployment uses `primecart-dev`; production needs its own separate database so real merchants and orders never mix with test data.
+- [ ] **[Stop] Vercel plan.** Vercel's Hobby plan is for personal, non-commercial use. PrimeCart charges merchants, so check that the account is on a plan that allows it (Pro).
+- [ ] **[Stop] Paystack business account approved for live payments.** The Live toggle must work. Ask Paystack whether they require a published refund policy: **PrimeCart doesn't have one yet** (TASKS 17.3, 17.5).
+- [ ] **[Stop] Paystack split payments / subaccounts allowed** on the live account, for both bank and mobile money payouts.
+- [ ] **Paystack's fee rate** confirmed for your account. PrimeCart pays it out of its 3%, on the whole payment including delivery.
+- [ ] **Resend plan** sends enough: each order can send 2 or 3 emails. Check the daily limit on your plan.
+- [ ] **MongoDB Atlas** tier chosen. A free M0 cluster has no managed backups and small limits. Part 2's backups exist because of that.
+- [ ] **Clerk plan** covers a production instance and the number of merchants you expect.
+- [ ] **Who can log in** to Vercel, GitHub, Atlas, Cloudflare, Clerk, Paystack, Resend, cron-job.org and the domain registrar: two-factor authentication on for each, recovery codes saved.
+- [ ] **Domain `primecart.app`**: auto-renew on.
 
-1. In Atlas, create a new database named `primecart` on the same cluster (or a separate cluster if you want stronger isolation — either works, this app doesn't care).
-2. Confirm network access allows Vercel's traffic. Vercel serverless functions have no fixed IPs, so either:
-    - Allow `0.0.0.0/0` in Atlas's IP Access List (relies on the connection string's credentials for security — this is what `dev.primecart.app` already uses), or
-    - Set up Atlas Private Endpoints (more work, not necessary at this scale).
-3. Build the production connection string — same shape as `.env.example`'s `DATABASE_URL`, pointing at `primecart` instead of `primecart-dev`.
-4. **Before anyone can sign up**, push the schema and restore the manual embedded indexes against this new database:
+## 2. Backups (the production build fails without them)
 
-    ```bash
-    DATABASE_URL="<production connection string>" npm run db:push
-    ```
+- [ ] **[Stop]** Cloudflare → R2 → create bucket `primecart-backups`. **Private**: no public URL, no custom domain.
+- [ ] Bucket → Settings → Object lifecycle rules → delete objects after **60 days** (`/privacy` promises 60).
+- [ ] **[Stop] [Keep]** R2 → Manage API tokens → token with *Object Read & Write*, **scoped to `primecart-backups` only**. Gives `BACKUP_R2_ACCESS_KEY_ID` and `BACKUP_R2_SECRET_ACCESS_KEY`. Don't reuse the image token.
+- [ ] A machine that can reach Atlas (your IP on the allowlist, plus a database user), for restores and for part 11.
 
-    This is not optional — `prisma db push` alone drops the `storefront.subdomain` unique index, and without it two merchants could claim the same subdomain with nothing to stop them.
+## 3. MongoDB Atlas
 
-Keep this connection string handy for section 5.
+- [ ] **[Stop]** Production database `primecart`, separate from dev's `primecart-dev`.
+- [ ] **[Stop] [Keep]** A database user for the app: read and write on `primecart` only. Its connection string must name the database: `mongodb+srv://…/primecart?retryWrites=true&w=majority`.
+- [ ] **[Keep]** A second user, **read-only** on `primecart`, for the GitHub backup (part 8).
+- [ ] **[Stop]** Network access: allow `0.0.0.0/0`. Vercel and GitHub have no fixed addresses. The password is the protection, so make it long and random.
+- [ ] If the database **already holds merchants** (the founding merchants): note how many. The numbers must match after the deploy.
+- [ ] No manual migration needed: the build pushes the schema, creates the indexes and runs the backfills.
 
----
+## 4. Clerk production instance
 
-## 3. Clerk — production instance
+> **If production merchants already exist, use the Clerk instance they signed up with.** A new instance gives everyone a new user id, and they'd lose access to their shops.
 
-Development keys (`pk_test_...`/`sk_test_...`) only work on `localhost`. Production needs its own instance.
+- [ ] **[Stop]** Dashboard → Development → **Create production instance**, cloning the development settings.
+- [ ] Domains → add `primecart.app`. Add the DNS records Clerk lists (usually `clerk`, `accounts`, `clkmail` and two DKIM records) in **Vercel's DNS panel**.
+- [ ] Wait until verified, then **Deploy certificates**.
+- [ ] Sign-in with Google or other providers isn't copied. If used, create your own credentials for it and add them.
+- [ ] Email sign-up requires an email address (PrimeCart can't create a merchant without one).
+- [ ] **[Stop] [Keep]** Copy `pk_live_…` and `sk_live_…`.
 
-1. [Clerk Dashboard](https://dashboard.clerk.com) → click **Development** at the top → **Create production instance**.
-2. When asked, clone your development settings (sign-in/sign-up config, etc.) — note that SSO connections, integrations, and custom paths do **not** copy over and need reconfiguring if you use any.
-3. Go to the **Domains** page in the new production instance and add `primecart.app`. Clerk will show you the DNS records to add (typically a handful of CNAMEs: `clerk`, `accounts`, `clkmail`, plus two DKIM records for email).
-4. Add those DNS records in **Vercel's DNS panel** (not your old registrar — see section 4, DNS already lives at Vercel because of the wildcard domain). DNS propagation can take up to 48 hours, though it's usually much faster.
-5. Once verified, a **Deploy certificates** button appears on the Clerk Dashboard home — click it.
-6. Copy the production **Publishable Key** (`pk_live_...`) and **Secret Key** (`sk_live_...`) from the API Keys page. Keep them for section 5.
+## 5. Email (Resend)
 
-Do this DNS work in the same sitting as anything else touching Vercel's DNS panel (there isn't anything else pending right now, but if there ever is, batching avoids waiting on propagation twice).
+- [ ] **[Stop]** Sending domain `primecart.app` shows **Verified**, with its SPF and DKIM records in Vercel's DNS.
+- [ ] A DMARC record for `primecart.app` (start with `p=none`), so order emails don't land in spam.
+- [ ] **[Keep]** A production API key with sending access only.
+- [ ] **[Stop]** The `SUPPORT_EMAIL` mailbox exists and someone reads it. It is printed on `/privacy` and `/terms`. If it's on `primecart.app`, the domain needs MX records in Vercel's DNS.
+- [ ] Your own inbox for `ADMIN_NOTIFICATION_EMAIL` (server errors and the weekly digest).
 
----
+## 6. Images (Cloudflare R2)
 
-## 4. Confirm the apex + wildcard domains
+- [ ] **[Stop]** Image bucket exists, is publicly readable, and has an *Object Read & Write* token scoped to it.
+- [ ] **Decide: same bucket as dev, or a new one.** Earlier decision: shared. A separate bucket means nothing done on dev can touch live photos. Choose before the first merchant uploads, because moving later means rewriting image links.
+- [ ] **Decide: `r2.dev` or a custom domain.** Cloudflare says `r2.dev` is rate-limited and not for production. It works for a few shops. A custom domain also needs **a code change** (`images.remotePatterns` in `next.config.ts` only allows `*.r2.dev`) and new links for photos already uploaded: tell me first.
 
-These were already added to the Vercel project during the `dev.primecart.app` setup — this section is a **check**, not new work, unless something's missing.
+## 7. Vercel project
 
-In Vercel **Project Settings → Domains**, confirm both are present:
+### 7a. Settings
+- [ ] **[Stop]** Settings → Build and Deployment → **Build Command** is `npm run vercel-build` (or the override is off). Anything else skips the backup, schema and backfills. `npm run build` fails on purpose.
+- [ ] Framework Next.js, root directory = repository root, Node.js 24 (the version the backup workflow uses).
+- [ ] **[Stop]** Settings → Git → **Production Branch** is `main`.
+- [ ] **[Stop]** Deployment Protection is off for Production. Otherwise shoppers get a Vercel login page.
+- [ ] Function region: the one nearest your Atlas cluster.
+- [ ] Deploy failure notifications go to an inbox you read.
 
-- `primecart.app`
-- `*.primecart.app`
+### 7b. Domains
+- [ ] **[Stop]** Nameservers at the registrar are `ns1.vercel-dns.com` and `ns2.vercel-dns.com` (wildcard certificates need this). Before any change, copy every existing DNS record, because they must be added again in Vercel.
+- [ ] **[Stop]** `primecart.app` and `*.primecart.app` are both added, assigned to **Production**, and not redirected.
+- [ ] If `www.primecart.app` is added, it redirects **to** `primecart.app`, never the other way round.
+- [ ] `dev.primecart.app` and `*.dev.primecart.app` still point at `feat/v2`.
+- [ ] Any CAA record allows `letsencrypt.org`.
 
-If either is missing, add it — adding a wildcard domain requires the project's DNS to already be on Vercel's nameservers, which it is (confirmed working, since `*.dev.primecart.app` resolves).
+### 7c. Environment variables, **Production scope only**
 
-If you see a **"Failed to check whether a proxy is in front of this domain"** warning at this stage, that's expected right now — it just means no Production deployment exists yet (`DEPLOYMENT_NOT_FOUND`), which section 7 fixes. Don't chase it further until after the merge.
+Never give Preview a production value or the other way round: Preview builds run schema changes and backfills on whatever `DATABASE_URL` they have.
 
-> **If the warning is still there after the deployment succeeds** (confirmed via `docs/VERCEL_SETUP.md`'s troubleshooting list — deployment exists, DNS is on Vercel's nameservers, no third-party proxy): check whether `primecart.app` has a **redirect to `www.primecart.app`** configured on its Domains row. A redirect there fires on every path, including Vercel's own `.well-known/vercel/probe` health check, so the apex domain can never answer its own probe and the check never clears. Fix: set that domain's redirect to "No Redirect" so it serves content directly (and, if you want `www` to still work, point *its* redirect at the bare apex instead, not the other way around). This is exactly what happened during this project's own production rollout — worth checking first before assuming DNS or the deployment is at fault.
->
-> **If the warning persists specifically on the `*.primecart.app` (wildcard) row, after the apex/www rows both show "Valid Configuration"**: this looks like a separate, narrower issue from the one above. Confirmed live during this project's own rollout — DNS was correct (`ns1`/`ns2.vercel-dns.com`), and an arbitrary test subdomain (`<anything>.primecart.app`) resolved with valid HTTPS and a correct response from the deployed app, meaning the wildcard domain was functionally working end to end despite the dashboard warning. The likely explanation: Vercel's proxy-check needs one concrete hostname to probe, and a wildcard entry has no single literal host to check against. **Pending confirmation from Vercel support** — if you're reading this, check whether that ticket got an answer before assuming it's benign; if support confirmed it's expected/cosmetic for wildcard entries, this note should be updated to say so plainly instead of "pending."
+| Variable | Value | Without it |
+| --- | --- | --- |
+| `NEXT_PUBLIC_ROOT_DOMAIN` | `primecart.app` (no `https://`, no port) | Shops silently show the marketing site |
+| `DATABASE_URL` | Part 3, app user | Build fails |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | `pk_live_…` | Every page fails |
+| `CLERK_SECRET_KEY` | `sk_live_…` | Every page fails |
+| `PAYSTACK_SECRET_KEY` | `sk_live_…` (Paystack, Live mode) | No payments, no webhooks |
+| `CRON_SECRET` | New random string, different from dev's. ASCII only: `node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"` | Scheduled jobs refused; also protects the hashed phone numbers and IPs used for order limits |
+| `R2_ACCOUNT_ID` | Cloudflare account id | No uploads, no backups |
+| `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` | Part 6 image token | No uploads |
+| `R2_BUCKET_NAME` | Image bucket | No uploads |
+| `R2_PUBLIC_URL` | `https://pub-….r2.dev`, no trailing slash | Broken images |
+| `BACKUP_R2_ACCESS_KEY_ID`, `BACKUP_R2_SECRET_ACCESS_KEY` | Part 2 | **Build fails** |
+| `BACKUP_R2_BUCKET` | `primecart-backups` | Defaults to this name |
+| `RESEND_API_KEY` | Part 5 | **Build fails** |
+| `NOTIFICATIONS_FROM_EMAIL` | e.g. `PrimeCart <noreply@primecart.app>` | **Build fails** (also if it's `@resend.dev`) |
+| `ADMIN_NOTIFICATION_EMAIL` | Your inbox | **Build fails** |
+| `SUPPORT_EMAIL` | Part 5 mailbox | Shows `support@primecart.app` |
+| `FOUNDING_MERCHANT_IDS` | Part 9. Comma-separated ids | Founding merchants pay list price |
 
----
+- [ ] **[Stop]** All of the above set and checked for stray spaces and quotes.
+- [ ] **[Stop]** Preview's `DATABASE_URL` is `primecart-dev`, with Clerk and Paystack **test** keys.
+- [ ] **Not set** in Production: `RESEND_BASE_URL`, `BACKUP_ON_BUILD`, `BACKUP_PREFIX`, `BACKUP_SOURCE` (tests and backups only).
+- [ ] Remove if present (no longer used): `PAYSTACK_PLAN_CODE`, `PAYSTACK_PUBLIC_KEY`.
 
-## 5. Environment variables — Production scope
+## 8. Other services to prepare
 
-In Vercel **Project Settings → Environment Variables**, add each of these scoped to **Production** (not Preview — the Preview scope already has `dev.primecart.app`'s values and should stay untouched).
+**Paystack, Live mode**
+- [ ] **[Stop]** Settings → API Keys & Webhooks → Webhook URL: `https://primecart.app/api/webhooks/paystack`. One URL covers orders and subscriptions. Without it no payment is ever confirmed.
+- [ ] Test mode webhook is still `https://dev.primecart.app/api/webhooks/paystack`.
+- [ ] Your own settlement account is correct: subscriptions and the 3% go there.
+- [ ] Business name and support details are what buyers should see on the payment page and receipts.
+- [ ] If merchants already exist: each one's `paystackSubaccountCode` is a **live** subaccount. Test-mode codes fail with live keys; fix with Settings → Payout details.
 
-| Variable                                                                                       | Production value                                                                                                                                                                                                                                                     |
-| ---------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `NEXT_PUBLIC_ROOT_DOMAIN`                                                                      | `primecart.app` — no protocol, no port. **Get this wrong and every storefront silently serves the marketing site instead of a 500, which makes it easy to miss.**                                                                                                    |
-| `DATABASE_URL`                                                                                 | the production connection string from section 2                                                                                                                                                                                                                      |
-| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`                                                            | the `pk_live_...` key from section 3                                                                                                                                                                                                                                 |
-| `CLERK_SECRET_KEY`                                                                             | the `sk_live_...` key from section 3                                                                                                                                                                                                                                 |
-| `PAYSTACK_SECRET_KEY`                                                                          | **live** secret key (Paystack Dashboard → Settings → API Keys & Webhooks, Live mode toggle)                                                                                                                                                                          |
-| `PAYSTACK_PUBLIC_KEY`                                                                          | **live** public key, same place                                                                                                                                                                                                                                      |
-| `PAYSTACK_PLAN_CODE`                                                                           | the live-mode plan code from section 6 below — do section 6 first, then come back and fill this in                                                                                                                                                                   |
-| `CRON_SECRET`                                                                                  | a new long random string, **not** the one `dev.primecart.app` uses (keeps the two environments' cron jobs from being interchangeable/replayable against each other) — generate with `node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"` |
-| `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, `R2_PUBLIC_URL` | same values as `dev.primecart.app` — this is the same bucket, shared across both environments (confirmed decision: staying on the `pub-*.r2.dev` URL for now rather than a custom domain; see `docs/R2_SETUP.md` if you want to revisit that later)                  |
-| `RESEND_API_KEY`, `NOTIFICATIONS_FROM_EMAIL`                                                   | same values as `dev.primecart.app` — the sending domain is already verified                                                                                                                                                                                          |
+**GitHub**
+- [ ] Settings → Secrets and variables → Actions: `DATABASE_URL` (the **read-only** user), `R2_ACCOUNT_ID`, `BACKUP_R2_ACCESS_KEY_ID`, `BACKUP_R2_SECRET_ACCESS_KEY`, and optionally `BACKUP_R2_BUCKET`.
+- [ ] `.github/workflows/db-backup.yml` must be on the **default branch** for the daily schedule to run. Check the default branch is `main`.
+- [ ] `main` is protected: changes by pull request only.
+- [ ] No `.env*` file except `.env.example` has ever been committed. If one has, replace every key in it.
 
----
+## 9. Founding merchants
 
-## 6. Paystack — live plan + webhook
+Trials start on the production deploy, and the 12 founding months start on the deploy that applies the ids. The ids belong to the **production** database.
 
-1. **Create the live-mode subscription plan.** Paystack Dashboard → switch the Test/Live toggle (top-right) to **Live** → **Payments → Plans → Create Plan**. Match the test plan's configuration (GHS 79/month, whatever billing interval it's set to). Copy the resulting `PLN_...` code and go back to fill in `PAYSTACK_PLAN_CODE` in section 5.
-2. **Register the live webhook URL.** Still in Live mode: **Settings → API Keys & Webhooks → Webhook URL**, set it to:
+**If they already exist in production:**
+- [ ] Find the ids. In PowerShell, pointing at production:
+  ```powershell
+  $env:DATABASE_URL = Read-Host "Production connection string"
+  npm run db:list-merchants
+  Remove-Item Env:DATABASE_URL
+  ```
+  Or Atlas → `Merchant`, filter `{ "storefront.subdomain": { "$exists": true } }`.
+- [ ] Check each id against the shop name. A valid id for the wrong shop gives **that** shop the discount.
+- [ ] Set `FOUNDING_MERCHANT_IDS` (Production) **before** the deploy.
 
-    ```
-    https://primecart.app/api/webhooks/paystack
-    ```
+**If they sign up after launch:** do the same after they finish setting up, then redeploy production. A payment they start at list price before that isn't adjusted automatically.
 
-    Nothing in this codebase registers this automatically — it's a one-time dashboard setting, and without it no payment or subscription event ever reaches the app, no matter how correct the webhook route's code is. This exact gap was found and fixed for `dev.primecart.app` during Phase 13 (see `docs/VERCEL_SETUP.md` §9) — same trap applies here in Live mode.
+- [ ] Send each one their private terms: 50% off any interval for 12 months, in return for a monthly 20-minute call, a testimonial and one referral; then list price, with 30 days' notice.
 
----
+## 10. Legal, and telling people
 
-## 7. Merge and deploy
-
-With sections 2-6 done, now do section 1's merge (or push to `main` if it's already merged and just waiting). Vercel will automatically start a Production build.
-
-Watch it in the Vercel dashboard's **Deployments** tab. Once it finishes:
-
-```bash
-curl -sI https://primecart.app/
-```
-
-Expect a `200`, not `DEPLOYMENT_NOT_FOUND` or `MIDDLEWARE_INVOCATION_FAILED`. If you get the latter, it's almost certainly a missing/invalid Clerk production key — that exact symptom (every route, including the marketing site, 500s) is what a bad Clerk key produces, reproduced and confirmed during Phase 4.
-
----
-
-## 8. cron-job.org — two live jobs
-
-Register both jobs pointed at `primecart.app`, using the **Production** `CRON_SECRET` from section 5 (not the `dev.primecart.app` one). Full instructions with a walkthrough of what each field means: `docs/VERCEL_SETUP.md` §8. Quick reference:
-
-| Job                     | URL                                            | Schedule        |
-| ----------------------- | ---------------------------------------------- | --------------- |
-| Expire abandoned orders | `https://primecart.app/api/cron/expire-orders` | every 5 minutes |
-| Expire lapsed trials    | `https://primecart.app/api/cron/expire-trials` | once daily      |
-
-Both need an `Authorization: Bearer <production CRON_SECRET>` header. Use each job's **Test run** button and expect `200` — a `401` means the header doesn't match what's in Vercel's env vars, a `404` means the deployment from section 7 hasn't finished yet.
-
-**Never point one of these at the wrong host** — the URL's domain decides which database's orders/trials get acted on. Keep the `dev.primecart.app` jobs (if you have any) pointed at `dev.primecart.app`, and these new ones at `primecart.app`, and never cross them.
-
----
-
-## 9. Deployment Protection
-
-Vercel **Project Settings → Deployment Protection** — confirm it's **off** for the Production environment, or that `primecart.app`/`*.primecart.app` are explicitly exempt. If it's on and not exempted, every shopper hitting a storefront gets a Vercel login wall instead of the shop.
-
----
-
-## 10. Verification checklist
-
-Work through this in order — each row catches a different category of mistake.
-
-| Check                        | Command / action                                                                                                   | Expected                                                                                                                                                      |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Marketing site               | `curl -sI https://primecart.app/`                                                                                  | `200`                                                                                                                                                         |
-| `www` variant                | `curl -sI https://www.primecart.app/`                                                                              | `200`, marketing site (not treated as a store)                                                                                                                |
-| A real storefront            | visit `<merchant>.primecart.app` for a merchant you create for this test                                           | `200`, that merchant's storefront, correct branding                                                                                                           |
-| Unknown store                | `curl -sI https://nosuchstore.primecart.app/`                                                                      | `404` "Store not found"                                                                                                                                       |
-| Inactive storefront          | deactivate a test merchant, visit their subdomain                                                                  | "store unavailable" page, not a raw 404                                                                                                                       |
-| Wildcard TLS                 | any storefront over `https://`                                                                                     | valid certificate, no browser warning                                                                                                                         |
-| Header leak                  | `curl -sI https://<merchant>.primecart.app/`                                                                       | `x-merchant-id` **absent** from the response — it must never reach the browser                                                                                |
-| Sign-up → onboarding         | create a real account through `primecart.app/sign-up`                                                              | lands in onboarding, creates a merchant, Paystack subaccount succeeds                                                                                         |
-| A real trial subscription    | complete `/billing` with a real card in **live mode** (small real charge — use your own card, refund/cancel after) | subscription activates, `/dashboard/settings` shows the correct billing status                                                                                |
-| Real payment confirms itself | place one real order through a live storefront                                                                     | moves from Pending to Confirmed within seconds, with **no manual intervention** — if it sits at Pending, the webhook URL from section 6 is wrong or not saved |
-| Cron jobs                    | check cron-job.org's execution history a few minutes after setup                                                   | both jobs showing `200`, not `401`/`404`                                                                                                                      |
-
-This mirrors the same checklist that verified `dev.primecart.app` (`docs/VERCEL_SETUP.md`'s own Verification section), plus the two items that only matter once real money is involved: a live subscription charge and a live storefront order.
-
----
-
-## 11. After it's confirmed working
-
-Tell me and I'll:
-
-- Update `docs/TASKS.md` — mark 4.2 (apex/production domain), 13.4 (cron registration), and 13.13 (live plan code) as done, with the date.
-- Remove or archive this file's "outstanding" framing once it's no longer forward-looking.
+- [ ] **[Stop]** `/privacy` and `/terms` reviewed by someone qualified, including the 3% on delivery fees, the hashed IP and phone numbers, and the 60-day backups.
+- [ ] **[Stop]** Refund policy: decide with Paystack's answer (part 1). If needed, tell me and I'll build the page.
+- [ ] Data Protection Commission registration (Act 843) done or under way.
+- [ ] Registered business name and number, if you have one: tell me and I'll add it to the footer.
+- [ ] **[Stop] Existing merchants told before the deploy.** Text to send: *"PrimeCart is now GHS 89/month with everything included, after a 14-day free trial (no payment details needed). Your shop works the same, but online checkout is now optional and starts off: shoppers place orders without paying, you get an email with their WhatsApp number, and you confirm the order and arrange payment yourself. Stock comes off when you confirm or mark it paid. If you'd rather take payment online, switch on 'Take payments on your storefront' in Settings. PrimeCart keeps 3% of each payment, delivery included, with payment fees covered."* Ask them to keep checkout **off** until you've done part 13.
 
 ---
 
-## Known things that will look like bugs but aren't
+## 11. Last checks on dev
 
-Carried over from `docs/VERCEL_SETUP.md`, still true for production:
+- [ ] Every item in `D18_LAUNCH_RUNBOOK.md` §6 is ticked or knowingly skipped. Known open ones:
+  - [ ] A **brand-new sign-up**: WhatsApp number required, trial banner shows, first-day checklist shows, shop opens
+  - [ ] First-day checklist: each step ticks itself; "Hide this list" works; both work on a phone
+  - [ ] Shop link pasted into WhatsApp shows the card; a product link shows its photo
+  - [ ] Hero and banner upload
+  - [ ] Payout form with no existing payout account
+  - [ ] Payment reminder email about 30 minutes after an unpaid checkout-on order, once only
+  - [ ] New-order email has the delivery line
+  - [ ] Error-alert email arrives (needs a real server error; tell me and I'll set up a safe one on dev)
+  - [ ] iPhone Safari: add a product with photos, and place an order
+- [ ] `npm test`, `npm run test:db`, `npx tsc --noEmit` and `npx eslint src` pass on the commit being deployed.
+- [ ] **Restore drill:** take a backup of dev and restore it into a new, empty database:
+  ```
+  node --env-file=.env scripts/backup-db.mjs --out ./backup.ejson.gz
+  node scripts/restore-db.mjs ./backup.ejson.gz "<connection string of an EMPTY database>"
+  ```
+  Compare the counts, delete the file and the test database, and record the date in TASKS.md "Restore drills".
 
-- **Preview deployments never route storefronts.** A preview URL is `*.vercel.app`, doesn't match `NEXT_PUBLIC_ROOT_DOMAIN`, so the proxy serves the marketing site instead. Storefronts only work on Production or local.
-- **Nested subdomains are not stores.** `a.b.primecart.app` is rejected by the proxy on purpose.
-- **Storefront changes can lag up to 5 minutes.** The proxy caches merchant lookups; a just-created or just-renamed storefront may take a few minutes to appear correctly.
-- **`NEXT_PUBLIC_ROOT_DOMAIN` typos fail silently**, not loudly — worth double-checking directly in the Vercel dashboard after saving, not just trusting what you typed.
+## 12. Deploy
+
+- [ ] Pick a quiet hour, with an hour free afterwards.
+- [ ] Open the pull request `feat/v2` → `main`: https://github.com/thatguynapster/primecart/compare/main...feat/v2?expand=1
+- [ ] Merge with a **merge commit** (not squash). Vercel starts the production build.
+- [ ] Read the build log. It must show, in order:
+  - `Backup uploaded: r2://primecart-backups/production/…`
+  - the schema push and index creation
+  - `D-18 backfill summary: {… "onboardedStillMissing":0}`
+  - `"foundingIdsConfigured":N,"foundingIdsFound":N` with the same N
+- [ ] If it fails, the old site (or none) stays up. Fix and redeploy: every step is safe to run again.
+- [ ] **Remove `FOUNDING_MERCHANT_IDS`** once the numbers match. The deal stays on the merchant's record. If you later reset a merchant to standard with the id still set, the next deploy makes them founding again.
+
+### 12a. Straight after
+
+| Check | Expected |
+| --- | --- |
+| `curl -sI https://primecart.app/` | 200. `MIDDLEWARE_INVOCATION_FAILED` means a wrong Clerk key |
+| `curl -sI https://www.primecart.app/` | The marketing site, directly or by redirect |
+| `curl -sI https://nosuchstore.primecart.app/` | 404 |
+| An existing shop, or one you create | Opens, valid certificate, right branding |
+| `curl -sI https://<shop>.primecart.app/` | No `x-merchant-id` header |
+| `https://<shop>.primecart.app/api/checkout-settings` | 200, with `paymentsEnabled` false |
+| `https://<shop>.primecart.app/og` | The preview card |
+| `/privacy` and `/terms` | Open, with the right support address |
+| Sign in as an existing merchant | Their own shop, products and orders |
+| Merchant and order counts in Atlas | Same as before |
+| Billing page | 14-day trial; founding shops show "Founding price until …" |
+
+### 12b. Scheduled jobs (cron-job.org)
+
+All `GET`, with header `Authorization: Bearer <production CRON_SECRET>`, failure emails on. **Test run** each: 200 is right, 401 means the header is wrong, 500 "Not configured" means a missing variable.
+
+| Job | URL | Schedule |
+| --- | --- | --- |
+| Expire orders, payment reminders, email retries | `https://primecart.app/api/cron/expire-orders` | Every 5 minutes |
+| Billing reminders | `https://primecart.app/api/cron/billing-reminders` | Daily, 08:00 GMT |
+| Dormant shops digest | `https://primecart.app/api/cron/dormant-digest` | Weekly |
+
+- [ ] All three created and test-run. **Delete any old `expire-trials` job.**
+- [ ] Dev jobs still point at `dev.primecart.app` with dev's secret. Never mix them.
+
+### 12c. Daily backup
+- [ ] GitHub → Actions → **Database backup** → Run workflow. The log ends with `Backup uploaded: …/scheduled/…`.
+- [ ] Failure emails from GitHub reach you.
+- [ ] Restore this backup into a new, empty database once, and compare counts. Record it in TASKS.md, and repeat monthly.
+
+## 13. Live proof, before any merchant switches checkout on
+
+Use your own test shop with a real payout account.
+
+- [ ] **Sign-up:** new account, onboarding with a WhatsApp number, product with photos from a phone, delivery area set, link shared.
+- [ ] **Checkout off:** place an order. Merchant and buyer emails arrive (not in spam), WhatsApp buttons open the right number, confirming takes the stock.
+- [ ] **Switch checkout on** with the real payout account. Paystack accepts it.
+- [ ] **Split payment:** pay a small real order **with a delivery fee**, for example GH₵10 + GH₵5. The order turns Paid and Confirmed by itself. In Paystack, of GH₵15.00: **GH₵14.55 to the merchant's subaccount, GH₵0.45 to PrimeCart**, and Paystack's fee comes out of PrimeCart's part.
+- [ ] **Payout** reaches the merchant's bank or MoMo, normally next working day, for GH₵14.55.
+- [ ] Repeat once with **mobile money**, if the first was a card.
+- [ ] **Unpaid order:** the reminder arrives after about 30 minutes; "Pay now" works.
+- [ ] **Subscription:** one real monthly payment, GH₵89.00 to PrimeCart's own account with no split, and Billing shows the new date. Founding shop shows GH₵44.50.
+- [ ] **Refund** both test payments from the Paystack dashboard, and mark or cancel the test orders.
+- [ ] Remove or hide the test shop.
+
+Only after the split and payout are proven: tell merchants they can switch checkout on.
+
+## 14. First two weeks
+
+- [ ] Days 1 to 3: check Vercel errors, cron history, Resend failures and Paystack webhook failures daily.
+- [ ] First trial reminder goes out 3 days before the trials end (day 11 after the deploy): check it arrived.
+- [ ] Trials end on day 14: check what an unpaid shop sees (dashboard read-only, shop still taking orders).
+- [ ] Newest file in `primecart-backups` is less than a day old. GitHub stops scheduled jobs after 60 days with no commits.
+- [ ] Orders under **Needs review** handled.
+- [ ] After the first successful deploy, tell me to remove the two one-off backfills from `vercel-build`.
+
+## 15. If something goes wrong
+
+- **Bad code:** Vercel → Deployments → previous production deployment → **Instant Rollback**. Database changes so far only add fields, so older code keeps working. There is nothing to roll back to on the very first deploy: fix forward.
+- **Money problem:** switch checkout off in the affected shop's settings. To stop all online payment, disable the live key in Paystack.
+- **Bad data:** don't restore over the live database. Restore the newest backup into a **new, empty** database, check it, then change `DATABASE_URL` and redeploy. Orders since that backup must be added by hand.
+- **Leaked key:** replace it at the provider first, then in Vercel and GitHub, then redeploy.
+- **Emails stopped:** check Resend. Failed ones retry 5 times over about 17 hours, through the 5-minute job.
+
+## 16. Looks wrong, but isn't
+
+- Shop name, logo and colours can take up to 5 minutes to change everywhere. Payment and delivery settings reach the cart at once.
+- `*.vercel.app` preview links never show shops.
+- `a.b.primecart.app` is never a shop.
+- Vercel may keep a "proxy" warning on the `*.primecart.app` row although shops work. Check a real shop over HTTPS instead.
+- WhatsApp remembers a link's preview. After changing the shop's look, an already shared link may show the old card for a while.
+- `npm audit` shows findings in Prisma's command-line tool. Fixing them needs Prisma 7, which doesn't support MongoDB.
+
+## 17. Known gaps you are launching with
+
+- One order can hold a shop's whole stock for up to 24 hours when checkout is on; the merchant can cancel it.
+- No refunds, deposits or order editing in the dashboard: refunds are done in Paystack by you.
+- WhatsApp-agreed delivery fees on paid-online orders aren't recorded.
+- Buyers get no updates after ordering (shipped, delivered).
+- Shops have no returns policy page of their own (TASKS 17.8).

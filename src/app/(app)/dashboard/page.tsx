@@ -18,7 +18,12 @@ import {
   getSalesSeries,
 } from "@/lib/dashboard/queries";
 import { requireMerchant } from "@/lib/merchant/current";
+import { isLapsed } from "@/lib/billing/state";
+import { checklistSteps, nextStep, showChecklist } from "@/lib/onboarding/checklist";
+import { prisma } from "@/lib/prisma";
 import { listLowStockVariants } from "@/lib/products/queries";
+
+import { SetupChecklist } from "./setup-checklist";
 
 export const metadata = { title: "Overview — PrimeCart" };
 
@@ -29,16 +34,44 @@ function greeting(): string {
   return "Good evening";
 }
 
+/** The first-day checklist, or null once it's finished or hidden. */
+async function loadChecklist(merchant: Awaited<ReturnType<typeof requireMerchant>>) {
+  if (merchant.setupHiddenAt) return null;
+
+  const active = { merchantId: merchant.id, isActive: true };
+  const [products, photographed, newest] = await Promise.all([
+    prisma.product.count({ where: active }),
+    prisma.product.count({ where: { ...active, images: { isEmpty: false } } }),
+    prisma.product.findFirst({
+      where: active,
+      orderBy: { createdAt: "desc" },
+      select: { id: true },
+    }),
+  ]);
+
+  const steps = checklistSteps({
+    products,
+    hasPhoto: photographed > 0,
+    whatsappNumber: merchant.storefront?.whatsappNumber ?? null,
+    deliveryOptions: merchant.deliveryOptions.length,
+    shopSharedAt: merchant.shopSharedAt,
+  });
+  const current = nextStep(steps);
+  if (!current || !showChecklist(steps, merchant, isLapsed(merchant))) return null;
+  return { steps, current, firstProductId: newest?.id ?? null };
+}
+
 export default async function OverviewPage() {
   const merchant = await requireMerchant();
   const storefront = merchant.storefront!;
 
-  const [kpis, series, best, lowStock, feed] = await Promise.all([
+  const [kpis, series, best, lowStock, feed, checklist] = await Promise.all([
     getOverviewKpis(merchant.id),
     getSalesSeries(merchant.id),
     getBestSellers(merchant.id),
     listLowStockVariants(merchant.id),
     getLiveFeed(merchant.id),
+    loadChecklist(merchant),
   ]);
 
   const firstName = merchant.name.split(/\s+/)[0];
@@ -86,6 +119,14 @@ export default async function OverviewPage() {
       />
 
       <div className="flex flex-col gap-4 px-4 pt-5 pb-10 sm:px-6">
+        {checklist && (
+          <SetupChecklist
+            {...checklist}
+            shopUrl={getStorefrontOrigin(storefront.subdomain)}
+            shopName={storefront.businessName}
+          />
+        )}
+
         {/* KPI row */}
         <div className="grid grid-cols-2 gap-3.5 xl:grid-cols-4">
           {cards.map((card) => (

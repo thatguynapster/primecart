@@ -55,7 +55,8 @@ export function DeliveryForm({ options }: { options: DeliveryOption[] }) {
     <form
       action={formAction}
       onReset={(event) => event.preventDefault()}
-      className="space-y-5 rounded-md border border-nk-neutral-800 bg-nk-surface p-6 sm:p-8"
+      id="delivery"
+      className="scroll-mt-20 space-y-5 rounded-md border border-nk-neutral-800 bg-nk-surface p-6 sm:p-8"
     >
       <div>
         <h2 className="text-base font-medium tracking-tight">Delivery</h2>
