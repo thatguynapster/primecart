@@ -83,7 +83,7 @@ export default async function BillingPage({
         shopLabel={`${storefront.subdomain}.${getRootDomain()}`}
       />
 
-      <main className="mx-auto max-w-3xl px-5 py-10 sm:px-8 sm:py-14">
+      <main className="mx-auto w-full max-w-3xl px-5 py-10 sm:px-8 sm:py-14">
         {returnOutcome && (
           <p
             role="status"

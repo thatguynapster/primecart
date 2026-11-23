@@ -90,7 +90,7 @@ export default async function AnalyticsPage() {
           {cards.map((card) => (
             <Card key={card.label} className="flex flex-col gap-1.5 px-4 py-3.5">
               <Kicker className="text-nk-neutral-500">{card.label}</Kicker>
-              <span className="text-2xl leading-none font-medium tracking-tight">
+              <span className="text-lg leading-none font-medium tracking-tight wrap-anywhere sm:text-2xl">
                 {card.value}
               </span>
               <span className="text-xs text-nk-neutral-500">{card.sub}</span>
@@ -98,7 +98,7 @@ export default async function AnalyticsPage() {
           ))}
         </div>
 
-        <div className="grid gap-3.5 lg:grid-cols-5">
+        <div className="grid grid-cols-1 gap-3.5 lg:grid-cols-5">
           <Card className="px-5 py-4.5 lg:col-span-3">
             <div className="mb-4">
               <CardHeading>Total sales</CardHeading>
@@ -132,7 +132,7 @@ export default async function AnalyticsPage() {
           </Card>
         </div>
 
-        <div className="grid gap-3.5 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3.5 lg:grid-cols-2">
           <Card className="px-5 py-4.5">
             <div className="mb-3">
               <CardHeading>Where orders come from</CardHeading>

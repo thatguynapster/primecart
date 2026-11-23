@@ -136,7 +136,7 @@ export default async function ProductsPage({
             }
           />
         ) : (
-          <div className="grid gap-3.5 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2 xl:grid-cols-3">
             {shown.map((product) => {
               const variants = product.variants.filter((v) => v.isActive);
               const units = variants.reduce((sum, v) => sum + v.stock, 0);

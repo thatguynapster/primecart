@@ -62,7 +62,7 @@ export function VariantFields({
 
   return (
     <div className="space-y-5">
-      <div className="grid gap-5 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
         <Field
           label="Option name"
           htmlFor={ids.variantName}
@@ -80,7 +80,7 @@ export function VariantFields({
         </Field>
       </div>
 
-      <div className="grid gap-5 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
         <Field
           label="Price (GHS)"
           htmlFor={ids.price}
@@ -129,7 +129,7 @@ export function VariantFields({
         </Field>
       </div>
 
-      <div className="grid gap-5 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
         {includeStock && (
           <Field
             label="In stock"
@@ -164,7 +164,7 @@ export function VariantFields({
         </Field>
       </div>
 
-      <div className="grid gap-5 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
         <Field label="SKU" htmlFor={ids.sku} hint="Optional">
           <input
             id={ids.sku}

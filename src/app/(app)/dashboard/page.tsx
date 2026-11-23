@@ -91,7 +91,7 @@ export default async function OverviewPage() {
           {cards.map((card) => (
             <Card key={card.label} className="flex flex-col gap-1.5 px-4 py-3.5">
               <Kicker className="text-nk-neutral-500">{card.label}</Kicker>
-              <span className="text-2xl leading-none font-medium tracking-tight">
+              <span className="text-lg leading-none font-medium tracking-tight wrap-anywhere sm:text-2xl">
                 {card.value}
               </span>
               <span
@@ -104,7 +104,7 @@ export default async function OverviewPage() {
         </div>
 
         {/* Chart + live feed */}
-        <div className="grid items-start gap-3.5 lg:grid-cols-[1.6fr_1fr]">
+        <div className="grid grid-cols-1 items-start gap-3.5 lg:grid-cols-[1.6fr_1fr]">
           <Card className="px-5 py-4.5">
             <div className="mb-4.5 flex items-baseline justify-between">
               <CardHeading>Sales, last 14 days</CardHeading>
@@ -173,7 +173,7 @@ export default async function OverviewPage() {
         </div>
 
         {/* Best sellers + low stock */}
-        <div className="grid gap-3.5 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3.5 lg:grid-cols-2">
           <Card className="px-5 py-4.5">
             <div className="mb-3">
               <CardHeading>Best sellers</CardHeading>
