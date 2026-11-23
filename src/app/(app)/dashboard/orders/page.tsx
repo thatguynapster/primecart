@@ -88,7 +88,7 @@ export default async function OrdersPage({
         shopLabel={`${storefront.subdomain}.${getRootDomain()}`}
       />
 
-      <div className="flex flex-col gap-3 px-6 pt-5 pb-10">
+      <div className="flex flex-col gap-3 px-4 pt-5 pb-10 sm:px-6">
         <div className="flex flex-wrap items-center gap-1.5">
           {VIEWS.map((item) => {
             const active = item.key === view;
@@ -132,7 +132,7 @@ export default async function OrdersPage({
           />
         ) : (
           <Card className="overflow-hidden">
-            <div className="max-h-140 overflow-auto">
+            <div className="overflow-auto md:max-h-140">
               <table className="w-full border-collapse text-sm">
                 <thead>
                   <tr>
@@ -147,9 +147,9 @@ export default async function OrdersPage({
                     ].map((heading, index) => (
                       <th
                         key={heading}
-                        className={`sticky top-0 z-10 bg-nk-neutral-900 px-4 py-2.25 text-xs font-medium tracking-widest text-nk-neutral-400 uppercase ${
+                        className={`sticky top-0 z-10 bg-nk-neutral-900 px-3 py-2.25 md:px-4 text-xs font-medium tracking-widest text-nk-neutral-400 uppercase ${
                           index >= 5 ? "text-right" : "text-left"
-                        }`}
+                        } ${[1, 2, 4, 6].includes(index) ? "hidden md:table-cell" : ""}`}
                       >
                         {heading}
                       </th>
@@ -162,7 +162,7 @@ export default async function OrdersPage({
                       key={order.id}
                       className="relative border-t border-nk-neutral-800 transition-colors hover:bg-nk-neutral-800/35"
                     >
-                      <td className="px-4 py-2.75 font-medium text-nk-accent-300">
+                      <td className="px-3 py-2.75 md:px-4 font-medium text-nk-accent-300">
                         {/* `after:absolute after:inset-0` stretches the hit
                             target over the whole row, not just this cell —
                             a table row can't be a Link itself. */}
@@ -172,14 +172,17 @@ export default async function OrdersPage({
                         >
                           {order.orderNumber}
                         </Link>
+                        <span className="block text-xs font-normal text-nk-neutral-400 md:hidden">
+                          {order.customer} · {formatRelativeDate(order.createdAt)}
+                        </span>
                       </td>
-                      <td className="px-4 py-2.75 text-nk-neutral-200">
+                      <td className="hidden px-3 py-2.75 md:px-4 text-nk-neutral-200 md:table-cell">
                         {order.customer}
                       </td>
-                      <td className="px-4 py-2.75 text-nk-neutral-500">
+                      <td className="hidden px-3 py-2.75 md:px-4 text-nk-neutral-500 md:table-cell">
                         {titleCase(order.channel)}
                       </td>
-                      <td className="px-4 py-2.75">
+                      <td className="px-3 py-2.75 md:px-4">
                         {isAwaitingConfirmation(order) ? (
                           <span
                             className="inline-flex rounded-sm border border-nk-accent-700 bg-nk-accent-900 px-2.5 py-0.5 text-xs text-nk-accent-200"
@@ -196,7 +199,7 @@ export default async function OrdersPage({
                         )}
                       </td>
                       <td
-                        className={`px-4 py-2.75 ${
+                        className={`hidden px-3 py-2.75 md:px-4 md:table-cell ${
                           order.paymentStatus === "PAID"
                             ? "text-nk-neutral-300"
                             : "text-nk-accent-300"
@@ -204,11 +207,11 @@ export default async function OrdersPage({
                       >
                         {titleCase(order.paymentStatus)}
                       </td>
-                      <td className="px-4 py-2.75 text-right font-medium">
+                      <td className="px-3 py-2.75 md:px-4 text-right font-medium">
                         {formatGhs(order.total)}
                       </td>
                       <td
-                        className="px-4 py-2.75 text-right text-nk-neutral-600"
+                        className="hidden px-3 py-2.75 md:px-4 text-right text-nk-neutral-600 md:table-cell"
                         title={new Date(order.createdAt).toLocaleString("en-GH")}
                       >
                         {formatRelativeDate(order.createdAt)}

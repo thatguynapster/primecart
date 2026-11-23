@@ -56,7 +56,7 @@ export default async function CustomerDetailPage({
         {!customer.phone && !customer.email && <span>No contact info recorded</span>}
       </div>
 
-      <div className="mt-8 grid grid-cols-3 gap-4">
+      <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
         <Card className="p-4">
           <p className="text-xs text-nk-neutral-500">Orders</p>
           <p className="mt-1 text-xl font-medium tabular-nums">{orders.length}</p>
@@ -94,7 +94,7 @@ export default async function CustomerDetailPage({
                     key={heading}
                     className={`bg-nk-neutral-900 px-4 py-2.25 text-xs font-medium tracking-widest text-nk-neutral-400 uppercase ${
                       index >= 3 ? "text-right" : "text-left"
-                    }`}
+                    } ${index === 2 || index === 4 ? "hidden sm:table-cell" : ""}`}
                   >
                     {heading}
                   </th>
@@ -117,7 +117,7 @@ export default async function CustomerDetailPage({
                   </td>
                   <td className="px-4 py-2.75 text-nk-neutral-300">{titleCase(order.status)}</td>
                   <td
-                    className={`px-4 py-2.75 ${
+                    className={`hidden px-4 py-2.75 sm:table-cell ${
                       order.paymentStatus === "PAID" ? "text-nk-neutral-300" : "text-nk-accent-300"
                     }`}
                   >
@@ -125,7 +125,7 @@ export default async function CustomerDetailPage({
                   </td>
                   <td className="px-4 py-2.75 text-right font-medium">{formatGhs(order.total)}</td>
                   <td
-                    className="px-4 py-2.75 text-right text-nk-neutral-600"
+                    className="hidden px-4 py-2.75 text-right text-nk-neutral-600 sm:table-cell"
                     title={new Date(order.createdAt).toLocaleString("en-GH")}
                   >
                     {formatRelativeDate(order.createdAt)}

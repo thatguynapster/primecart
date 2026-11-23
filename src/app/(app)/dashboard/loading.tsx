@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/dashboard/nocturne/ui";
  */
 export default function DashboardLoading() {
   return (
-    <div className="flex flex-col gap-3.5 px-6 pt-19 pb-10">
+    <div className="flex flex-col gap-3.5 px-4 pt-19 pb-10 sm:px-6">
       <div className="grid gap-3.5 sm:grid-cols-2 xl:grid-cols-4">
         <Skeleton className="h-24" />
         <Skeleton className="h-24" />

@@ -23,17 +23,18 @@ export function ShopLink({ shopUrl, label }: { shopUrl: string; label: string })
   }
 
   return (
-    <div className="hidden items-center gap-0.5 rounded-md border border-nk-neutral-800 bg-nk-surface pr-1 pl-2 md:flex">
+    <div className="flex flex-none items-center gap-0.5 rounded-md border border-nk-neutral-800 bg-nk-surface px-1 md:pl-2">
       <a
         href={shopUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="flex items-center gap-1.5 py-1.5 text-xs text-nk-neutral-300 hover:text-nk-text"
+        aria-label="Open your shop in a new tab"
+        className="flex items-center gap-1.5 p-1.5 text-xs md:px-0 text-nk-neutral-300 hover:text-nk-text"
         title="Open your shop in a new tab"
       >
         <Storefront size={14} className="flex-none opacity-60" />
-        <span className="max-w-32.5 truncate">{label}</span>
-        <ArrowSquareOut size={12} className="flex-none opacity-50" />
+        <span className="hidden max-w-32.5 truncate md:inline">{label}</span>
+        <ArrowSquareOut size={12} className="hidden flex-none opacity-50 md:inline" />
       </a>
 
       <button

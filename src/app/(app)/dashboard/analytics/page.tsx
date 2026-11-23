@@ -85,8 +85,8 @@ export default async function AnalyticsPage() {
         shopLabel={`${storefront.subdomain}.${getRootDomain()}`}
       />
 
-      <div className="flex flex-col gap-3.5 px-6 pt-5 pb-10">
-        <div className="grid gap-3.5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+      <div className="flex flex-col gap-3.5 px-4 pt-5 pb-10 sm:px-6">
+        <div className="grid grid-cols-2 gap-3.5 xl:grid-cols-3 2xl:grid-cols-6">
           {cards.map((card) => (
             <Card key={card.label} className="flex flex-col gap-1.5 px-4 py-3.5">
               <Kicker className="text-nk-neutral-500">{card.label}</Kicker>
@@ -99,7 +99,7 @@ export default async function AnalyticsPage() {
         </div>
 
         <div className="grid gap-3.5 lg:grid-cols-5">
-          <Card className="px-5 py-4.5 col-span-3">
+          <Card className="px-5 py-4.5 lg:col-span-3">
             <div className="mb-4">
               <CardHeading>Total sales</CardHeading>
             </div>
@@ -107,7 +107,7 @@ export default async function AnalyticsPage() {
             <SalesReport daily={daily} weekly={weekly} monthly={monthly} />
           </Card>
 
-          <Card className="px-5 py-4.5 col-span-2">
+          <Card className="px-5 py-4.5 lg:col-span-2">
             <div className="mb-3">
               <CardHeading>Best selling products</CardHeading>
             </div>

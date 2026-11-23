@@ -28,7 +28,7 @@ export default async function CustomersPage() {
         shopLabel={`${storefront.subdomain}.${getRootDomain()}`}
       />
 
-      <div className="px-6 pt-5 pb-10">
+      <div className="px-4 pt-5 pb-10 sm:px-6">
         {customers.length === 0 ? (
           <EmptyState
             title="No customers yet."
@@ -41,15 +41,15 @@ export default async function CustomersPage() {
                 <tr>
                   {[
                     { label: "Customer", align: "left" },
-                    { label: "Contact", align: "left" },
-                    { label: "Orders", align: "right" },
+                    { label: "Contact", align: "left", wide: true },
+                    { label: "Orders", align: "right", wide: true },
                     { label: "Spent", align: "right" },
-                    { label: "Last order", align: "right" },
+                    { label: "Last order", align: "right", wide: true },
                   ].map((column) => (
                     <th
                       key={column.label}
                       className={`bg-nk-neutral-900 px-4 py-2.25 text-xs font-medium tracking-widest text-nk-neutral-400 uppercase ${column.align === "right" ? "text-right" : "text-left"
-                        }`}
+                        } ${"wide" in column ? "hidden md:table-cell" : ""}`}
                     >
                       {column.label}
                     </th>
@@ -65,23 +65,29 @@ export default async function CustomersPage() {
                     <td className="px-4 py-2.5">
                       <div className="flex items-center gap-2.5">
                         <Avatar initials={initialsOf(customer.name)} />
-                        <Link
-                          href={`/dashboard/customers/${customer.id}`}
-                          className="text-nk-accent-300 after:absolute after:inset-0 hover:underline"
-                        >
-                          {customer.name}
-                        </Link>
+                        <div className="min-w-0">
+                          <Link
+                            href={`/dashboard/customers/${customer.id}`}
+                            className="text-nk-accent-300 after:absolute after:inset-0 hover:underline"
+                          >
+                            {customer.name}
+                          </Link>
+                          <span className="block text-xs break-all text-nk-neutral-500 md:hidden">
+                            {customer.contact} · {customer.orders}{" "}
+                            {customer.orders === 1 ? "order" : "orders"}
+                          </span>
+                        </div>
                       </div>
                     </td>
-                    <td className="px-4 py-2.5 text-nk-neutral-500">
+                    <td className="hidden px-4 py-2.5 text-nk-neutral-500 md:table-cell">
                       {customer.contact}
                     </td>
-                    <td className="px-4 py-2.5 text-right">{customer.orders}</td>
-                    <td className="px-4 py-2.5 text-right font-medium">
+                    <td className="hidden px-4 py-2.5 text-right md:table-cell">{customer.orders}</td>
+                    <td className="px-4 py-2.5 text-right font-medium whitespace-nowrap">
                       {formatGhs(customer.spent)}
                     </td>
                     <td
-                      className="px-4 py-2.5 text-right text-nk-neutral-600"
+                      className="hidden px-4 py-2.5 text-right text-nk-neutral-600 md:table-cell"
                       title={
                         customer.lastOrder
                           ? new Date(customer.lastOrder).toLocaleString("en-GH")

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 
 import Link from "next/link";
 
+import { MobileNav } from "@/components/dashboard/nocturne/mobile-nav";
 import { SideRail } from "@/components/dashboard/nocturne/side-rail";
 import { getBillingState, type BillingState } from "@/lib/billing/state";
 import { countOrdersNeedingAction } from "@/lib/dashboard/queries";
@@ -39,10 +40,13 @@ export default async function DashboardLayout({
     <div className="font-nk scheme-dark flex min-h-full bg-nk-bg text-nk-text">
       <SideRail ordersNeedingAction={ordersNeedingAction} />
 
-      <main className="flex min-w-0 flex-1 flex-col">
+      {/* Bottom padding on phones clears the fixed tab bar. */}
+      <main className="flex min-w-0 flex-1 flex-col pb-20 md:pb-0">
         <BillingBanner billing={billing} />
         {children}
       </main>
+
+      <MobileNav ordersNeedingAction={ordersNeedingAction} />
     </div>
   );
 }
@@ -76,7 +80,7 @@ function BillingBanner({ billing }: { billing: BillingState }) {
 
   return (
     <div
-      className={`flex flex-wrap items-center gap-x-3 gap-y-1 border-b px-6 py-2.5 text-sm ${
+      className={`flex flex-wrap items-center gap-x-3 gap-y-1 border-b px-4 py-2.5 sm:px-6 text-sm ${
         urgent
           ? "border-nk-accent-700 bg-nk-accent-900 text-nk-accent-100"
           : "border-nk-neutral-800 bg-nk-neutral-900 text-nk-neutral-300"

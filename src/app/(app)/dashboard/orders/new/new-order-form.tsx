@@ -92,7 +92,12 @@ export function NewOrderForm({ products }: { products: PickableProduct[] }) {
   }, 0);
 
   return (
-    <form action={formAction} className="space-y-8">
+    // React resets a form after its action; keep what was typed on an error.
+    <form
+      action={formAction}
+      onReset={(event) => event.preventDefault()}
+      className="space-y-8"
+    >
       <FormError message={state.error} />
 
       <div className="space-y-4 rounded-md border border-nk-neutral-800 bg-nk-surface p-6 sm:p-8">
@@ -115,7 +120,7 @@ export function NewOrderForm({ products }: { products: PickableProduct[] }) {
               return (
                 <div key={row.key} className="space-y-2">
                 <div className="flex flex-wrap items-end gap-3">
-                  <div className="min-w-48 flex-1">
+                  <div className="w-full flex-1 sm:w-auto sm:min-w-48">
                     <label className="block text-xs text-nk-neutral-400">
                       Product
                     </label>
