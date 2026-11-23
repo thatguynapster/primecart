@@ -1,10 +1,9 @@
 import { ImageResponse } from "next/og";
 import sharp from "sharp";
 
-import { getRootDomain } from "@/lib/domain";
 import { getMerchantBySubdomain } from "@/lib/merchant/lookup";
 import { onBrandColor, safeBrandColor } from "@/lib/storefront/brand";
-import { getPreviewPhoto, getStorefrontProduct } from "@/lib/storefront/catalogue";
+import { getStorefrontProduct } from "@/lib/storefront/catalogue";
 
 /**
  * The shop's link-preview card. A route handler, not `opengraph-image.tsx`:
@@ -27,23 +26,13 @@ async function download(url: string): Promise<Buffer | null> {
   }
 }
 
-/** Resized, and converted because the card renderer can't read WebP. */
-async function embed(url: string | null, kind: "photo" | "logo"): Promise<string | null> {
+/** Converted because the card renderer can't read WebP. PNG keeps transparency. */
+async function embedLogo(url: string | null): Promise<string | null> {
   const bytes = url ? await download(url) : null;
   if (!bytes) return null;
   try {
-    const image = sharp(bytes);
-    if (kind === "logo") {
-      // PNG keeps transparency, so the card's colour shows behind the logo.
-      const png = await image.resize(192, 192, { fit: "inside" }).png().toBuffer();
-      return `data:image/png;base64,${png.toString("base64")}`;
-    }
-    const jpeg = await image
-      .resize(480, 630, { fit: "cover" })
-      .flatten({ background: "#ffffff" })
-      .jpeg({ quality: 80 })
-      .toBuffer();
-    return `data:image/jpeg;base64,${jpeg.toString("base64")}`;
+    const png = await sharp(bytes).resize(440, 440, { fit: "inside" }).png().toBuffer();
+    return `data:image/png;base64,${png.toString("base64")}`;
   } catch {
     return null;
   }
@@ -96,53 +85,61 @@ export async function GET(
     // Otherwise the shop's card.
   }
 
-  const photoUrl = await getPreviewPhoto(merchant);
-  const [photo, logo] = await Promise.all([
-    embed(photoUrl, "photo"),
-    embed(merchant.logoUrl, "logo"),
-  ]);
-
+  const logo = await embedLogo(merchant.logoUrl);
   const background = safeBrandColor(merchant.primaryColor);
   const color = onBrandColor(background);
   const name = shorten(merchant.businessName, 48);
 
+  // Everything sits in the middle 630px: WhatsApp often crops the card to its
+  // centre square. Name and logo only, since the app shows the description and
+  // address as text beside it.
   const card = new ImageResponse(
     (
-      <div style={{ width: "100%", height: "100%", display: "flex", background, color }}>
+      <div
+        style={{
+          width: "100%",
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          background,
+          color,
+        }}
+      >
+        {/* On white, like the shop's header: a logo in the shop's own colour
+            would vanish against the card. Without one, the shop's initial. */}
         <div
           style={{
-            flex: 1,
+            width: 300,
+            height: 300,
             display: "flex",
-            flexDirection: "column",
+            alignItems: "center",
             justifyContent: "center",
-            padding: 72,
+            background: "#ffffff",
+            color: "#111111",
+            borderRadius: 56,
+            fontSize: 170,
           }}
         >
-          {logo && (
+          {logo ? (
             // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
-            <img
-              src={logo}
-              width={96}
-              height={96}
-              style={{ borderRadius: 20, objectFit: "contain", marginBottom: 32 }}
-            />
+            <img src={logo} width={220} height={220} style={{ objectFit: "contain" }} />
+          ) : (
+            merchant.businessName.charAt(0).toUpperCase()
           )}
-          <div style={{ fontSize: name.length > 22 ? 60 : 80, fontWeight: 700, lineHeight: 1.1 }}>
-            {name}
-          </div>
-          {merchant.description && (
-            <div style={{ fontSize: 32, marginTop: 24, opacity: 0.85, lineHeight: 1.35 }}>
-              {shorten(merchant.description, 90)}
-            </div>
-          )}
-          <div style={{ fontSize: 28, marginTop: 36, opacity: 0.75 }}>
-            {`${merchant.subdomain}.${getRootDomain()}`}
-          </div>
         </div>
-        {photo && (
-          // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
-          <img src={photo} width={480} height={630} style={{ objectFit: "cover" }} />
-        )}
+        <div
+          style={{
+            maxWidth: 540,
+            marginTop: 40,
+            fontSize: name.length > 26 ? 44 : name.length > 14 ? 58 : 76,
+            lineHeight: 1.15,
+            textAlign: "center",
+          }}
+        >
+          {name}
+        </div>
       </div>
     ),
     {
@@ -151,8 +148,7 @@ export async function GET(
     }
   );
 
-  // JPEG, because a PNG holding a photo can pass WhatsApp's size limit (about
-  // 600 KB) and lose the preview. Measured: 641 KB as PNG, 57 KB as JPEG.
+  // JPEG keeps it far below the size WhatsApp skips (about 600 KB).
   const png = Buffer.from(await card.arrayBuffer());
   const jpeg = await sharp(png).jpeg({ quality: 82 }).toBuffer();
 

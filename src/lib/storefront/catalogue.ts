@@ -80,22 +80,6 @@ export function toPublicProduct(product: Product): PublicProduct {
   };
 }
 
-/**
- * The photo for the shop's link preview: its hero image, or else its newest
- * product with a photo. Cached per request.
- */
-export const getPreviewPhoto = cache(
-  async (merchant: { id: string; heroImageUrl: string | null }): Promise<string | null> => {
-    if (merchant.heroImageUrl) return merchant.heroImageUrl;
-    const product = await prisma.product.findFirst({
-      where: { merchantId: merchant.id, isActive: true, images: { isEmpty: false } },
-      orderBy: { createdAt: "desc" },
-      select: { images: true },
-    });
-    return product?.images[0] ?? null;
-  }
-);
-
 /** A variant a shopper may actually buy. */
 export function sellableVariants(product: Product): ProductVariant[] {
   return product.variants.filter((variant) => variant.isActive);

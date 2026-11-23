@@ -11,7 +11,7 @@ import type { StorefrontMerchant } from "@/lib/merchant/lookup";
  */
 
 /** Bump when the card's design changes, so cached cards are replaced. */
-const DESIGN = 2;
+const DESIGN = 4;
 
 function version(...parts: (string | null)[]): string {
   return createHash("sha256")
@@ -30,7 +30,7 @@ export function productPreviewUrl(
 }
 
 /** Link-preview tags for the shop's own pages, using the generated card. */
-export function shopPreview(merchant: StorefrontMerchant, photoUrl: string | null): Metadata {
+export function shopPreview(merchant: StorefrontMerchant): Metadata {
   const origin = getStorefrontOrigin(merchant.subdomain);
   const title = merchant.businessName;
   const description = merchant.description ?? `Shop ${merchant.businessName} online.`;
@@ -39,10 +39,8 @@ export function shopPreview(merchant: StorefrontMerchant, photoUrl: string | nul
   // cached for long.
   const image = `${origin}/og?v=${version(
     merchant.businessName,
-    merchant.description,
     merchant.primaryColor,
-    merchant.logoUrl,
-    photoUrl
+    merchant.logoUrl
   )}`;
 
   return {
