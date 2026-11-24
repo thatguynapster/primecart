@@ -254,7 +254,7 @@ async function confirmPaidOrder(reference: string, amountPesewas?: number | stri
         merchantEmail: email,
         orderId: order.id,
         orderNumber: order.orderNumber,
-        reason: `it had already been paid, so this looks like a duplicate payment (Paystack reference ${reference}). Please contact PrimeCart so the extra payment can be refunded to the buyer.`,
+        reason: `it had already been paid, so this looks like a duplicate payment (Paystack reference ${reference}). Check your payouts, and refund the extra payment to the buyer.`,
       });
     }
     return;

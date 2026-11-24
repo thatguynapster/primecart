@@ -9,7 +9,8 @@ export const metadata = {
 
 /**
  * DRAFT. Needs review by someone qualified before it's relied on
- * (docs/TASKS.md 18.14). Refunds to shoppers are the merchant's (D-23). No
+ * (docs/TASKS.md 18.14). Refunds and disputes are between
+ * merchant and shopper only; PrimeCart takes no part (D-23). No
  * founding terms here, by design: those are agreed privately.
  */
 export default function TermsPage() {
@@ -92,9 +93,10 @@ export default function TermsPage() {
       <h2>9. Returns, refunds and disputes</h2>
       <ul>
         <li><strong>Your returns and refunds policy is your own.</strong> It must follow the law, and you must tell shoppers about it clearly and honour it.</li>
-        <li>You deal with shoppers&rsquo; complaints and pay any refund you owe.</li>
-        <li>If an order was paid online, ask us to send the refund through Paystack. You must cover the amount refunded. Fees on the original payment may not be returned.</li>
-        <li>If a shopper disputes an online payment with their bank or provider, you must send us proof of the order and delivery when we ask. If the dispute is lost, you owe us the disputed amount and any charge for it. We may take it from your future payouts where Paystack allows, or ask you to pay it.</li>
+        <li><strong>You handle every complaint, return, refund and dispute with the shopper yourself, from start to finish</strong>, and pay any refund straight to the shopper. This applies however they paid, including through online checkout.</li>
+        <li><strong>PrimeCart takes no part in it.</strong> We don&rsquo;t join the conversation, mediate, decide who is right, hold money or pay refunds. We only give the shopper a way to reach you about their order.</li>
+        <li>A shopper&rsquo;s bank, mobile money provider or Paystack may reverse a payment under its own rules. That is their decision, not ours, and a reversed payment is your cost.</li>
+        <li>The 3% fee isn&rsquo;t returned when you refund a shopper.</li>
       </ul>
 
       <h2>10. Your responsibilities</h2>
@@ -132,7 +134,8 @@ export default function TermsPage() {
         <li>An order without online payment isn&rsquo;t final until the shop confirms it.</li>
         <li>An order waiting for online payment is held for 24 hours. After that, the items go back on sale.</li>
         <li>Give correct contact and delivery details. You agree that the shop may contact you on WhatsApp about your order.</li>
-        <li>If a shop won&rsquo;t help, or you think it is acting unlawfully, email us. We can&rsquo;t decide every dispute, but we look into reports and can act under part 11. Your legal rights as a consumer aren&rsquo;t affected.</li>
+        <li><strong>If something is wrong, take it up with the shop.</strong> Your order page lets you message the shop when it has given a WhatsApp number. The shop settles it with you directly. PrimeCart isn&rsquo;t part of that conversation, doesn&rsquo;t decide the outcome and doesn&rsquo;t pay refunds.</li>
+        <li>Your legal rights as a consumer, and your rights with your bank or mobile money provider, aren&rsquo;t affected.</li>
       </ul>
 
       <h2>14. The service</h2>
@@ -154,14 +157,14 @@ export default function TermsPage() {
       <p>
         You can stop at any time by not renewing. To close your shop and have
         your data deleted, email us. We may keep records the law requires.
-        Money already owed, open orders and refunds still have to be settled.
+        You must still settle what you owe us, and your open orders and refunds with shoppers.
         Parts 9, 12, 15 and 17 continue to apply.
       </p>
 
-      <h2>17. Changes, law and disputes</h2>
+      <h2>17. Changes, law and disagreements with us</h2>
       <ul>
         <li>If we change these terms in a way that matters, we&rsquo;ll email merchants at least 14 days before. If you don&rsquo;t agree, you can stop using PrimeCart before then.</li>
-        <li>If we disagree about something, we&rsquo;ll both try to settle it by talking first. These terms are governed by the laws of Ghana, and its courts can decide disputes.</li>
+        <li>If you and PrimeCart disagree about something, we&rsquo;ll both try to settle it by talking first. These terms are governed by the laws of Ghana, and its courts can decide disputes.</li>
         <li>If one part can&rsquo;t be enforced, the rest still applies.</li>
       </ul>
 
