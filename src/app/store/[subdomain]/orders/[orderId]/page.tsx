@@ -86,6 +86,14 @@ export default async function OrderStatusPage({
         `Hi ${merchant.businessName}, I just placed order ${order.orderNumber} on your shop.`
       )
     : null;
+  // The buyer's way to raise a problem. It goes to the shop only: PrimeCart
+  // takes no part in disputes (D-23).
+  const problemLink = merchant.whatsappNumber
+    ? waMeLink(
+        merchant.whatsappNumber,
+        `Hi ${merchant.businessName}, I have a problem with my order ${order.orderNumber}.`
+      )
+    : null;
 
   return (
     <div className="mx-auto max-w-lg px-4 py-8 sm:px-6 sm:py-12">
@@ -264,6 +272,20 @@ export default async function OrderStatusPage({
             )}
           </p>
         </div>
+      )}
+
+      {problemLink && (
+        <p className="mt-6 text-[13.5px] text-neutral-600">
+          Problem with this order?{" "}
+          <a
+            href={problemLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-neutral-900 underline underline-offset-4"
+          >
+            Tell {merchant.businessName} on WhatsApp
+          </a>
+        </p>
       )}
 
       <Link
