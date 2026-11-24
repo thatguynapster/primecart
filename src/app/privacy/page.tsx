@@ -18,11 +18,7 @@ export default function PrivacyPage() {
   return (
     <LegalPage title="Privacy Policy" updated="24 November 2026">
       <p>
-        PrimeCart is software for shops in Ghana: an online storefront, plus
-        tools for stock, orders, profit and customer records. This policy
-        explains what personal data we handle, why, and what you can ask us to
-        do about it. It follows Ghana&rsquo;s Data Protection Act, 2012 (Act
-        843).
+        PrimeCart is software for shops in Ghana: a tool for inventory, orders, profit and customer records, plus an online storefront. This policy explains what personal data we handle, why, and what you can ask us to do about it. It follows Ghana&rsquo;s Data Protection Act, 2012 (Act 843).
       </p>
 
       <h2>1. Who this covers</h2>
@@ -47,10 +43,7 @@ export default function PrivacyPage() {
         <li>Your subscription payments: amount, date, period and payment method. Paystack handles your card or mobile money details.</li>
       </ul>
       <p>
-        Your shop name, description, photos, WhatsApp number, social links and
-        delivery fees are <strong>public</strong>, because shoppers need them.
-        Photos you upload are resized in your browser, which also removes
-        location and camera details from them.
+        Your shop name, description, photos, WhatsApp number, social links and delivery fees are <strong>public</strong>, because shoppers need them. Photos you upload are resized in your browser, which also removes location and camera details from them.
       </p>
 
       <h2>4. What we collect from shoppers</h2>
@@ -61,13 +54,10 @@ export default function PrivacyPage() {
         <li>Whether and how you paid. If you pay online, Paystack takes the payment: we never see your card number or mobile money PIN.</li>
       </ul>
       <p>
-        You don&rsquo;t need an account. Your order page can be opened by
-        anyone who has its link, so share that link with care.
+        You don&rsquo;t need an account. Your order page can be opened by anyone who has its link, so share that link with care.
       </p>
       <p>
-        <strong>The shop may contact you on WhatsApp</strong> about your order,
-        to confirm it and to arrange payment and delivery. You agree to this
-        when you place an order.
+        <strong>The shop may contact you on WhatsApp</strong> about your order, to confirm it and to arrange payment and delivery. You agree to this when you place an order.
       </p>
 
       <h2>5. What we collect automatically</h2>
@@ -86,10 +76,7 @@ export default function PrivacyPage() {
         <li><strong>To meet legal duties:</strong> such as tax and accounting records, or a lawful request.</li>
       </ul>
       <p>
-        We don&rsquo;t sell personal data. We don&rsquo;t use shoppers&rsquo;
-        details for our own marketing, and we don&rsquo;t make decisions about
-        you by automated means alone, other than limiting how quickly orders
-        can be placed.
+        We don&rsquo;t sell personal data. We don&rsquo;t use shoppers&rsquo; details for our own marketing, and we don&rsquo;t make decisions about you by automated means alone, other than limiting how quickly orders can be placed.
       </p>
 
       <h2>7. Who we share it with</h2>
@@ -104,17 +91,12 @@ export default function PrivacyPage() {
         <li><strong>Vercel</strong>: hosting.</li>
       </ul>
       <p>
-        WhatsApp buttons open WhatsApp with a message already written. If you
-        send it, WhatsApp&rsquo;s own privacy policy applies. We may also share
-        data where the law requires it, to protect people from harm or fraud,
-        or with a buyer if PrimeCart is sold, under this same policy.
+        WhatsApp buttons open WhatsApp with a message already written. If you send it, WhatsApp&rsquo;s own privacy policy applies. We may also share data where the law requires it, to protect people from harm or fraud, under this same policy.
       </p>
 
       <h2>8. Data outside Ghana</h2>
       <p>
-        Some of these companies store data in other countries. We use
-        established providers and their data-protection terms, and share only
-        what each one needs.
+        Some of these companies store data in other countries. We use established providers and their data-protection terms, and share only what each one needs.
       </p>
 
       <h2>9. How long we keep it</h2>
@@ -128,11 +110,7 @@ export default function PrivacyPage() {
 
       <h2>10. How we protect it</h2>
       <p>
-        Connections are encrypted, access to our systems is limited, each
-        shop&rsquo;s data is kept separate from other shops&rsquo;, and backups
-        are private. No service is perfectly secure. If a breach puts your
-        data at risk, we&rsquo;ll tell the Data Protection Commission and the
-        people affected as soon as we reasonably can.
+        Connections are encrypted, access to our systems is limited, each shop&rsquo;s data is kept separate from other shops&rsquo;, and backups are private. No service is perfectly secure. If a breach puts your data at risk, we&rsquo;ll tell the Data Protection Commission and the people affected as soon as we reasonably can.
       </p>
 
       <h2>11. Your rights</h2>
@@ -143,30 +121,22 @@ export default function PrivacyPage() {
         <li>stop or limit how it&rsquo;s used, or withdraw a consent you gave.</li>
       </ul>
       <p>
-        Email <a href={`mailto:${email}`}>{email}</a>. We may need to confirm
-        who you are, and may keep what the law requires. If your request is
-        about an order, we may pass it to the shop, and you can also ask the
-        shop directly. If you&rsquo;re not happy with our answer, you can
-        complain to Ghana&rsquo;s Data Protection Commission.
+        Email <a href={`mailto:${email}`}>{email}</a>. We may need to confirm who you are, and may keep what the law requires. If your request is about an order, we may pass it to the shop, and you can also ask the shop directly. If you&rsquo;re not happy with our answer, you can complain to Ghana&rsquo;s Data Protection Commission.
       </p>
 
       <h2>12. Children</h2>
       <p>
-        PrimeCart accounts are for people aged 18 and over. We don&rsquo;t
-        knowingly collect children&rsquo;s data. If you think we have, email
-        us.
+        PrimeCart accounts are for people aged 18 and over. We don&rsquo;t knowingly collect children&rsquo;s data. If you think we have, email us.
       </p>
 
       <h2>13. Changes</h2>
       <p>
-        If we change this policy in a way that matters, we&rsquo;ll update the
-        date above and email merchants before it applies.
+        If we change this policy in a way that matters, we&rsquo;ll update the date above and email merchants before it applies.
       </p>
 
       <h2>Contact</h2>
       <p>
-        PrimeCart, Accra, Ghana. <a href={`mailto:${email}`}>{email}</a>. See
-        also our <Link href="/terms">Terms of Service</Link>.
+        PrimeCart, Accra, Ghana. <a href={`mailto:${email}`}>{email}</a>. See also our <Link href="/terms">Terms of Service</Link>.
       </p>
     </LegalPage>
   );
