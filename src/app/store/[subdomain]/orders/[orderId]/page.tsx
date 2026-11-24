@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { formatDeadline, formatGhs, isPast, timeLeftUntil } from "@/lib/format";
+import { isShopOffline } from "@/lib/billing/state";
 import { getMerchantBySubdomain } from "@/lib/merchant/lookup";
 import { deliveryAmountText, deliveryLine } from "@/lib/orders/delivery";
 import { waMeLink } from "@/lib/phone";
@@ -288,12 +289,14 @@ export default async function OrderStatusPage({
         </p>
       )}
 
-      <Link
-        href="/"
-        className="mt-8 inline-block text-[13.5px] text-neutral-500 underline underline-offset-4 hover:text-neutral-900"
-      >
-        ← Back to the shop
-      </Link>
+      {!isShopOffline(merchant) && (
+        <Link
+          href="/"
+          className="mt-8 inline-block text-[13.5px] text-neutral-500 underline underline-offset-4 hover:text-neutral-900"
+        >
+          ← Back to the shop
+        </Link>
+      )}
     </div>
   );
 }
