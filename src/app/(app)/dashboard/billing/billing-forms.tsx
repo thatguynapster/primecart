@@ -141,7 +141,8 @@ export function PlanPicker({
       <PayButton amount={formatGhs(chosen.pesewas / 100)} />
       <p className="text-xs text-nk-neutral-500">
         Pay by MoMo or card through Paystack. Prepaid. Nothing renews
-        automatically.
+        automatically. Payments aren&rsquo;t refunded. You keep access until
+        your paid time ends.
       </p>
     </form>
   );
