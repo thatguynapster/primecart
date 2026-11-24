@@ -17,7 +17,7 @@ import {
   getOverviewKpis,
   getSalesSeries,
 } from "@/lib/dashboard/queries";
-import { requireMerchant } from "@/lib/merchant/current";
+import { requireDashboardMerchant } from "@/lib/billing/gate";
 import { isLapsed } from "@/lib/billing/state";
 import { checklistSteps, nextStep, showChecklist } from "@/lib/onboarding/checklist";
 import { prisma } from "@/lib/prisma";
@@ -35,7 +35,7 @@ function greeting(): string {
 }
 
 /** The first-day checklist, or null once it's finished or hidden. */
-async function loadChecklist(merchant: Awaited<ReturnType<typeof requireMerchant>>) {
+async function loadChecklist(merchant: Awaited<ReturnType<typeof requireDashboardMerchant>>) {
   if (merchant.setupHiddenAt) return null;
 
   const active = { merchantId: merchant.id, isActive: true };
@@ -62,7 +62,7 @@ async function loadChecklist(merchant: Awaited<ReturnType<typeof requireMerchant
 }
 
 export default async function OverviewPage() {
-  const merchant = await requireMerchant();
+  const merchant = await requireDashboardMerchant();
   const storefront = merchant.storefront!;
 
   const [kpis, series, best, lowStock, feed, checklist] = await Promise.all([

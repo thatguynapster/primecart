@@ -1,5 +1,5 @@
 import { getBillingState } from "@/lib/billing/state";
-import { daysLeft } from "@/lib/billing/status";
+import { GRACE_DAYS, daysLeft, lastAccessEnd } from "@/lib/billing/status";
 import { oid } from "@/lib/db/embedded";
 import { notifyBillingReminder, type BillingReminderKind } from "@/lib/notifications/events";
 import { prisma } from "@/lib/prisma";
@@ -7,7 +7,7 @@ import { prisma } from "@/lib/prisma";
 /**
  * D-18 §6 — billing reminder emails, from a daily cron:
  *   trial ending in 3 days and 1 day; renewal due in 7 days and 1 day;
- *   expired (only if it lapsed within the last week, so the first run
+ *   expired (only within the grace period, D-24, so the first run
  *   doesn't email long-gone accounts).
  *
  * Claim-then-send per reminder: the key names the reminder AND the date it's
@@ -35,7 +35,7 @@ function reminderFor(
     if (d <= 1) return { kind: "renew-1", date: endsAt };
     if (d <= 7) return { kind: "renew-7", date: endsAt };
   }
-  if (status === "LAPSED" && lapsedAt && now.getTime() - lapsedAt.getTime() < 7 * DAY_MS) {
+  if (status === "LAPSED" && lapsedAt && now.getTime() - lapsedAt.getTime() < GRACE_DAYS * DAY_MS) {
     return { kind: "expired", date: lapsedAt };
   }
   return null;
@@ -50,13 +50,7 @@ export async function sendBillingReminders(): Promise<{ sent: number }> {
   let sent = 0;
   for (const merchant of merchants) {
     const billing = getBillingState(merchant);
-    const ends = [merchant.currentPeriodEnd, merchant.trialEndsAt].filter(
-      (date): date is Date => date != null
-    );
-    const lapsedAt =
-      billing.status === "LAPSED" && ends.length > 0
-        ? new Date(Math.max(...ends.map((date) => date.getTime())))
-        : null;
+    const lapsedAt = billing.status === "LAPSED" ? lastAccessEnd(merchant) : null;
 
     const due = reminderFor(billing.status, billing.endsAt, lapsedAt, now);
     if (!due) continue;

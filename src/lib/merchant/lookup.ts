@@ -72,6 +72,9 @@ export type StorefrontMerchant = {
   storefrontPaymentsEnabled: boolean;
   /** Same staleness rule: shown in the cart, re-read fresh at checkout. */
   deliveryOptions: DeliveryOption[];
+  /** For `takesOrders` (D-24). Same staleness rule. */
+  trialEndsAt: Date | null;
+  currentPeriodEnd: Date | null;
 };
 
 const storefrontCache = new Map<string, CacheEntry<StorefrontMerchant | null>>();
@@ -90,6 +93,8 @@ export async function getMerchantBySubdomain(
       storefront: true,
       storefrontPaymentsEnabled: true,
       deliveryOptions: true,
+      trialEndsAt: true,
+      currentPeriodEnd: true,
     },
   });
 
@@ -114,6 +119,8 @@ export async function getMerchantBySubdomain(
         returnsPolicy: merchant.storefront.returnsPolicy,
         storefrontPaymentsEnabled: merchant.storefrontPaymentsEnabled === true,
         deliveryOptions: merchant.deliveryOptions,
+        trialEndsAt: merchant.trialEndsAt,
+        currentPeriodEnd: merchant.currentPeriodEnd,
       }
     : null;
 

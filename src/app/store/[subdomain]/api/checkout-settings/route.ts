@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { takesOrders } from "@/lib/billing/state";
 import { getMerchantBySubdomain } from "@/lib/merchant/lookup";
 import { prisma } from "@/lib/prisma";
 
@@ -23,7 +24,13 @@ export async function GET(
 
   const merchant = await prisma.merchant.findUnique({
     where: { id: storefront.id },
-    select: { storefront: true, storefrontPaymentsEnabled: true, deliveryOptions: true },
+    select: {
+      storefront: true,
+      storefrontPaymentsEnabled: true,
+      deliveryOptions: true,
+      trialEndsAt: true,
+      currentPeriodEnd: true,
+    },
   });
   if (!merchant) {
     return NextResponse.json({ error: "Store not found" }, { status: 404 });
@@ -32,6 +39,7 @@ export async function GET(
   return NextResponse.json(
     {
       paymentsEnabled: merchant.storefrontPaymentsEnabled === true,
+      closed: !takesOrders(merchant),
       deliveryOptions: merchant.deliveryOptions,
       returnsPolicy: merchant.storefront?.returnsPolicy ?? null,
     },

@@ -5,7 +5,7 @@ import { TopBar } from "@/components/dashboard/nocturne/top-bar";
 import { Card } from "@/components/dashboard/nocturne/ui";
 import { getRootDomain, getStorefrontOrigin } from "@/lib/domain";
 import { formatGhs, formatRelativeDate, isPast } from "@/lib/format";
-import { requireMerchant } from "@/lib/merchant/current";
+import { requireDashboardMerchant } from "@/lib/billing/gate";
 import { newOrderWhatsappMessage } from "@/lib/notifications/events";
 import {
   deliveryAmountText,
@@ -53,7 +53,7 @@ export default async function OrderDetailPage({
   params,
   searchParams,
 }: PageProps<"/dashboard/orders/[orderId]">) {
-  const merchant = await requireMerchant();
+  const merchant = await requireDashboardMerchant();
   const storefront = merchant.storefront!;
   const { orderId } = await params;
   const { from } = await searchParams;

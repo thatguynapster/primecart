@@ -2,14 +2,14 @@ import Link from "next/link";
 
 import { TopBar } from "@/components/dashboard/nocturne/top-bar";
 import { getRootDomain, getStorefrontOrigin } from "@/lib/domain";
-import { requireMerchant } from "@/lib/merchant/current";
+import { requireDashboardMerchant } from "@/lib/billing/gate";
 import { listProducts } from "@/lib/products/queries";
 import { NewOrderForm } from "./new-order-form";
 
 export const metadata = { title: "New order — PrimeCart" };
 
 export default async function NewOrderPage() {
-  const merchant = await requireMerchant();
+  const merchant = await requireDashboardMerchant();
   const storefront = merchant.storefront!;
   const products = await listProducts(merchant.id, { activeOnly: true });
 

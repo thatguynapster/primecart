@@ -41,12 +41,14 @@ export function CartView({
   paymentsEnabled: initialPaymentsEnabled,
   deliveryOptions,
   returnsPolicy: initialReturnsPolicy,
+  closed: initialClosed,
 }: {
   subdomain: string;
   storeName: string;
   paymentsEnabled: boolean;
   deliveryOptions: DeliveryOption[];
   returnsPolicy: string | null;
+  closed: boolean;
 }) {
   const useStore = useCartStore(subdomain);
   const lines = useStore((state) => state.lines);
@@ -68,6 +70,7 @@ export function CartView({
   const [paymentsEnabled, setPaymentsEnabled] = useState(initialPaymentsEnabled);
   const [options, setOptions] = useState(deliveryOptions);
   const [returnsPolicy, setReturnsPolicy] = useState(initialReturnsPolicy);
+  const [closed, setClosed] = useState(initialClosed);
   const [chosenId, setChosenId] = useState("");
   const delivery =
     options.length === 1
@@ -127,6 +130,7 @@ export function CartView({
         setPaymentsEnabled(data.paymentsEnabled);
         setOptions(data.deliveryOptions);
         setReturnsPolicy(data.returnsPolicy);
+        setClosed(data.closed);
       } catch {
         // Checkout compares against the live settings anyway.
       }
@@ -171,6 +175,7 @@ export function CartView({
         if (result.paymentsEnabled !== undefined) {
           setPaymentsEnabled(result.paymentsEnabled);
         }
+        if (result.closed) setClosed(true);
         setSubmitting(false);
         return;
       }
@@ -358,7 +363,12 @@ export function CartView({
             </span>
           </div>
 
-          {!checkingOut ? (
+          {closed ? (
+            <p className="mt-6 rounded-xl bg-neutral-50 px-4 py-3 text-[13px] leading-relaxed text-neutral-700">
+              {storeName} isn&rsquo;t taking new orders right now. Please check
+              back later.
+            </p>
+          ) : !checkingOut ? (
             <>
               <button
                 type="button"

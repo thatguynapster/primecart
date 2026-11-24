@@ -9,7 +9,7 @@ import {
 } from "@/components/dashboard/nocturne/ui";
 import { getRootDomain, getStorefrontOrigin } from "@/lib/domain";
 import { formatGhs } from "@/lib/format";
-import { requireMerchant } from "@/lib/merchant/current";
+import { requireDashboardMerchant } from "@/lib/billing/gate";
 import { isLowStock, listProducts } from "@/lib/products/queries";
 
 export const metadata = { title: "Products — PrimeCart" };
@@ -24,7 +24,7 @@ function initials(name: string): string {
 export default async function ProductsPage({
   searchParams,
 }: PageProps<"/dashboard/products">) {
-  const merchant = await requireMerchant();
+  const merchant = await requireDashboardMerchant();
   const storefront = merchant.storefront!;
   const params = await searchParams;
 

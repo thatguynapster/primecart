@@ -9,7 +9,7 @@ import {
 import { getRootDomain, getStorefrontOrigin } from "@/lib/domain";
 import { formatGhs, formatRelativeDate } from "@/lib/format";
 import { listOrders, type SavedView } from "@/lib/dashboard/queries";
-import { requireMerchant } from "@/lib/merchant/current";
+import { requireDashboardMerchant } from "@/lib/billing/gate";
 
 export const metadata = { title: "Orders — PrimeCart" };
 
@@ -65,7 +65,7 @@ function titleCase(value: string): string {
 export default async function OrdersPage({
   searchParams,
 }: PageProps<"/dashboard/orders">) {
-  const merchant = await requireMerchant();
+  const merchant = await requireDashboardMerchant();
   const storefront = merchant.storefront!;
   const params = await searchParams;
 

@@ -1,6 +1,7 @@
 import { clerkMiddleware } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
+import { BILLING_SEEN_COOKIE, BILLING_SEEN_SECONDS } from "@/lib/billing/seen-cookie";
 import { getSubdomain } from "@/lib/domain";
 import { getMerchantBySubdomain } from "@/lib/merchant/lookup";
 
@@ -103,7 +104,19 @@ export default clerkMiddleware(async (auth, req) => {
 
   await auth.protect();
 
-  return NextResponse.next();
+  // D-24: a lapsed merchant sees billing before the rest of the dashboard.
+  // Pages can't set cookies, so it's recorded here.
+  const response = NextResponse.next();
+  if (url.pathname === "/dashboard/billing") {
+    response.cookies.set(BILLING_SEEN_COOKIE, "1", {
+      httpOnly: true,
+      secure: url.protocol === "https:",
+      sameSite: "lax",
+      path: "/dashboard",
+      maxAge: BILLING_SEEN_SECONDS,
+    });
+  }
+  return response;
 }, {
   // Send unauthenticated users to this app's sign-in screens. Without these,
   // auth.protect() redirects to Clerk's hosted accounts.dev pages — the

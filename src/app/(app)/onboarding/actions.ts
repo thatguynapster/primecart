@@ -104,7 +104,7 @@ export async function completeOnboarding(
             primaryColor,
             whatsappNumber,
             // Live immediately — storefronts are not manually reviewed, and a
-            // lapsed subscription never takes a shop down (D-18f).
+            // lapse never changes it: D-24 only stops new orders.
             isActive: true,
           },
         },

@@ -16,6 +16,9 @@ export type StatusFields = {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+/** D-24: days after a lapse before the shop closes and the dashboard locks. */
+export const GRACE_DAYS = 7;
+
 export function effectiveStatus(merchant: StatusFields, now: Date): EffectiveStatus {
   // No D-18 clock yet (scripts/backfill-d18.mjs runs on deploy). Never lock
   // out a merchant because a backfill hasn't reached them. Deliberately
@@ -41,6 +44,33 @@ export function accessEndsAt(merchant: StatusFields, now: Date): Date | null {
   if (status === "ACTIVE") return merchant.currentPeriodEnd;
   if (status === "TRIAL") return merchant.trialEndsAt;
   return null;
+}
+
+/** When the last trial or paid time ends or ended; null with no D-18 clock. */
+export function lastAccessEnd(
+  merchant: Pick<StatusFields, "trialEndsAt" | "currentPeriodEnd">
+): Date | null {
+  const ends = [merchant.currentPeriodEnd, merchant.trialEndsAt].filter(
+    (date): date is Date => date != null
+  );
+  return ends.length > 0 ? new Date(Math.max(...ends.map((date) => date.getTime()))) : null;
+}
+
+/** When new orders stop and the dashboard locks, unless they pay. Null: never. */
+export function closesAt(
+  merchant: Pick<StatusFields, "trialEndsAt" | "currentPeriodEnd">
+): Date | null {
+  const end = lastAccessEnd(merchant);
+  return end ? new Date(end.getTime() + GRACE_DAYS * DAY_MS) : null;
+}
+
+/** D-24: past the grace period. No new orders; only billing opens. */
+export function isClosed(
+  merchant: Pick<StatusFields, "trialEndsAt" | "currentPeriodEnd">,
+  now: Date
+): boolean {
+  const at = closesAt(merchant);
+  return at != null && at.getTime() <= now.getTime();
 }
 
 /** Whole days left, rounded up ("1 day left" until the very end). 0 if none. */

@@ -19,7 +19,7 @@ import {
   getSalesReport,
   getStockValueByCategory,
 } from "@/lib/dashboard/queries";
-import { requireMerchant } from "@/lib/merchant/current";
+import { requireDashboardMerchant } from "@/lib/billing/gate";
 import { SalesReport } from "./sales-report";
 
 export const metadata = { title: "Analytics — PrimeCart" };
@@ -32,7 +32,7 @@ const CHANNEL_FILL: Record<string, string> = {
 };
 
 export default async function AnalyticsPage() {
-  const merchant = await requireMerchant();
+  const merchant = await requireDashboardMerchant();
   const storefront = merchant.storefront!;
 
   const [kpis, overviewKpis, daily, weekly, monthly, channels, categories, bestSellers] =

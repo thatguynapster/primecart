@@ -20,8 +20,8 @@ export default function TermsPage() {
     <LegalPage title="Terms of Service" updated="24 November 2026">
       <p>
         These terms are an agreement between you and PrimeCart, Accra, Ghana
-        (&ldquo;we&rdquo;). Parts 1 to 12 and 14 to 17 are for{" "}
-        <strong>merchants</strong>. Part 13 is for <strong>shoppers</strong>.
+        (&ldquo;we&rdquo;). Sections 1 to 12 and 14 to 17 are for{" "}
+        <strong>merchants</strong>. Section 13 is for <strong>shoppers</strong>.
         By creating a shop you agree to them and to our{" "}
         <Link href="/privacy">Privacy Policy</Link>.
       </p>
@@ -54,19 +54,22 @@ export default function TermsPage() {
         <li>After the trial, PrimeCart is a prepaid subscription, paid monthly, quarterly or yearly at the prices shown in your dashboard when you pay.</li>
         <li>Payments are one-off, by mobile money or card through Paystack. <strong>Nothing renews automatically.</strong></li>
         <li>Paying before your trial or current period ends adds the new time after it, so you don&rsquo;t lose any days.</li>
-        <li>You can cancel at any time by not paying for another period. You keep full use of PrimeCart until the period you&rsquo;ve paid for ends, then part 5 applies.</li>
+        <li>You can cancel at any time by not paying for another period. You keep full use of PrimeCart until the period you&rsquo;ve paid for ends, then section 5 applies.</li>
         <li><strong>Subscription payments aren&rsquo;t refunded</strong>, in full or in part, including when you cancel or stop using PrimeCart before your period ends.</li>
         <li>We may change prices for future periods. Time you&rsquo;ve already paid for isn&rsquo;t affected.</li>
       </ul>
 
       <h2>5. If your subscription lapses</h2>
-      <p>
-        If your trial or paid time runs out, your dashboard becomes read-only
-        until you pay again. You can still use billing, handle existing orders,
-        switch online checkout off and update your payout details. Your
-        storefront stays online and keeps taking orders, so you must still
-        fulfil them.
-      </p>
+      <p>For 7 days after your trial or paid time runs out:</p>
+      <ul>
+        <li>Your storefront stays online and keeps taking orders, so you must still fulfil them.</li>
+        <li>Your dashboard opens on the billing page first and is read-only. You can view it, handle existing orders, switch online checkout off and update your payout details.</li>
+      </ul>
+      <p>After those 7 days, until you pay again:</p>
+      <ul>
+        <li>Your storefront doesn&rsquo;t take new orders.</li>
+        <li>You can&rsquo;t use your dashboard beyond the billing page. You&rsquo;re still responsible for orders already placed, including any payment a shopper completes for one, so handle them directly with the shopper.</li>
+      </ul>
 
       <h2>6. Orders without online checkout</h2>
       <p>
@@ -143,7 +146,7 @@ export default function TermsPage() {
       <h2>14. The service</h2>
       <ul>
         <li>We work to keep PrimeCart running and your data safe, with regular backups, but we can&rsquo;t promise it will never be interrupted or free of errors. Keep your own copy of records you can&rsquo;t afford to lose.</li>
-        <li>We may improve, change or remove features. If we plan to stop PrimeCart altogether, we&rsquo;ll give you reasonable notice and a way to get your data.</li>
+        <li>We may improve, change or remove features.</li>
         <li>We rely on other companies, such as Paystack and our hosting provider. We aren&rsquo;t responsible for their failures beyond what the law requires.</li>
       </ul>
 
@@ -157,18 +160,18 @@ export default function TermsPage() {
 
       <h2>16. Closing your account</h2>
       <p>
-        You can cancel at any time, as part 4 explains. To close your shop and
+        You can cancel at any time, as section 4 explains. To close your shop and
         have your data deleted, email us. Closing it early ends your access
         and isn&rsquo;t refunded. We may keep records the law requires.
         You must still settle what you owe us, and your open orders and refunds with shoppers.
-        Parts 9, 12, 15 and 17 continue to apply.
+        Sections 9, 12, 15 and 17 continue to apply.
       </p>
 
       <h2>17. Changes, law and disagreements with us</h2>
       <ul>
         <li>If we change these terms in a way that matters, we&rsquo;ll email merchants at least 14 days before. If you don&rsquo;t agree, you can stop using PrimeCart before then.</li>
         <li>If you and PrimeCart disagree about something, we&rsquo;ll both try to settle it by talking first. These terms are governed by the laws of Ghana, and its courts can decide disputes.</li>
-        <li>If one part can&rsquo;t be enforced, the rest still applies.</li>
+        <li>If one section can&rsquo;t be enforced, the rest still applies.</li>
       </ul>
 
       <h2>Contact</h2>

@@ -1,3 +1,4 @@
+import { GRACE_DAYS } from "@/lib/billing/status";
 import type { DormantMerchant } from "@/lib/admin/dormancy";
 import { getDashboardOrigin } from "@/lib/domain";
 import { formatDeadline, formatGhs, formatLongDate, formatRelativeDate } from "@/lib/format";
@@ -367,6 +368,10 @@ export async function notifyBillingReminder(params: {
   const url = `${getDashboardOrigin()}/dashboard/billing`;
   const when = escapeHtml(formatLongDate(params.date));
   const days = `${params.daysLeft} ${params.daysLeft === 1 ? "day" : "days"}`;
+  // "expired" is about the day it lapsed.
+  const closes = escapeHtml(
+    formatLongDate(new Date(params.date.getTime() + GRACE_DAYS * 24 * 60 * 60 * 1000))
+  );
 
   const copy: Record<BillingReminderKind, { subject: string; title: string; body: string; cta: string }> = {
     "trial-3": {
@@ -378,7 +383,7 @@ export async function notifyBillingReminder(params: {
     "trial-1": {
       subject: "Your PrimeCart trial ends tomorrow",
       title: "Your free trial ends tomorrow",
-      body: `Your trial ends on <strong>${when}</strong>. Your shop stays online either way, but you'll need a plan to keep managing products, orders and settings.`,
+      body: `Your trial ends on <strong>${when}</strong>. After that your shop keeps taking orders for ${GRACE_DAYS} more days, but you'll need a plan to change products and settings.`,
       cta: "Choose a plan",
     },
     "renew-7": {
@@ -390,13 +395,13 @@ export async function notifyBillingReminder(params: {
     "renew-1": {
       subject: "Your PrimeCart plan ends tomorrow",
       title: "Your plan ends tomorrow",
-      body: `Your paid time ends on <strong>${when}</strong>. Renew now so you can keep managing your shop without a break.`,
+      body: `Your paid time ends on <strong>${when}</strong>. Renew now so you can keep managing your shop without a break. If you don't, it stops taking new orders ${GRACE_DAYS} days later.`,
       cta: "Renew",
     },
     expired: {
       subject: "Your PrimeCart plan has expired",
       title: "Your plan has expired",
-      body: `Your shop is still online and still taking orders, and you can still confirm and mark orders paid. To change products and settings again, choose a plan.`,
+      body: `Your shop keeps taking orders until <strong>${closes}</strong>, and until then you can still view your dashboard and handle orders. After that, your shop stops taking new orders and your dashboard locks until you choose a plan.`,
       cta: "Renew",
     },
   };

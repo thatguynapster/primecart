@@ -6,7 +6,7 @@ import { Avatar, Card, EmptyState, initialsOf } from "@/components/dashboard/noc
 import { getRootDomain, getStorefrontOrigin } from "@/lib/domain";
 import { formatGhs, formatRelativeDate } from "@/lib/format";
 import { getCustomer, getCustomerOrders } from "@/lib/customers/queries";
-import { requireMerchant } from "@/lib/merchant/current";
+import { requireDashboardMerchant } from "@/lib/billing/gate";
 
 export const metadata = { title: "Customer — PrimeCart" };
 
@@ -17,7 +17,7 @@ function titleCase(value: string): string {
 export default async function CustomerDetailPage({
   params,
 }: PageProps<"/dashboard/customers/[customerId]">) {
-  const merchant = await requireMerchant();
+  const merchant = await requireDashboardMerchant();
   const storefront = merchant.storefront!;
   const { customerId } = await params;
 

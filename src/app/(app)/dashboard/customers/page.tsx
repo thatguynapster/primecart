@@ -10,12 +10,12 @@ import {
 import { getRootDomain, getStorefrontOrigin } from "@/lib/domain";
 import { formatGhs, formatRelativeDate } from "@/lib/format";
 import { listCustomers } from "@/lib/dashboard/queries";
-import { requireMerchant } from "@/lib/merchant/current";
+import { requireDashboardMerchant } from "@/lib/billing/gate";
 
 export const metadata = { title: "Customers — PrimeCart" };
 
 export default async function CustomersPage() {
-  const merchant = await requireMerchant();
+  const merchant = await requireDashboardMerchant();
   const storefront = merchant.storefront!;
   const customers = await listCustomers(merchant.id);
 

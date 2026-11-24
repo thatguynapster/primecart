@@ -34,6 +34,7 @@ export function CartSheet({
   paymentsEnabled,
   deliveryOptions,
   returnsPolicy,
+  closed,
 }: {
   subdomain: string;
   primaryColor: string;
@@ -41,6 +42,7 @@ export function CartSheet({
   paymentsEnabled: boolean;
   deliveryOptions: DeliveryOption[];
   returnsPolicy: string | null;
+  closed: boolean;
 }) {
   const useStore = useCartStore(subdomain);
   const lines = useStore((state) => state.lines);
@@ -85,6 +87,7 @@ export function CartSheet({
             paymentsEnabled={paymentsEnabled}
             deliveryOptions={deliveryOptions}
             returnsPolicy={returnsPolicy}
+            closed={closed}
           />
         </div>
       </SheetContent>

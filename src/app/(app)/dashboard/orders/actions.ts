@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import type { Order, OrderStatus } from "@prisma/client";
 
 import { findOrCreateCustomer } from "@/lib/customers/find-or-create";
-import { LAPSED_MESSAGE, isLapsed } from "@/lib/billing/state";
+import { LAPSED_MESSAGE, isLapsed, isLocked } from "@/lib/billing/state";
 import { requireMerchant } from "@/lib/merchant/current";
 import { addGhs, parseFee } from "@/lib/orders/delivery";
 import { generateOrderNumber } from "@/lib/orders/order-number";
@@ -93,6 +93,7 @@ function revalidateOrder(orderId: string) {
  */
 export async function advanceOrderStatus(orderId: string): Promise<OrderActionResult> {
   const merchant = await requireMerchant();
+  if (isLocked(merchant)) return { error: LAPSED_MESSAGE };
 
   const order = await prisma.order.findFirst({
     where: { merchantId: merchant.id, id: orderId },
@@ -138,6 +139,7 @@ export async function advanceOrderStatus(orderId: string): Promise<OrderActionRe
  */
 export async function cancelOrder(orderId: string): Promise<OrderActionResult> {
   const merchant = await requireMerchant();
+  if (isLocked(merchant)) return { error: LAPSED_MESSAGE };
 
   const order = await prisma.order.findFirst({
     where: { merchantId: merchant.id, id: orderId },
@@ -183,6 +185,7 @@ export async function markOrderPaid(
   method?: string | null
 ): Promise<OrderActionResult> {
   const merchant = await requireMerchant();
+  if (isLocked(merchant)) return { error: LAPSED_MESSAGE };
 
   const order = await prisma.order.findFirst({
     where: { merchantId: merchant.id, id: orderId },
@@ -248,6 +251,7 @@ export async function setDeliveryFee(
   value: string
 ): Promise<OrderActionResult> {
   const merchant = await requireMerchant();
+  if (isLocked(merchant)) return { error: LAPSED_MESSAGE };
 
   const fee = parseFee(value);
   if (fee == null) return { error: "Enter an amount like 25 or 25.50. Use 0 for free." };

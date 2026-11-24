@@ -3,6 +3,7 @@
 import { headers } from "next/headers";
 
 import { STOREFRONT_PAYMENT_HOLD_HOURS } from "@/lib/billing/plans";
+import { takesOrders } from "@/lib/billing/state";
 import { findOrCreateCustomer } from "@/lib/customers/find-or-create";
 import { getStorefrontOrigin } from "@/lib/domain";
 import { getMerchantBySubdomain } from "@/lib/merchant/lookup";
@@ -85,6 +86,8 @@ export type CheckoutResult =
       deliveryOptions?: DeliveryOption[];
       /** Set when checkout was switched on or off since the page loaded. */
       paymentsEnabled?: boolean;
+      /** Set when the shop no longer takes new orders. */
+      closed?: boolean;
     };
 
 const HOLD_MS = STOREFRONT_PAYMENT_HOLD_HOURS * 60 * 60 * 1000;
@@ -190,12 +193,20 @@ export async function checkout(
       paystackSubaccountCode: true,
       storefrontPaymentsEnabled: true,
       deliveryOptions: true,
+      trialEndsAt: true,
+      currentPeriodEnd: true,
     },
   });
   if (!merchant) {
     return { ok: false, error: "This store is not accepting orders right now." };
   }
   const merchantId = merchant.id;
+
+  // The plan lapsed and its grace period is over (D-24). Orders already placed
+  // aren't affected and can still be paid.
+  if (!takesOrders(merchant)) {
+    return { ok: false, error: "This shop isn't taking new orders right now.", closed: true };
+  }
 
   // ---- online payment ------------------------------------------------------
   // Never send a buyer to Paystack after telling them they won't pay now, or
