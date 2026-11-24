@@ -45,6 +45,30 @@ export default async function StorefrontLayout({
   // into the shop.
   const offline = isShopOffline(merchant);
 
+  const brand = (
+    <>
+      {merchant.logoUrl ? (
+        <Image
+          src={merchant.logoUrl}
+          alt=""
+          width={32}
+          height={32}
+          className="size-8 shrink-0 rounded-lg object-cover"
+        />
+      ) : (
+        <span
+          className="grid size-8 shrink-0 place-items-center rounded-lg text-[13px] font-bold"
+          style={{ background: "var(--brand)", color: "var(--on-brand)" }}
+        >
+          {merchant.businessName.charAt(0).toUpperCase()}
+        </span>
+      )}
+      <span className="hidden truncate text-[15px] font-semibold tracking-tight sm:inline">
+        {merchant.businessName}
+      </span>
+    </>
+  );
+
   return (
     <div
       style={brandStyle(merchant.primaryColor)}
@@ -52,27 +76,13 @@ export default async function StorefrontLayout({
     >
       <header className="sticky top-0 z-40 border-b border-neutral-200 bg-white/90 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-5xl items-center gap-3 px-4 sm:px-6 justify-between">
-          <Link href="/" className="flex min-w-0 shrink-0 items-center gap-2.5">
-            {merchant.logoUrl ? (
-              <Image
-                src={merchant.logoUrl}
-                alt=""
-                width={32}
-                height={32}
-                className="size-8 shrink-0 rounded-lg object-cover"
-              />
-            ) : (
-              <span
-                className="grid size-8 shrink-0 place-items-center rounded-lg text-[13px] font-bold"
-                style={{ background: "var(--brand)", color: "var(--on-brand)" }}
-              >
-                {merchant.businessName.charAt(0).toUpperCase()}
-              </span>
-            )}
-            <span className="hidden truncate text-[15px] font-semibold tracking-tight sm:inline">
-              {merchant.businessName}
-            </span>
-          </Link>
+          {offline ? (
+            <div className="flex min-w-0 shrink-0 items-center gap-2.5">{brand}</div>
+          ) : (
+            <Link href="/" className="flex min-w-0 shrink-0 items-center gap-2.5">
+              {brand}
+            </Link>
+          )}
 
           {/* Reference section 1: nav links as category names. Data-driven per
               merchant rather than the reference's hardcoded electronics list —

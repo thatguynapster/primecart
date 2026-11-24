@@ -156,7 +156,7 @@ Trials start on the production deploy, and the 12 founding months start on the d
 - [ ] **[Stop]** `/privacy` and `/terms` reviewed by someone qualified, including the 3% on delivery fees, the hashed IP and phone numbers, and the 60-day backups.
 - [ ] **[Stop]** The reviewer confirms these choices in the drafts: merchants handle refunds and disputes alone and PrimeCart takes no part; the 3% isn't returned on a refund; reversed payments are the merchant's cost; subscription payments are never refunded (access continues to the end of the paid period), with no exception written for shops we close or suspend; 30 days' notice of a fee change and 14 of new terms; the liability limit; what must be kept after an account closes; who is responsible for order data.
 - [ ] You can do what the pages promise: answer data requests, delete an account by hand, email all merchants.
-- [ ] `src/app/(app)/dashboard/error-test` has been removed (it only works on dev, but shouldn't ship).
+- [x] `src/app/(app)/dashboard/error-test` has been removed.
 - [ ] Data Protection Commission registration (Act 843) done or under way.
 - [ ] Registered business name and number, if you have one: tell me and I'll add it to the footer.
 - [ ] **[Stop] Existing merchants told before the deploy.** Text to send: *"PrimeCart is now GHS 89/month with everything included, after a 14-day free trial (no payment details needed). Your shop works the same, but online checkout is now optional and starts off: shoppers place orders without paying, you get an email with their WhatsApp number, and you confirm the order and arrange payment yourself. Stock comes off when you confirm or mark it paid. If you'd rather take payment online, switch on 'Take payments on your storefront' in Settings. PrimeCart keeps 3% of each payment, delivery included, with payment fees covered."* Ask them to keep checkout **off** until you've done part 13.
@@ -173,7 +173,7 @@ Trials start on the production deploy, and the 12 founding months start on the d
   - [ ] Payout form with no existing payout account
   - [ ] Payment reminder email about 30 minutes after an unpaid checkout-on order, once only
   - [ ] New-order email has the delivery line
-  - [ ] Error-alert email arrives (needs a real server error; tell me and I'll set up a safe one on dev)
+  - [x] Error-alert email arrives (2026-11-24)
   - [ ] iPhone Safari: add a product with photos, and place an order
 - [ ] `npm test`, `npm run test:db`, `npx tsc --noEmit` and `npx eslint src` pass on the commit being deployed.
 - [ ] **Restore drill:** take a backup of dev and restore it into a new, empty database:
