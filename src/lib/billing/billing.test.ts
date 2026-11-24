@@ -14,6 +14,7 @@ import {
   quoteCovers,
 } from "./plans.ts";
 import { closesAt, daysLeft, effectiveStatus, isClosed, isOffline, offlineAt } from "./status.ts";
+import { reminderFor } from "./reminder-due.ts";
 import { normalizeGhanaPhone, waMeLink } from "../phone.ts";
 
 const d = (iso: string) => new Date(iso);
@@ -171,6 +172,34 @@ describe("grace period (D-24)", () => {
   it("paying after closing reopens", () => {
     const now = d("2026-12-01T00:00:00Z");
     assert.equal(isClosed({ ...trial, currentPeriodEnd: d("2027-01-01T00:00:00Z") }, now), false);
+  });
+});
+
+describe("reminderFor", () => {
+  const lapsed = d("2026-11-18T10:00:00Z");
+  const due = (now: string) => reminderFor("LAPSED", null, lapsed, d(now))?.kind ?? null;
+  it("expired, then a warning in the last day before closing, then nothing", () => {
+    assert.equal(due("2026-11-18T10:00:00Z"), "expired");
+    assert.equal(due("2026-11-24T09:59:59Z"), "expired");
+    assert.equal(due("2026-11-24T10:00:00Z"), "closing-1");
+    assert.equal(due("2026-11-25T09:59:59Z"), "closing-1");
+    assert.equal(due("2026-11-25T10:00:00Z"), null);
+  });
+  it("a daily run always hits the warning exactly once", () => {
+    for (let hour = 0; hour < 24; hour += 1) {
+      const runs = Array.from({ length: 9 }, (_, day) =>
+        reminderFor("LAPSED", null, lapsed, new Date(Date.UTC(2026, 10, 18 + day, hour, 5)))?.kind
+      );
+      assert.equal(runs.filter((kind) => kind === "closing-1").length, 1, `hour ${hour}`);
+    }
+  });
+  it("trial and renewal reminders are unchanged", () => {
+    const now = d("2026-11-18T10:00:00Z");
+    assert.equal(reminderFor("TRIAL", d("2026-11-21T10:00:00Z"), null, now)?.kind, "trial-3");
+    assert.equal(reminderFor("TRIAL", d("2026-11-19T10:00:00Z"), null, now)?.kind, "trial-1");
+    assert.equal(reminderFor("ACTIVE", d("2026-11-25T10:00:00Z"), null, now)?.kind, "renew-7");
+    assert.equal(reminderFor("ACTIVE", d("2026-11-19T10:00:00Z"), null, now)?.kind, "renew-1");
+    assert.equal(reminderFor("ACTIVE", d("2026-12-25T10:00:00Z"), null, now), null);
   });
 });
 
