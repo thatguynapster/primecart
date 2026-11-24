@@ -550,8 +550,18 @@ export function CartView({
             )}
 
             <p className="text-center text-[12px] leading-relaxed text-neutral-500">
-              By placing this order, you agree that {storeName} may contact you
-              on WhatsApp about it.{" "}
+              {storeName} is the seller and handles delivery, returns and
+              refunds. By placing this order, you agree that they may contact
+              you on WhatsApp about it.{" "}
+              <a
+                href={`${getDashboardOrigin()}/terms`}
+                target="_blank"
+                rel="noopener"
+                className="underline underline-offset-2 hover:text-neutral-900"
+              >
+                Terms
+              </a>{" "}
+              ·{" "}
               <a
                 href={`${getDashboardOrigin()}/privacy`}
                 target="_blank"
