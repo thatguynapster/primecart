@@ -35,7 +35,8 @@ export default function TermsPage() {
 
       <h2>2. What PrimeCart is</h2>
       <p>
-        PrimeCart gives you a storefront and tools to manage it. <strong>You
+        PrimeCart gives you tools to manage your inventory, orders, profit and
+        customer records, plus an online storefront. <strong>You
         are the seller.</strong> We aren&rsquo;t a party to the sale between
         you and a shopper, and we don&rsquo;t own, hold, check or deliver your
         goods.
