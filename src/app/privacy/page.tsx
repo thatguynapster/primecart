@@ -91,7 +91,7 @@ export default function PrivacyPage() {
         <li><strong>Vercel</strong>: hosting.</li>
       </ul>
       <p>
-        WhatsApp buttons open WhatsApp with a message already written. If you send it, WhatsApp&rsquo;s own privacy policy applies. We may also share data where the law requires it, to protect people from harm or fraud, under this same policy.
+        WhatsApp buttons open WhatsApp with a message already written. If you send it, WhatsApp&rsquo;s own privacy policy applies. We may also share data where the law requires it, or to protect people from harm or fraud.
       </p>
 
       <h2>8. Data outside Ghana</h2>
