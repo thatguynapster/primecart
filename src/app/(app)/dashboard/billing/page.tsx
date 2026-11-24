@@ -116,7 +116,7 @@ export default async function BillingPage({
                     billing.offlineAt ? formatLongDate(billing.offlineAt) : "its closing date"
                   }. `}
               Choose a plan below to reopen both. Your storefront can take up
-              to 5 minutes to come back.
+              to a minute to come back.
             </p>
           ) : billing.status === "LAPSED" ? (
             <div className="mt-2 text-sm leading-relaxed text-nk-neutral-400">

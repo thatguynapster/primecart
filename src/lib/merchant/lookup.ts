@@ -1,3 +1,4 @@
+import { isClosed } from "@/lib/billing/status";
 import type { DeliveryOption } from "@/lib/orders/delivery";
 import { prisma } from "@/lib/prisma";
 
@@ -21,6 +22,13 @@ import { prisma } from "@/lib/prisma";
 
 const CACHE_TTL_MS = 1000 * 60 * 5;
 
+/**
+ * For a shop closed by a lapse (D-24). The proxy and the pages hold separate
+ * caches, so after the merchant pays one can say "open" while the other still
+ * says "off". Short, so that a shop that has just paid isn't shown half open.
+ */
+const CLOSED_CACHE_TTL_MS = 1000 * 15;
+
 type CacheEntry<T> = { data: T; expiresAt: number };
 
 function readCache<T>(cache: Map<string, CacheEntry<T>>, key: string) {
@@ -33,8 +41,13 @@ function readCache<T>(cache: Map<string, CacheEntry<T>>, key: string) {
   return entry;
 }
 
-function writeCache<T>(cache: Map<string, CacheEntry<T>>, key: string, data: T) {
-  cache.set(key, { data, expiresAt: Date.now() + CACHE_TTL_MS });
+function writeCache<T>(
+  cache: Map<string, CacheEntry<T>>,
+  key: string,
+  data: T,
+  ttlMs: number
+) {
+  cache.set(key, { data, expiresAt: Date.now() + ttlMs });
 }
 
 // ---------------------------------------------------------------------------
@@ -124,7 +137,8 @@ export async function getMerchantBySubdomain(
       }
     : null;
 
-  writeCache(storefrontCache, subdomain, data);
+  const closed = data != null && isClosed(data, new Date());
+  writeCache(storefrontCache, subdomain, data, closed ? CLOSED_CACHE_TTL_MS : CACHE_TTL_MS);
   return data;
 }
 
