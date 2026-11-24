@@ -33,12 +33,14 @@ export function CartSheet({
   storeName,
   paymentsEnabled,
   deliveryOptions,
+  returnsPolicy,
 }: {
   subdomain: string;
   primaryColor: string;
   storeName: string;
   paymentsEnabled: boolean;
   deliveryOptions: DeliveryOption[];
+  returnsPolicy: string | null;
 }) {
   const useStore = useCartStore(subdomain);
   const lines = useStore((state) => state.lines);
@@ -82,6 +84,7 @@ export function CartSheet({
             storeName={storeName}
             paymentsEnabled={paymentsEnabled}
             deliveryOptions={deliveryOptions}
+            returnsPolicy={returnsPolicy}
           />
         </div>
       </SheetContent>

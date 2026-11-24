@@ -27,7 +27,7 @@ const inputClass =
  * is purely informational, though — the `checkout` action re-derives price and
  * stock from the database again regardless, so nothing here is trusted.
  *
- * `paymentsEnabled` and `deliveryOptions` come from a cached page, so both are
+ * The settings passed in come from a cached page, so they are
  * refreshed when the cart opens and again at "Proceed to checkout".
  *
  * `paymentsEnabled` (D-18a) only picks the labels: "Pay now" through
@@ -40,11 +40,13 @@ export function CartView({
   storeName,
   paymentsEnabled: initialPaymentsEnabled,
   deliveryOptions,
+  returnsPolicy: initialReturnsPolicy,
 }: {
   subdomain: string;
   storeName: string;
   paymentsEnabled: boolean;
   deliveryOptions: DeliveryOption[];
+  returnsPolicy: string | null;
 }) {
   const useStore = useCartStore(subdomain);
   const lines = useStore((state) => state.lines);
@@ -62,9 +64,10 @@ export function CartView({
   // opens — a cart with items in it isn't necessarily a decision to check out.
   const [checkingOut, setCheckingOut] = useState(false);
 
-  // Both replaced by the server's current values, here and by checkout.
+  // All replaced by the server's current values, here and by checkout.
   const [paymentsEnabled, setPaymentsEnabled] = useState(initialPaymentsEnabled);
   const [options, setOptions] = useState(deliveryOptions);
+  const [returnsPolicy, setReturnsPolicy] = useState(initialReturnsPolicy);
   const [chosenId, setChosenId] = useState("");
   const delivery =
     options.length === 1
@@ -123,6 +126,7 @@ export function CartView({
         if (cancelled) return;
         setPaymentsEnabled(data.paymentsEnabled);
         setOptions(data.deliveryOptions);
+        setReturnsPolicy(data.returnsPolicy);
       } catch {
         // Checkout compares against the live settings anyway.
       }
@@ -512,6 +516,18 @@ export function CartView({
               <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-[13.5px] text-red-700">
                 {formError}
               </p>
+            )}
+
+            {/* Read here rather than on its own page, so the form isn't lost. */}
+            {returnsPolicy && (
+              <details className="rounded-xl border border-neutral-200 px-4 py-3 text-[13px] text-neutral-700">
+                <summary className="cursor-pointer font-medium">
+                  Returns and refunds policy
+                </summary>
+                <p className="mt-2 max-h-60 overflow-y-auto leading-relaxed wrap-anywhere whitespace-pre-line">
+                  {returnsPolicy}
+                </p>
+              </details>
             )}
 
             {!paymentsEnabled && (

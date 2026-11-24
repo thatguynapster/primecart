@@ -94,7 +94,7 @@ export default function TermsPage() {
 
       <h2>9. Returns, refunds and disputes</h2>
       <ul>
-        <li><strong>Your returns and refunds policy is your own.</strong> It must follow the law, and you must tell shoppers about it clearly and honour it.</li>
+        <li><strong>Your returns and refunds policy is your own.</strong> It must follow the law, and you must tell shoppers about it clearly and honour it. You can publish it in Shop settings.</li>
         <li><strong>You handle every complaint, return, refund and dispute with the shopper yourself, from start to finish</strong>, and pay any refund straight to the shopper. This applies however they paid, including through online checkout.</li>
         <li><strong>PrimeCart takes no part in it.</strong> We don&rsquo;t join the conversation, mediate, decide who is right, hold money or pay refunds. We only give the shopper a way to reach you about their order.</li>
         <li>A shopper&rsquo;s bank, mobile money provider or Paystack may reverse a payment under its own rules. That is their decision, not ours, and a reversed payment is your cost.</li>
@@ -132,7 +132,7 @@ export default function TermsPage() {
 
       <h2>13. If you order from a shop</h2>
       <ul>
-        <li>Your purchase is from <strong>the shop</strong>, not PrimeCart. The shop is responsible for the goods, delivery, returns and refunds. Ask about its returns policy before you order.</li>
+        <li>Your purchase is from <strong>the shop</strong>, not PrimeCart. The shop is responsible for the goods, delivery, returns and refunds. Read its returns policy before you order, or ask for it if the shop hasn&rsquo;t published one.</li>
         <li>An order without online payment isn&rsquo;t final until the shop confirms it.</li>
         <li>An order waiting for online payment is held for 24 hours. After that, the items go back on sale.</li>
         <li>Give correct contact and delivery details. You agree that the shop may contact you on WhatsApp about your order.</li>

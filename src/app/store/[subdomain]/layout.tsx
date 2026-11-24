@@ -116,6 +116,7 @@ export default async function StorefrontLayout({
               storeName={merchant.businessName}
               paymentsEnabled={merchant.storefrontPaymentsEnabled}
               deliveryOptions={merchant.deliveryOptions}
+              returnsPolicy={merchant.returnsPolicy}
             />
           </div>
         </div>
@@ -181,6 +182,15 @@ export default async function StorefrontLayout({
                     </a>
                   )}
                 </div>
+              )}
+
+              {merchant.returnsPolicy && (
+                <Link
+                  href="/returns"
+                  className="mt-4 inline-block text-[13px] text-neutral-400 underline underline-offset-4 hover:text-white"
+                >
+                  Returns and refunds
+                </Link>
               )}
             </div>
 

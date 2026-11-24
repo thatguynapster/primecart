@@ -5,6 +5,7 @@ import { useFormStatus } from "react-dom";
 
 import { Field, FormError, inputClass } from "@/components/dashboard/fields";
 import { ImagePicker } from "@/components/dashboard/image-picker";
+import { MAX_RETURNS_POLICY } from "@/lib/merchant/returns-policy";
 import type { PaystackBank, PaystackSubaccountDetails } from "@/lib/paystack";
 import {
   disableStorefrontPayments,
@@ -15,6 +16,7 @@ import {
   updateBanner,
   updateHero,
   updatePayoutDetails,
+  updateReturnsPolicy,
   updateShopDetails,
   updateSocials,
   uploadBannerImage,
@@ -653,6 +655,55 @@ export function PayoutForm({
         </div>
       </form>
     </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
+
+/** The merchant's own policy (D-23). Empty = nothing shown on the shop. */
+export function ReturnsPolicyForm({ policy }: { policy: string | null }) {
+  const [state, formAction] = useActionState<SettingsState, FormData>(
+    updateReturnsPolicy,
+    {}
+  );
+  const id = useId();
+
+  return (
+    // React resets a form after its action; keep what was typed.
+    <form
+      action={formAction}
+      onReset={(event) => event.preventDefault()}
+      id="returns"
+      className="scroll-mt-20 space-y-5 rounded-md border border-nk-neutral-800 bg-nk-surface p-6 sm:p-8"
+    >
+      <div>
+        <h2 className="text-base font-medium tracking-tight">Returns and refunds</h2>
+        <p className="mt-2 text-sm leading-relaxed text-nk-neutral-400">
+          Your own policy, in your own words. Shoppers can read it at checkout
+          and from a link at the bottom of your shop. Say what can be returned,
+          how soon, who pays for delivery, and how you refund. You handle
+          returns and refunds with shoppers yourself.
+        </p>
+      </div>
+
+      <FormError message={state.error} />
+
+      <Field label="Your policy" htmlFor={id} hint="Optional">
+        <textarea
+          id={id}
+          name="returnsPolicy"
+          rows={7}
+          maxLength={MAX_RETURNS_POLICY}
+          defaultValue={policy ?? ""}
+          className={inputClass}
+        />
+      </Field>
+
+      <div className="flex items-center gap-4">
+        <Saving label="Save policy" />
+        <Saved at={state.savedAt} />
+      </div>
+    </form>
   );
 }
 

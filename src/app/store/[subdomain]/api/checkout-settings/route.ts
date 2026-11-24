@@ -23,7 +23,7 @@ export async function GET(
 
   const merchant = await prisma.merchant.findUnique({
     where: { id: storefront.id },
-    select: { storefrontPaymentsEnabled: true, deliveryOptions: true },
+    select: { storefront: true, storefrontPaymentsEnabled: true, deliveryOptions: true },
   });
   if (!merchant) {
     return NextResponse.json({ error: "Store not found" }, { status: 404 });
@@ -33,6 +33,7 @@ export async function GET(
     {
       paymentsEnabled: merchant.storefrontPaymentsEnabled === true,
       deliveryOptions: merchant.deliveryOptions,
+      returnsPolicy: merchant.storefront?.returnsPolicy ?? null,
     },
     { headers: { "Cache-Control": "no-store" } }
   );

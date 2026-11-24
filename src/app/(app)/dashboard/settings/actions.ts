@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { LAPSED_MESSAGE, isLapsed } from "@/lib/billing/state";
 import { requireMerchant } from "@/lib/merchant/current";
 import { invalidateStorefront } from "@/lib/merchant/lookup";
+import { cleanReturnsPolicy } from "@/lib/merchant/returns-policy";
 import {
   setStorefrontBannerImage,
   setStorefrontHeroImage,
@@ -14,6 +15,7 @@ import {
   updateStorefrontBanner,
   updateStorefrontBranding,
   updateStorefrontHero,
+  updateStorefrontReturnsPolicy,
   updateStorefrontSocials,
 } from "@/lib/merchant/storefront";
 import { parseDeliveryForm } from "@/lib/orders/delivery";
@@ -473,6 +475,24 @@ export async function updatePayoutDetails(
 
 const URL_LIKE = /^https?:\/\/.+/i;
 const WHATSAPP_NUMBER = /^\+?[0-9]{7,15}$/;
+
+export async function updateReturnsPolicy(
+  _prev: SettingsState,
+  formData: FormData
+): Promise<SettingsState> {
+  const merchant = await requireMerchant();
+  if (isLapsed(merchant)) return { error: LAPSED_MESSAGE };
+  const storefront = merchant.storefront;
+  if (!storefront) return { error: "Finish setting up your shop first." };
+
+  const result = cleanReturnsPolicy(formData.get("returnsPolicy"));
+  if (!result.ok) return { error: result.error };
+
+  await updateStorefrontReturnsPolicy(merchant.id, storefront.subdomain, result.policy);
+
+  revalidatePath("/dashboard/settings");
+  return { savedAt: Date.now() };
+}
 
 export async function updateSocials(
   _prev: SettingsState,

@@ -20,7 +20,7 @@
 ## 1. Decisions and accounts
 
 - [ ] **[Stop] Vercel plan.** Vercel's Hobby plan is for personal, non-commercial use. PrimeCart charges merchants, so check that the account is on a plan that allows it (Pro).
-- [ ] **[Stop] Paystack business account approved for live payments.** The Live toggle must work. Ask whether a published refund policy is required. Decided: refunds to shoppers are each merchant's own (`/terms` parts 9 and 13), so point them there.
+- [ ] **[Stop] Paystack business account approved for live payments.** The Live toggle must work. Ask whether a published refund policy is required. Decided: refunds to shoppers are each merchant's own (`/terms` parts 9 and 13; a shop can publish its policy at `<shop>/returns`), and subscription payments aren't refunded (part 4), so point them there.
 - [ ] **[Stop] Paystack split payments / subaccounts allowed** on the live account, for both bank and mobile money payouts.
 - [ ] **[Stop] Chargebacks.** The payment is made through PrimeCart's Paystack account, with the merchant as a subaccount. Ask Paystack: when a bank reverses a payment, whose balance is debited, who must answer it and by when, and can the merchant be the one to answer?
 - [ ] **Paystack's fee rate** confirmed for your account. PrimeCart pays it out of its 3%, on the whole payment including delivery.
@@ -281,4 +281,4 @@ Only after the split and payout are proven: tell merchants they can switch check
 - No refunds, deposits or order editing in the dashboard: merchants refund shoppers themselves, outside PrimeCart.
 - WhatsApp-agreed delivery fees on paid-online orders aren't recorded.
 - Buyers get no updates after ordering (shipped, delivered).
-- Shops have no returns policy page of their own (TASKS 17.8).
+- A shop's returns policy is optional, and orders don't keep a copy of the version the buyer saw.
