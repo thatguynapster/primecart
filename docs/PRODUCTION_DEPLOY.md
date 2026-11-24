@@ -20,7 +20,7 @@
 ## 1. Decisions and accounts
 
 - [ ] **[Stop] Vercel plan.** Vercel's Hobby plan is for personal, non-commercial use. PrimeCart charges merchants, so check that the account is on a plan that allows it (Pro).
-- [ ] **[Stop] Paystack business account approved for live payments.** The Live toggle must work. Ask whether a published refund policy is required. Decided: refunds to shoppers are each merchant's own (`/terms` parts 9 and 13; a shop can publish its policy at `<shop>/returns`), and subscription payments aren't refunded (part 4), so point them there.
+- [ ] **[Stop] Paystack business account approved for live payments.** The Live toggle must work. Ask whether a published refund policy is required. Decided: refunds to shoppers are each merchant's own (`/terms` sections 9 and 13; a shop can publish its policy at `<shop>/returns`), and subscription payments aren't refunded (section 4), so point them there.
 - [ ] **[Stop] Paystack split payments / subaccounts allowed** on the live account, for both bank and mobile money payouts.
 - [ ] **[Stop] Chargebacks.** The payment is made through PrimeCart's Paystack account, with the merchant as a subaccount. Ask Paystack: when a bank reverses a payment, whose balance is debited, who must answer it and by when, and can the merchant be the one to answer?
 - [ ] **Paystack's fee rate** confirmed for your account. PrimeCart pays it out of its 3%, on the whole payment including delivery.
@@ -253,7 +253,8 @@ Only after the split and payout are proven: tell merchants they can switch check
 
 - [ ] Days 1 to 3: check Vercel errors, cron history, Resend failures and Paystack webhook failures daily.
 - [ ] First trial reminder goes out 3 days before the trials end (day 11 after the deploy): check it arrived.
-- [ ] Trials end on day 14: check what an unpaid shop sees (dashboard read-only, shop still taking orders).
+- [ ] Trials end on day 14: check what an unpaid shop sees (billing first, dashboard read-only, shop still taking orders).
+- [ ] Day 21, 7 days later: an unpaid shop takes no new orders and its dashboard opens billing only. Paying reopens both.
 - [ ] Newest file in `primecart-backups` is less than a day old. GitHub stops scheduled jobs after 60 days with no commits.
 - [ ] Orders under **Needs review** handled.
 - [ ] After the first successful deploy, tell me to remove the two one-off backfills from `vercel-build`.

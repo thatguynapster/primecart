@@ -8,6 +8,7 @@ import {
 } from "@phosphor-icons/react/dist/ssr";
 import { notFound } from "next/navigation";
 
+import { takesOrders } from "@/lib/billing/state";
 import { getMerchantBySubdomain } from "@/lib/merchant/lookup";
 import { brandStyle } from "@/lib/storefront/brand";
 import { getBestSellingCategories } from "@/lib/storefront/bestsellers";
@@ -38,6 +39,8 @@ export default async function StorefrontLayout({
     listStorefrontCategories(merchant.id),
     getBestSellingCategories(merchant.id),
   ]);
+
+  const closed = !takesOrders(merchant);
 
   return (
     <div
@@ -117,10 +120,17 @@ export default async function StorefrontLayout({
               paymentsEnabled={merchant.storefrontPaymentsEnabled}
               deliveryOptions={merchant.deliveryOptions}
               returnsPolicy={merchant.returnsPolicy}
+              closed={closed}
             />
           </div>
         </div>
       </header>
+
+      {closed && (
+        <p className="border-b border-neutral-200 bg-neutral-100 px-4 py-2.5 text-center text-[13.5px] text-neutral-700">
+          {merchant.businessName} isn&rsquo;t taking new orders right now.
+        </p>
+      )}
 
       <main className="flex-1">{children}</main>
 

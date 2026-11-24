@@ -8,7 +8,14 @@ import {
   pricePesewas,
   type BillingInterval,
 } from "@/lib/billing/plans";
-import { accessEndsAt, daysLeft, effectiveStatus, type EffectiveStatus } from "@/lib/billing/status";
+import {
+  accessEndsAt,
+  closesAt,
+  daysLeft,
+  effectiveStatus,
+  isClosed,
+  type EffectiveStatus,
+} from "@/lib/billing/status";
 
 /**
  * The merchant's billing state right now. Reads the clock itself, so Server
@@ -20,6 +27,10 @@ export type BillingState = {
   /** When the current trial or paid time ends; null when lapsed. */
   endsAt: Date | null;
   daysLeft: number;
+  /** Lapsed only: when orders stop and the dashboard locks (D-24). */
+  closesAt: Date | null;
+  /** That moment has passed. */
+  locked: boolean;
   /** Whether a founding price is still available for some period start. */
   foundingUntil: Date | null;
 };
@@ -37,24 +48,39 @@ export function getBillingState(merchant: Merchant): BillingState {
     status,
     endsAt,
     daysLeft: daysLeft(endsAt, now),
+    closesAt: status === "LAPSED" ? closesAt(merchant) : null,
+    locked: isClosed(merchant, now),
     foundingUntil: foundingActive ? merchant.priceOverrideEndsAt : null,
   };
 }
 
 /**
- * D-18f: a lapsed subscription locks the dashboard only. Server actions that
+ * D-18f, as changed by D-24. For GRACE_DAYS after a lapse, server actions that
  * change products, settings or create orders return this instead of acting.
- * Still allowed while lapsed: billing; confirming, advancing, marking paid
- * and cancelling existing orders; switching storefront checkout off; and
- * updating payout details (both protect money that's still moving). The
- * storefront and its checkout keep working throughout.
+ * Still allowed then: billing; confirming, advancing, marking paid and
+ * cancelling existing orders; switching storefront checkout off; and updating
+ * payout details (both protect money that's still moving). The storefront and
+ * its checkout keep working. After that, `isLocked`: only billing works and the
+ * storefront takes no new orders.
  */
 export const LAPSED_MESSAGE =
-  "Your plan has expired, so changes are paused. Renew on the Billing page to make changes. Your shop is still online and taking orders.";
+  "Your plan has expired, so changes are paused. Renew on the Billing page to make changes.";
 
-/** Lapsed: dashboard is read-only except billing and order handling (D-18f). */
+/** Lapsed: dashboard is read-only except billing and order handling. */
 export function isLapsed(merchant: Merchant): boolean {
   return effectiveStatus(merchant, new Date()) === "LAPSED";
+}
+
+/** Past the grace period: nothing but billing (D-24). */
+export function isLocked(merchant: Merchant): boolean {
+  return isClosed(merchant, new Date());
+}
+
+/** Whether a shop takes new orders. Fresh dates at checkout, cached for labels. */
+export function takesOrders(
+  merchant: Pick<Merchant, "trialEndsAt" | "currentPeriodEnd">
+): boolean {
+  return !isClosed(merchant, new Date());
 }
 
 export type Quote = {

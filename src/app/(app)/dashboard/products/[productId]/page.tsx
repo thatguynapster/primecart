@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 
 import { TopBar } from "@/components/dashboard/nocturne/top-bar";
 import { getRootDomain, getStorefrontOrigin } from "@/lib/domain";
-import { requireMerchant } from "@/lib/merchant/current";
+import { requireDashboardMerchant } from "@/lib/billing/gate";
 import { getProduct, listCategories } from "@/lib/products/queries";
 import { variantImages } from "@/lib/products/variants";
 import { isImageUploadConfigured } from "@/lib/r2";
@@ -14,7 +14,7 @@ export default async function ProductDetailPage({
   params,
   searchParams,
 }: PageProps<"/dashboard/products/[productId]">) {
-  const merchant = await requireMerchant();
+  const merchant = await requireDashboardMerchant();
   const storefront = merchant.storefront!;
   const { productId } = await params;
   const { from, photos } = await searchParams;

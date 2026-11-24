@@ -1,6 +1,6 @@
 import { TopBar } from "@/components/dashboard/nocturne/top-bar";
 import { getRootDomain, getStorefrontOrigin } from "@/lib/domain";
-import { requireMerchant } from "@/lib/merchant/current";
+import { requireDashboardMerchant } from "@/lib/billing/gate";
 import {
   getSubaccount,
   listGhanaianBanks,
@@ -24,7 +24,7 @@ export const metadata = {
 };
 
 export default async function SettingsPage() {
-  const merchant = await requireMerchant();
+  const merchant = await requireDashboardMerchant();
   // The dashboard layout redirects anyone without a storefront to onboarding.
   const storefront = merchant.storefront!;
 

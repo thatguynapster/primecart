@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { TopBar } from "@/components/dashboard/nocturne/top-bar";
 import { Card } from "@/components/dashboard/nocturne/ui";
 import { OUTCOME_TEXT } from "@/lib/billing/outcome-text";
@@ -106,12 +108,27 @@ export default async function BillingPage({
           >
             {statusLine}
           </p>
-          {billing.status === "LAPSED" ? (
+          {billing.locked ? (
             <p className="mt-2 text-sm leading-relaxed text-nk-neutral-400">
-              Your shop is still online and still taking orders. Choose a plan
-              to manage products and settings again. You can always confirm,
-              mark paid or cancel orders.
+              Your shop isn&rsquo;t taking new orders and your dashboard is
+              locked. Choose a plan below to reopen both straight away.
             </p>
+          ) : billing.status === "LAPSED" ? (
+            <div className="mt-2 text-sm leading-relaxed text-nk-neutral-400">
+              <p>
+                Your shop keeps taking orders until{" "}
+                {billing.closesAt && formatLongDate(billing.closesAt)}. Until
+                then you can view your dashboard and handle orders, but not
+                change products or settings. After that, your shop stops taking
+                new orders and your dashboard locks until you pay.
+              </p>
+              <Link
+                href="/dashboard"
+                className="mt-3 inline-block font-medium text-nk-text underline underline-offset-4"
+              >
+                Continue to your dashboard
+              </Link>
+            </div>
           ) : billing.status === "TRIAL" && billing.endsAt ? (
             <p className="mt-2 text-sm text-nk-neutral-400">
               Everything is included during your trial, which ends{" "}

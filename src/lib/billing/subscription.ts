@@ -7,6 +7,7 @@ import {
   pricePesewas,
   quoteCovers,
 } from "@/lib/billing/plans";
+import { invalidateStorefront } from "@/lib/merchant/lookup";
 import { PaystackError, metadataOf, verifyTransaction } from "@/lib/paystack";
 import { prisma } from "@/lib/prisma";
 
@@ -97,7 +98,11 @@ async function extendSubscription(
         billingInterval: interval,
       },
     });
-    if (count === 1) return { periodStart, periodEnd };
+    if (count === 1) {
+      // A closed shop takes orders again at once (D-24).
+      if (merchant.storefront) invalidateStorefront(merchant.storefront.subdomain);
+      return { periodStart, periodEnd };
+    }
   }
   return null;
 }

@@ -65,7 +65,7 @@ export default function PrivacyPage() {
         <li><strong>To stop fake orders:</strong> a scrambled form of your phone number and IP address, kept for up to about a day.</li>
         <li><strong>Server logs:</strong> our hosting provider records requests, such as IP address, browser type and the page asked for, to run and protect the service.</li>
         <li><strong>In your browser:</strong> your cart is kept on your own device until you order or clear it.</li>
-        <li><strong>Cookies:</strong> only those needed for merchants to sign in and stay secure. We don&rsquo;t use advertising or analytics cookies.</li>
+        <li><strong>Cookies:</strong> only those needed for merchants to sign in, stay secure and use the dashboard. We don&rsquo;t use advertising or analytics cookies.</li>
       </ul>
 
       <h2>6. Why we use it</h2>

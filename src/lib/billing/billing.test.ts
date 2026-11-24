@@ -13,7 +13,7 @@ import {
   pricePesewas,
   quoteCovers,
 } from "./plans.ts";
-import { daysLeft, effectiveStatus } from "./status.ts";
+import { closesAt, daysLeft, effectiveStatus, isClosed } from "./status.ts";
 import { normalizeGhanaPhone, waMeLink } from "../phone.ts";
 
 const d = (iso: string) => new Date(iso);
@@ -137,6 +137,32 @@ describe("effectiveStatus", () => {
     assert.equal(daysLeft(d("2026-11-19T09:00:00Z"), now), 1);
     assert.equal(daysLeft(d("2026-12-02T10:00:00Z"), now), 14);
     assert.equal(daysLeft(null, now), 0);
+  });
+});
+
+describe("grace period (D-24)", () => {
+  const end = d("2026-11-18T10:00:00Z");
+  const trial = { trialEndsAt: end, currentPeriodEnd: null };
+  it("closes exactly 7 days after the end", () => {
+    assert.deepEqual(closesAt(trial), d("2026-11-25T10:00:00Z"));
+    assert.equal(isClosed(trial, d("2026-11-18T10:00:00Z")), false);
+    assert.equal(isClosed(trial, d("2026-11-25T09:59:59Z")), false);
+    assert.equal(isClosed(trial, d("2026-11-25T10:00:00Z")), true);
+  });
+  it("counts from the later of trial and paid time", () => {
+    const both = { trialEndsAt: end, currentPeriodEnd: d("2026-12-18T10:00:00Z") };
+    assert.equal(isClosed(both, d("2026-12-01T00:00:00Z")), false);
+    assert.deepEqual(closesAt(both), d("2026-12-25T10:00:00Z"));
+    assert.deepEqual(closesAt({ trialEndsAt: d("2027-01-01T00:00:00Z"), currentPeriodEnd: end }), d("2027-01-08T00:00:00Z"));
+  });
+  it("never closes a merchant with no dates", () => {
+    const none = { trialEndsAt: null, currentPeriodEnd: null };
+    assert.equal(closesAt(none), null);
+    assert.equal(isClosed(none, d("2030-01-01T00:00:00Z")), false);
+  });
+  it("paying after closing reopens", () => {
+    const now = d("2026-12-01T00:00:00Z");
+    assert.equal(isClosed({ ...trial, currentPeriodEnd: d("2027-01-01T00:00:00Z") }, now), false);
   });
 });
 

@@ -6,6 +6,7 @@ import { MobileNav } from "@/components/dashboard/nocturne/mobile-nav";
 import { SideRail } from "@/components/dashboard/nocturne/side-rail";
 import { getBillingState, type BillingState } from "@/lib/billing/state";
 import { countOrdersNeedingAction } from "@/lib/dashboard/queries";
+import { formatLongDate } from "@/lib/format";
 import { hasCompletedOnboarding, requireMerchant } from "@/lib/merchant/current";
 
 /**
@@ -71,8 +72,12 @@ function BillingBanner({ billing }: { billing: BillingState }) {
     cta = "Renew";
     urgent = billing.daysLeft <= 3;
   } else if (billing.status === "LAPSED") {
-    message = "Your plan has expired. Your shop is still online and taking orders";
-    cta = "Renew to manage your shop";
+    message = billing.locked
+      ? "Your plan has expired and your shop isn't taking new orders"
+      : `Your plan has expired. Your shop takes orders until ${
+          billing.closesAt ? formatLongDate(billing.closesAt) : "it closes"
+        }`;
+    cta = billing.locked ? "Pay to reopen your shop" : "Renew to keep your shop open";
     urgent = true;
   }
 

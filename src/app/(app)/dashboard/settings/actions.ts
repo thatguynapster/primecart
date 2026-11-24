@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 
 import { revalidatePath } from "next/cache";
 
-import { LAPSED_MESSAGE, isLapsed } from "@/lib/billing/state";
+import { LAPSED_MESSAGE, isLapsed, isLocked } from "@/lib/billing/state";
 import { requireMerchant } from "@/lib/merchant/current";
 import { invalidateStorefront } from "@/lib/merchant/lookup";
 import { cleanReturnsPolicy } from "@/lib/merchant/returns-policy";
@@ -344,6 +344,7 @@ export async function enableStorefrontPayments(
 /** Switches storefront checkout off, immediately. Existing orders are untouched. */
 export async function disableStorefrontPayments(): Promise<SettingsState> {
   const merchant = await requireMerchant();
+  if (isLocked(merchant)) return { error: LAPSED_MESSAGE };
   const storefront = merchant.storefront;
   if (!storefront) return { error: "Finish setting up your shop first." };
 
@@ -431,6 +432,7 @@ export async function updatePayoutDetails(
   formData: FormData
 ): Promise<SettingsState> {
   const merchant = await requireMerchant();
+  if (isLocked(merchant)) return { error: LAPSED_MESSAGE };
   const storefront = merchant.storefront;
   if (!storefront) return { error: "Finish setting up your shop first." };
 

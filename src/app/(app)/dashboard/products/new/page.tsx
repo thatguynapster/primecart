@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { TopBar } from "@/components/dashboard/nocturne/top-bar";
 import { getRootDomain, getStorefrontOrigin } from "@/lib/domain";
-import { requireMerchant } from "@/lib/merchant/current";
+import { requireDashboardMerchant } from "@/lib/billing/gate";
 import { listCategories } from "@/lib/products/queries";
 import { isImageUploadConfigured } from "@/lib/r2";
 import { NewProductForm } from "./new-product-form";
@@ -12,7 +12,7 @@ export const metadata = {
 };
 
 export default async function NewProductPage() {
-  const merchant = await requireMerchant();
+  const merchant = await requireDashboardMerchant();
   const storefront = merchant.storefront!;
   const categories = await listCategories(merchant.id);
 
