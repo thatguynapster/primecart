@@ -90,7 +90,7 @@ export function takesOrders(
   return !isClosed(merchant, new Date());
 }
 
-/** Whether the storefront is off (D-25). From cached dates, so up to 5 minutes late. */
+/** Whether the storefront is off (D-25). From cached dates; see lookup.ts for how stale. */
 export function isShopOffline(
   merchant: Pick<Merchant, "trialEndsAt" | "currentPeriodEnd">
 ): boolean {
