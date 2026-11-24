@@ -20,7 +20,7 @@
 ## 1. Decisions and accounts
 
 - [ ] **[Stop] Vercel plan.** Vercel's Hobby plan is for personal, non-commercial use. PrimeCart charges merchants, so check that the account is on a plan that allows it (Pro).
-- [ ] **[Stop] Paystack business account approved for live payments.** The Live toggle must work. Ask Paystack whether they require a published refund policy: **PrimeCart doesn't have one yet** (TASKS 17.3, 17.5).
+- [ ] **[Stop] Paystack business account approved for live payments.** The Live toggle must work. Ask whether a published refund policy is required. Decided: refunds to shoppers are each merchant's own (`/terms` parts 9 and 13), so point them there.
 - [ ] **[Stop] Paystack split payments / subaccounts allowed** on the live account, for both bank and mobile money payouts.
 - [ ] **Paystack's fee rate** confirmed for your account. PrimeCart pays it out of its 3%, on the whole payment including delivery.
 - [ ] **Resend plan** sends enough: each order can send 2 or 3 emails. Check the daily limit on your plan.
@@ -153,7 +153,9 @@ Trials start on the production deploy, and the 12 founding months start on the d
 ## 10. Legal, and telling people
 
 - [ ] **[Stop]** `/privacy` and `/terms` reviewed by someone qualified, including the 3% on delivery fees, the hashed IP and phone numbers, and the 60-day backups.
-- [ ] **[Stop]** Refund policy: decide with Paystack's answer (part 1). If needed, tell me and I'll build the page.
+- [ ] **[Stop]** The reviewer confirms these choices in the drafts: merchants cover refunds and lost payment disputes; fees may not be returned on a refund; 30 days' notice of a fee change and 14 of new terms; the liability limit; what must be kept after an account closes; who is responsible for order data.
+- [ ] You can do what the pages promise: answer data requests, delete an account by hand, send a Paystack refund for a merchant, email all merchants.
+- [ ] `src/app/(app)/dashboard/error-test` has been removed (it only works on dev, but shouldn't ship).
 - [ ] Data Protection Commission registration (Act 843) done or under way.
 - [ ] Registered business name and number, if you have one: tell me and I'll add it to the footer.
 - [ ] **[Stop] Existing merchants told before the deploy.** Text to send: *"PrimeCart is now GHS 89/month with everything included, after a 14-day free trial (no payment details needed). Your shop works the same, but online checkout is now optional and starts off: shoppers place orders without paying, you get an email with their WhatsApp number, and you confirm the order and arrange payment yourself. Stock comes off when you confirm or mark it paid. If you'd rather take payment online, switch on 'Take payments on your storefront' in Settings. PrimeCart keeps 3% of each payment, delivery included, with payment fees covered."* Ask them to keep checkout **off** until you've done part 13.
