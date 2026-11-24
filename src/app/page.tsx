@@ -240,11 +240,11 @@ export default function LandingPage() {
                     <ul className="mt-7 space-y-3 text-[14px] text-neutral-200">
                       {[
                         "Unlimited products and variants",
-                        "Your own storefront link",
                         "Orders from storefront, walk-in and WhatsApp",
                         "Profit on every sale",
                         "Low-stock alerts",
                         "Sales and stock reports",
+                        "Your own storefront link",
                       ].map((item) => (
                         <li key={item} className="flex gap-3">
                           <span

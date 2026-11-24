@@ -160,6 +160,21 @@ export async function updateStorefrontSocials(
   invalidateStorefront(subdomain);
 }
 
+/** The shop's own returns and refunds policy (D-23). Null removes it. */
+export async function updateStorefrontReturnsPolicy(
+  merchantId: string,
+  subdomain: string,
+  returnsPolicy: string | null
+): Promise<void> {
+  await runEmbeddedUpdate({
+    collection: "Merchant",
+    filter: { _id: oid(merchantId) },
+    update: { $set: { "storefront.returnsPolicy": returnsPolicy } },
+  });
+
+  invalidateStorefront(subdomain);
+}
+
 /**
  * Switches a storefront on or off — the effect of a subscription lapsing or
  * reactivating (Phase 13). Same per-field write as the two functions above,

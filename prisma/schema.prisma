@@ -126,6 +126,10 @@ type MerchantStorefront {
   facebookUrl    String?
   instagramUrl   String?
   whatsappNumber String?
+
+  // D-23: the merchant's own returns and refunds policy, plain text. Unset,
+  // the storefront shows no policy page or links.
+  returnsPolicy String?
 }
 
 // ============================================

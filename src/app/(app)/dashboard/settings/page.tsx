@@ -14,6 +14,7 @@ import {
   HeroForm,
   LogoForm,
   PayoutForm,
+  ReturnsPolicyForm,
   ShopDetailsForm,
   SocialsForm,
 } from "./settings-forms";
@@ -88,6 +89,8 @@ export default async function SettingsPage() {
           )}
 
           <DeliveryForm options={merchant.deliveryOptions} />
+
+          <ReturnsPolicyForm policy={storefront.returnsPolicy} />
 
           <SocialsForm
             facebookUrl={storefront.facebookUrl}

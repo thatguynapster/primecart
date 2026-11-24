@@ -62,6 +62,8 @@ export type StorefrontMerchant = {
   facebookUrl: string | null;
   instagramUrl: string | null;
   whatsappNumber: string | null;
+  /** D-23: the shop's own returns and refunds policy. */
+  returnsPolicy: string | null;
   /**
    * D-18a checkout add-on. Cached like everything here, so it can be up to
    * five minutes stale on another instance: only ever used for labels. The
@@ -109,6 +111,7 @@ export async function getMerchantBySubdomain(
         facebookUrl: merchant.storefront.facebookUrl,
         instagramUrl: merchant.storefront.instagramUrl,
         whatsappNumber: merchant.storefront.whatsappNumber,
+        returnsPolicy: merchant.storefront.returnsPolicy,
         storefrontPaymentsEnabled: merchant.storefrontPaymentsEnabled === true,
         deliveryOptions: merchant.deliveryOptions,
       }

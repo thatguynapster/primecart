@@ -37,13 +37,13 @@ export default function PrivacyPage() {
       <h2>3. What we collect from merchants</h2>
       <ul>
         <li>Your name, email address and sign-in details. Sign-in is handled by Clerk: we never see your password.</li>
-        <li>Your shop: name, web address, description, logo, photos, colours, social links, WhatsApp number, delivery areas and fees.</li>
+        <li>Your shop: name, web address, description, logo, photos, colours, social links, WhatsApp number, returns policy, delivery areas and fees.</li>
         <li>Your business records: products, stock, prices, costs, orders, and the customers you add.</li>
         <li>If you switch on online checkout: your bank or mobile money account, which we pass to Paystack. We keep Paystack&rsquo;s reference for it, and show you the account by asking Paystack.</li>
         <li>Your subscription payments: amount, date, period and payment method. Paystack handles your card or mobile money details.</li>
       </ul>
       <p>
-        Your shop name, description, photos, WhatsApp number, social links and delivery fees are <strong>public</strong>, because shoppers need them. Photos you upload are resized in your browser, which also removes location and camera details from them.
+        Your shop name, description, photos, WhatsApp number, social links, returns policy and delivery fees are <strong>public</strong>, because shoppers need them. Photos you upload are resized in your browser, which also removes location and camera details from them.
       </p>
 
       <h2>4. What we collect from shoppers</h2>
@@ -91,7 +91,7 @@ export default function PrivacyPage() {
         <li><strong>Vercel</strong>: hosting.</li>
       </ul>
       <p>
-        WhatsApp buttons open WhatsApp with a message already written. If you send it, WhatsApp&rsquo;s own privacy policy applies. We may also share data where the law requires it, to protect people from harm or fraud, under this same policy.
+        WhatsApp buttons open WhatsApp with a message already written. If you send it, WhatsApp&rsquo;s own privacy policy applies. We may also share data where the law requires it, or to protect people from harm or fraud.
       </p>
 
       <h2>8. Data outside Ghana</h2>

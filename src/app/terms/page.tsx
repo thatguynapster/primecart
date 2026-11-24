@@ -54,7 +54,8 @@ export default function TermsPage() {
         <li>After the trial, PrimeCart is a prepaid subscription, paid monthly, quarterly or yearly at the prices shown in your dashboard when you pay.</li>
         <li>Payments are one-off, by mobile money or card through Paystack. <strong>Nothing renews automatically.</strong></li>
         <li>Paying before your trial or current period ends adds the new time after it, so you don&rsquo;t lose any days.</li>
-        <li>We don&rsquo;t refund partly used periods, unless the law requires it or we close your account without you having broken these terms.</li>
+        <li>You can cancel at any time by not paying for another period. You keep full use of PrimeCart until the period you&rsquo;ve paid for ends, then part 5 applies.</li>
+        <li><strong>Subscription payments aren&rsquo;t refunded</strong>, in full or in part, including when you cancel or stop using PrimeCart before your period ends.</li>
         <li>We may change prices for future periods. Time you&rsquo;ve already paid for isn&rsquo;t affected.</li>
       </ul>
 
@@ -93,7 +94,7 @@ export default function TermsPage() {
 
       <h2>9. Returns, refunds and disputes</h2>
       <ul>
-        <li><strong>Your returns and refunds policy is your own.</strong> It must follow the law, and you must tell shoppers about it clearly and honour it.</li>
+        <li><strong>Your returns and refunds policy is your own.</strong> It must follow the law, and you must tell shoppers about it clearly and honour it. You can publish it in Shop settings.</li>
         <li><strong>You handle every complaint, return, refund and dispute with the shopper yourself, from start to finish</strong>, and pay any refund straight to the shopper. This applies however they paid, including through online checkout.</li>
         <li><strong>PrimeCart takes no part in it.</strong> We don&rsquo;t join the conversation, mediate, decide who is right, hold money or pay refunds. We only give the shopper a way to reach you about their order.</li>
         <li>A shopper&rsquo;s bank, mobile money provider or Paystack may reverse a payment under its own rules. That is their decision, not ours, and a reversed payment is your cost.</li>
@@ -131,7 +132,7 @@ export default function TermsPage() {
 
       <h2>13. If you order from a shop</h2>
       <ul>
-        <li>Your purchase is from <strong>the shop</strong>, not PrimeCart. The shop is responsible for the goods, delivery, returns and refunds. Ask about its returns policy before you order.</li>
+        <li>Your purchase is from <strong>the shop</strong>, not PrimeCart. The shop is responsible for the goods, delivery, returns and refunds. Read its returns policy before you order, or ask for it if the shop hasn&rsquo;t published one.</li>
         <li>An order without online payment isn&rsquo;t final until the shop confirms it.</li>
         <li>An order waiting for online payment is held for 24 hours. After that, the items go back on sale.</li>
         <li>Give correct contact and delivery details. You agree that the shop may contact you on WhatsApp about your order.</li>
@@ -156,8 +157,9 @@ export default function TermsPage() {
 
       <h2>16. Closing your account</h2>
       <p>
-        You can stop at any time by not renewing. To close your shop and have
-        your data deleted, email us. We may keep records the law requires.
+        You can cancel at any time, as part 4 explains. To close your shop and
+        have your data deleted, email us. Closing it early ends your access
+        and isn&rsquo;t refunded. We may keep records the law requires.
         You must still settle what you owe us, and your open orders and refunds with shoppers.
         Parts 9, 12, 15 and 17 continue to apply.
       </p>
