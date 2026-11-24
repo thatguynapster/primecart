@@ -48,7 +48,7 @@ export default async function StorefrontLayout({
   return (
     <div
       style={brandStyle(merchant.primaryColor)}
-      className="flex min-h-full flex-col bg-white text-neutral-900"
+      className="flex min-h-dvh flex-col bg-white text-neutral-900"
     >
       <header className="sticky top-0 z-40 border-b border-neutral-200 bg-white/90 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-5xl items-center gap-3 px-4 sm:px-6 justify-between">
