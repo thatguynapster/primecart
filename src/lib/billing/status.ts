@@ -18,6 +18,8 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** D-24: days after a lapse before the shop closes and the dashboard locks. */
 export const GRACE_DAYS = 7;
+/** D-25: days after a lapse before the storefront itself goes off. */
+export const OFFLINE_DAYS = 10;
 
 export function effectiveStatus(merchant: StatusFields, now: Date): EffectiveStatus {
   // No D-18 clock yet (scripts/backfill-d18.mjs runs on deploy). Never lock
@@ -70,6 +72,23 @@ export function isClosed(
   now: Date
 ): boolean {
   const at = closesAt(merchant);
+  return at != null && at.getTime() <= now.getTime();
+}
+
+/** When the storefront goes off, unless they pay. Null: never. */
+export function offlineAt(
+  merchant: Pick<StatusFields, "trialEndsAt" | "currentPeriodEnd">
+): Date | null {
+  const end = lastAccessEnd(merchant);
+  return end ? new Date(end.getTime() + OFFLINE_DAYS * DAY_MS) : null;
+}
+
+/** D-25: the storefront is off. Only order pages still open. */
+export function isOffline(
+  merchant: Pick<StatusFields, "trialEndsAt" | "currentPeriodEnd">,
+  now: Date
+): boolean {
+  const at = offlineAt(merchant);
   return at != null && at.getTime() <= now.getTime();
 }
 

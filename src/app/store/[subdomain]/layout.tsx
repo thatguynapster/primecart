@@ -8,7 +8,7 @@ import {
 } from "@phosphor-icons/react/dist/ssr";
 import { notFound } from "next/navigation";
 
-import { takesOrders } from "@/lib/billing/state";
+import { isShopOffline, takesOrders } from "@/lib/billing/state";
 import { getMerchantBySubdomain } from "@/lib/merchant/lookup";
 import { brandStyle } from "@/lib/storefront/brand";
 import { getBestSellingCategories } from "@/lib/storefront/bestsellers";
@@ -41,6 +41,9 @@ export default async function StorefrontLayout({
   ]);
 
   const closed = !takesOrders(merchant);
+  // Only order pages get this far then (see the proxy), so nothing here links
+  // into the shop.
+  const offline = isShopOffline(merchant);
 
   return (
     <div
@@ -75,7 +78,7 @@ export default async function StorefrontLayout({
               merchant rather than the reference's hardcoded electronics list —
               hidden below xl, where the search box (kept visible at every
               width per the owner's instruction) needs the room instead. */}
-          {categories.length > 0 && (
+          {!offline && categories.length > 0 && (
             <nav className="hidden min-w-0 shrink-0 items-center gap-5 overflow-x-auto xl:flex">
               <Link
                 href="/"
@@ -99,7 +102,7 @@ export default async function StorefrontLayout({
               category filter switching it out from under the shopper, or
               search only appearing on some pages, was the exact "bad UX"
               flagged. Submits a plain GET to the dedicated products listing. */}
-          <div className="flex gap-3">
+          {!offline && <div className="flex gap-3">
             <form action="/products" className="min-w-0 max-w-44 flex-1">
               <label className="flex items-center gap-2 rounded-full border border-neutral-300 px-3.5 py-2 focus-within:border-neutral-900">
                 <MagnifyingGlass size={15} className="flex-none text-neutral-400" />
@@ -122,13 +125,15 @@ export default async function StorefrontLayout({
               returnsPolicy={merchant.returnsPolicy}
               closed={closed}
             />
-          </div>
+          </div>}
         </div>
       </header>
 
       {closed && (
         <p className="border-b border-neutral-200 bg-neutral-100 px-4 py-2.5 text-center text-[13.5px] text-neutral-700">
-          {merchant.businessName} isn&rsquo;t taking new orders right now.
+          {offline
+            ? "This storefront is no longer active. You can still view your order."
+            : `${merchant.businessName} isn\u2019t taking new orders right now.`}
         </p>
       )}
 
@@ -194,7 +199,7 @@ export default async function StorefrontLayout({
                 </div>
               )}
 
-              {merchant.returnsPolicy && (
+              {!offline && merchant.returnsPolicy && (
                 <Link
                   href="/returns"
                   className="mt-4 inline-block text-[13px] text-neutral-400 underline underline-offset-4 hover:text-white"
@@ -204,7 +209,7 @@ export default async function StorefrontLayout({
               )}
             </div>
 
-            {bestSellingCategories.length > 0 && (
+            {!offline && bestSellingCategories.length > 0 && (
               <div className="min-w-32">
                 <p className="text-[11.5px] font-semibold tracking-wide text-neutral-400 uppercase">
                   Categories

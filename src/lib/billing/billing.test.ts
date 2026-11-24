@@ -13,7 +13,7 @@ import {
   pricePesewas,
   quoteCovers,
 } from "./plans.ts";
-import { closesAt, daysLeft, effectiveStatus, isClosed } from "./status.ts";
+import { closesAt, daysLeft, effectiveStatus, isClosed, isOffline, offlineAt } from "./status.ts";
 import { normalizeGhanaPhone, waMeLink } from "../phone.ts";
 
 const d = (iso: string) => new Date(iso);
@@ -154,6 +154,14 @@ describe("grace period (D-24)", () => {
     assert.equal(isClosed(both, d("2026-12-01T00:00:00Z")), false);
     assert.deepEqual(closesAt(both), d("2026-12-25T10:00:00Z"));
     assert.deepEqual(closesAt({ trialEndsAt: d("2027-01-01T00:00:00Z"), currentPeriodEnd: end }), d("2027-01-08T00:00:00Z"));
+  });
+  it("goes off exactly 10 days after the end, and back on when paid", () => {
+    assert.deepEqual(offlineAt(trial), d("2026-11-28T10:00:00Z"));
+    assert.equal(isOffline(trial, d("2026-11-28T09:59:59Z")), false);
+    assert.equal(isOffline(trial, d("2026-11-28T10:00:00Z")), true);
+    const now = d("2026-12-01T00:00:00Z");
+    assert.equal(isOffline({ ...trial, currentPeriodEnd: d("2027-01-01T00:00:00Z") }, now), false);
+    assert.equal(isOffline({ trialEndsAt: null, currentPeriodEnd: null }, now), false);
   });
   it("never closes a merchant with no dates", () => {
     const none = { trialEndsAt: null, currentPeriodEnd: null };
