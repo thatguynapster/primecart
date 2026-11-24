@@ -154,7 +154,7 @@ Trials start on the production deploy, and the 12 founding months start on the d
 ## 10. Legal, and telling people
 
 - [ ] **[Stop]** `/privacy` and `/terms` reviewed by someone qualified, including the 3% on delivery fees, the hashed IP and phone numbers, and the 60-day backups.
-- [ ] **[Stop]** The reviewer confirms these choices in the drafts: merchants handle refunds and disputes alone and PrimeCart takes no part; the 3% isn't returned on a refund; reversed payments are the merchant's cost; 30 days' notice of a fee change and 14 of new terms; the liability limit; what must be kept after an account closes; who is responsible for order data.
+- [ ] **[Stop]** The reviewer confirms these choices in the drafts: merchants handle refunds and disputes alone and PrimeCart takes no part; the 3% isn't returned on a refund; reversed payments are the merchant's cost; subscription payments are never refunded (access continues to the end of the paid period), with no exception written for shops we close or suspend; 30 days' notice of a fee change and 14 of new terms; the liability limit; what must be kept after an account closes; who is responsible for order data.
 - [ ] You can do what the pages promise: answer data requests, delete an account by hand, email all merchants.
 - [ ] `src/app/(app)/dashboard/error-test` has been removed (it only works on dev, but shouldn't ship).
 - [ ] Data Protection Commission registration (Act 843) done or under way.

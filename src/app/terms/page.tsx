@@ -54,7 +54,8 @@ export default function TermsPage() {
         <li>After the trial, PrimeCart is a prepaid subscription, paid monthly, quarterly or yearly at the prices shown in your dashboard when you pay.</li>
         <li>Payments are one-off, by mobile money or card through Paystack. <strong>Nothing renews automatically.</strong></li>
         <li>Paying before your trial or current period ends adds the new time after it, so you don&rsquo;t lose any days.</li>
-        <li>We don&rsquo;t refund partly used periods, unless the law requires it or we close your account without you having broken these terms.</li>
+        <li>You can cancel at any time by not paying for another period. You keep full use of PrimeCart until the period you&rsquo;ve paid for ends, then part 5 applies.</li>
+        <li><strong>Subscription payments aren&rsquo;t refunded</strong>, in full or in part, including when you cancel or stop using PrimeCart before your period ends.</li>
         <li>We may change prices for future periods. Time you&rsquo;ve already paid for isn&rsquo;t affected.</li>
       </ul>
 
@@ -156,8 +157,9 @@ export default function TermsPage() {
 
       <h2>16. Closing your account</h2>
       <p>
-        You can stop at any time by not renewing. To close your shop and have
-        your data deleted, email us. We may keep records the law requires.
+        You can cancel at any time, as part 4 explains. To close your shop and
+        have your data deleted, email us. Closing it early ends your access
+        and isn&rsquo;t refunded. We may keep records the law requires.
         You must still settle what you owe us, and your open orders and refunds with shoppers.
         Parts 9, 12, 15 and 17 continue to apply.
       </p>
