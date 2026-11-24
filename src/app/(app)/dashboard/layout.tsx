@@ -72,7 +72,9 @@ function BillingBanner({ billing }: { billing: BillingState }) {
     cta = "Renew";
     urgent = billing.daysLeft <= 3;
   } else if (billing.status === "LAPSED") {
-    message = billing.locked
+    message = billing.offline
+      ? "Your plan has expired and your storefront is off"
+      : billing.locked
       ? "Your plan has expired and your shop isn't taking new orders"
       : `Your plan has expired. Your shop takes orders until ${
           billing.closesAt ? formatLongDate(billing.closesAt) : "it closes"

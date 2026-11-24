@@ -1,4 +1,4 @@
-import { GRACE_DAYS } from "@/lib/billing/status";
+import { GRACE_DAYS, OFFLINE_DAYS } from "@/lib/billing/status";
 import type { DormantMerchant } from "@/lib/admin/dormancy";
 import { getDashboardOrigin } from "@/lib/domain";
 import { formatDeadline, formatGhs, formatLongDate, formatRelativeDate } from "@/lib/format";
@@ -373,6 +373,10 @@ export async function notifyBillingReminder(params: {
     formatLongDate(new Date(params.date.getTime() + GRACE_DAYS * 24 * 60 * 60 * 1000))
   );
 
+  const goesOff = escapeHtml(
+    formatLongDate(new Date(params.date.getTime() + OFFLINE_DAYS * 24 * 60 * 60 * 1000))
+  );
+
   const copy: Record<BillingReminderKind, { subject: string; title: string; body: string; cta: string }> = {
     "trial-3": {
       subject: `Your PrimeCart trial ends in ${days}`,
@@ -401,7 +405,7 @@ export async function notifyBillingReminder(params: {
     expired: {
       subject: "Your PrimeCart plan has expired",
       title: "Your plan has expired",
-      body: `Your shop keeps taking orders until <strong>${closes}</strong>, and until then you can still view your dashboard and handle orders. After that, your shop stops taking new orders and your dashboard locks until you choose a plan.`,
+      body: `Your shop keeps taking orders until <strong>${closes}</strong>, and until then you can still view your dashboard and handle orders. After that, your shop stops taking new orders and your dashboard locks until you choose a plan. Your storefront goes off on <strong>${goesOff}</strong>.`,
       cta: "Renew",
     },
   };

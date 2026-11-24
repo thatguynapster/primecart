@@ -2,6 +2,7 @@ import { clerkMiddleware } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
 import { BILLING_SEEN_COOKIE, BILLING_SEEN_SECONDS } from "@/lib/billing/seen-cookie";
+import { isOffline } from "@/lib/billing/status";
 import { getSubdomain } from "@/lib/domain";
 import { getMerchantBySubdomain } from "@/lib/merchant/lookup";
 
@@ -82,8 +83,10 @@ export default clerkMiddleware(async (auth, req) => {
     requestHeaders.set("x-merchant-id", merchant.id);
     requestHeaders.set("x-merchant-slug", merchant.subdomain);
 
-    // Subscription lapsed — the store exists but is switched off.
-    if (!merchant.isActive) {
+    // Switched off, or lapsed for long enough (D-25). When lapsed, buyers keep
+    // their order pages, which is how they reach the shop about an order.
+    const isOrderPage = url.pathname.startsWith("/orders/");
+    if (!merchant.isActive || (isOffline(merchant, new Date()) && !isOrderPage)) {
       return NextResponse.rewrite(new URL("/store-unavailable", req.url), {
         request: { headers: requestHeaders },
       });

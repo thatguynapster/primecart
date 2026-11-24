@@ -14,6 +14,8 @@ import {
   daysLeft,
   effectiveStatus,
   isClosed,
+  isOffline,
+  offlineAt,
   type EffectiveStatus,
 } from "@/lib/billing/status";
 
@@ -31,6 +33,9 @@ export type BillingState = {
   closesAt: Date | null;
   /** That moment has passed. */
   locked: boolean;
+  /** Lapsed only: when the storefront goes off (D-25). */
+  offlineAt: Date | null;
+  offline: boolean;
   /** Whether a founding price is still available for some period start. */
   foundingUntil: Date | null;
 };
@@ -50,6 +55,8 @@ export function getBillingState(merchant: Merchant): BillingState {
     daysLeft: daysLeft(endsAt, now),
     closesAt: status === "LAPSED" ? closesAt(merchant) : null,
     locked: isClosed(merchant, now),
+    offlineAt: status === "LAPSED" ? offlineAt(merchant) : null,
+    offline: isOffline(merchant, now),
     foundingUntil: foundingActive ? merchant.priceOverrideEndsAt : null,
   };
 }
@@ -61,7 +68,7 @@ export function getBillingState(merchant: Merchant): BillingState {
  * cancelling existing orders; switching storefront checkout off; and updating
  * payout details (both protect money that's still moving). The storefront and
  * its checkout keep working. After that, `isLocked`: only billing works and the
- * storefront takes no new orders.
+ * storefront takes no new orders. From OFFLINE_DAYS the storefront is off (D-25).
  */
 export const LAPSED_MESSAGE =
   "Your plan has expired, so changes are paused. Renew on the Billing page to make changes.";
@@ -81,6 +88,13 @@ export function takesOrders(
   merchant: Pick<Merchant, "trialEndsAt" | "currentPeriodEnd">
 ): boolean {
   return !isClosed(merchant, new Date());
+}
+
+/** Whether the storefront is off (D-25). From cached dates, so up to 5 minutes late. */
+export function isShopOffline(
+  merchant: Pick<Merchant, "trialEndsAt" | "currentPeriodEnd">
+): boolean {
+  return isOffline(merchant, new Date());
 }
 
 export type Quote = {
