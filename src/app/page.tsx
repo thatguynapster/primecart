@@ -53,7 +53,7 @@ const FEATURES = [
 
 export default function LandingPage() {
   return (
-    <div className="flex min-h-full flex-col bg-[#F5F5F4] text-neutral-900">
+    <div className="flex min-h-dvh flex-col bg-[#F5F5F4] text-neutral-900">
       <HashScroll />
       <SiteHeader />
 

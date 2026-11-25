@@ -38,7 +38,7 @@ export default async function DashboardLayout({
     // inputs, colour pickers, scrollbars and focus rings are drawn by the
     // browser, not by our classes, and default to the light OS palette
     // otherwise. No amount of Tailwind on the elements themselves fixes it.
-    <div className="font-nk scheme-dark flex min-h-full bg-nk-bg text-nk-text">
+    <div className="font-nk scheme-dark flex min-h-dvh bg-nk-bg text-nk-text">
       <SideRail ordersNeedingAction={ordersNeedingAction} />
 
       {/* Bottom padding on phones clears the fixed tab bar. */}
