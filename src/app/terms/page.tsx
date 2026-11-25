@@ -17,7 +17,7 @@ export default function TermsPage() {
   const email = supportEmail();
 
   return (
-    <LegalPage title="Terms of Service" updated="24 November 2026">
+    <LegalPage title="Terms of Service" updated="25 November 2026">
       <p>
         These terms are an agreement between you and PrimeCart, Accra, Ghana
         (&ldquo;we&rdquo;). Sections 1 to 12 and 14 to 17 are for{" "}
@@ -101,8 +101,8 @@ export default function TermsPage() {
         <li><strong>Your returns and refunds policy is your own.</strong> It must follow the law, and you must tell shoppers about it clearly and honour it. You can publish it in Shop settings.</li>
         <li><strong>You handle every complaint, return, refund and dispute with the shopper yourself, from start to finish</strong>, and pay any refund straight to the shopper. This applies however they paid, including through online checkout.</li>
         <li><strong>PrimeCart takes no part in it.</strong> We don&rsquo;t join the conversation, mediate, decide who is right, hold money or pay refunds. We only give the shopper a way to reach you about their order.</li>
-        <li>A shopper&rsquo;s bank, mobile money provider or Paystack may reverse a payment under its own rules. That is their decision, not ours, and a reversed payment is your cost.</li>
-        <li>The 3% fee isn&rsquo;t returned when you refund a shopper.</li>
+        <li>A shopper&rsquo;s bank, mobile money provider or Paystack may reverse a payment under its own rules. That is their decision, not ours. A reversed payment is your cost, and so is any charge for it: if Paystack takes either from us, you must pay us back.</li>
+        <li>Payment charges aren&rsquo;t returned. You bear the 3% fee even if you refund the shopper or the payment is reversed.</li>
       </ul>
 
       <h2>10. Your responsibilities</h2>
