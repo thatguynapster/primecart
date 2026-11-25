@@ -1,20 +1,28 @@
 /**
- * Fails a production deploy when email can't reach merchants. New orders are
- * announced by email only, and without a verified sender Resend delivers to
- * nobody but the account owner, silently.
+ * Stops a production deploy, before the backup and schema push, unless every
+ * variable in `production-env.mjs` is set and looks right. Lists all the
+ * problems at once. Skipped on other Vercel builds.
+ *
+ * Check a local file instead: `npm run env:check` (reads `.env.prod`).
  *
  * Prints variable names only, never values (the repository is public).
  */
-if (process.env.VERCEL_ENV === "production") {
-  const missing = ["RESEND_API_KEY", "NOTIFICATIONS_FROM_EMAIL", "ADMIN_NOTIFICATION_EMAIL"].filter(
-    (name) => !process.env[name]
-  );
-  if (missing.length > 0) {
-    console.error(`Production is missing ${missing.join(", ")}. Set them in Vercel (Production).`);
+import { checkProductionEnv, REQUIRED_NAMES } from "./production-env.mjs";
+
+const local = process.argv.includes("--local");
+
+if (process.env.VERCEL && !process.env.VERCEL_ENV) {
+  console.error("VERCEL_ENV is missing. In Vercel, turn on automatic system environment variables.");
+  process.exit(1);
+}
+
+if (local || process.env.VERCEL_ENV === "production") {
+  const { errors, warnings } = checkProductionEnv(process.env);
+  for (const warning of warnings) console.warn(`Note: ${warning}`);
+  if (errors.length > 0) {
+    console.error(`\nProduction environment: ${errors.length} to fix${local ? "" : " in Vercel (Production)"}`);
+    for (const error of errors) console.error(`  - ${error}`);
     process.exit(1);
   }
-  if (/@resend\.dev/i.test(process.env.NOTIFICATIONS_FROM_EMAIL)) {
-    console.error("NOTIFICATIONS_FROM_EMAIL is Resend's test sender, which can't email merchants.");
-    process.exit(1);
-  }
+  console.log(`Production environment: all ${REQUIRED_NAMES.length} variables are set and look right.`);
 }
