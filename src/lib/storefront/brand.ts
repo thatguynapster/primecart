@@ -6,14 +6,17 @@
  * would ship unreadable buttons.
  */
 
-/** Perceived brightness (ITU-R BT.601), 0–255. */
+/** WCAG relative luminance, 0 (black) to 1 (white). */
 function luminance(hex: string): number {
-  const value = hex.replace("#", "");
-  const r = parseInt(value.slice(0, 2), 16);
-  const g = parseInt(value.slice(2, 4), 16);
-  const b = parseInt(value.slice(4, 6), 16);
-  return 0.299 * r + 0.587 * g + 0.114 * b;
+  const [r, g, b] = [1, 3, 5].map((start) => {
+    const channel = parseInt(hex.slice(start, start + 2), 16) / 255;
+    return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
+
+/** White text needs at least this contrast (WCAG's floor for bold buttons). */
+const MIN_WHITE_CONTRAST = 3;
 
 const HEX = /^#[0-9a-fA-F]{6}$/;
 
@@ -24,7 +27,8 @@ export function safeBrandColor(color: string | null | undefined): string {
 
 /** Readable text colour for content sitting on the brand colour. */
 export function onBrandColor(color: string): string {
-  return luminance(safeBrandColor(color)) > 150 ? "#111111" : "#ffffff";
+  const whiteContrast = 1.05 / (luminance(safeBrandColor(color)) + 0.05);
+  return whiteContrast < MIN_WHITE_CONTRAST ? "#111111" : "#ffffff";
 }
 
 /**
