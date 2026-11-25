@@ -105,14 +105,16 @@ Never give Preview a production value or the other way round: Preview builds run
 | `R2_BUCKET_NAME` | Image bucket | No uploads |
 | `R2_PUBLIC_URL` | `https://pub-….r2.dev`, no trailing slash | Broken images |
 | `BACKUP_R2_ACCESS_KEY_ID`, `BACKUP_R2_SECRET_ACCESS_KEY` | Part 2 | **Build fails** |
-| `BACKUP_R2_BUCKET` | `primecart-backups` | Defaults to this name |
+| `BACKUP_R2_BUCKET` | `primecart-backups` | **Build fails** (also if it is the image bucket) |
 | `RESEND_API_KEY` | Part 5 | **Build fails** |
 | `NOTIFICATIONS_FROM_EMAIL` | e.g. `PrimeCart <noreply@primecart.app>` | **Build fails** (also if it's `@resend.dev`) |
 | `ADMIN_NOTIFICATION_EMAIL` | Your inbox | **Build fails** |
-| `SUPPORT_EMAIL` | Part 5 mailbox | Shows `support@primecart.app` |
+| `SUPPORT_EMAIL` | Part 5 mailbox | **Build fails** |
 | `FOUNDING_MERCHANT_IDS` | Part 9. Comma-separated ids | Founding merchants pay list price |
 
-- [ ] **[Stop]** All of the above set and checked for stray spaces and quotes.
+The production build checks all of these first (`scripts/production-env.mjs`): that each is set, has no stray spaces or quotes, and is a live value rather than a test one. Except `FOUNDING_MERCHANT_IDS`, a missing or wrong one stops the build before the backup or any database change, and the log lists every problem at once, names only. To check a local copy instead, put the values in `.env.prod` (gitignored) and run `npm run env:check`. It reads that file, not Vercel, so the production build's own check is the one that counts.
+
+- [ ] **[Stop]** All of the above set.
 - [ ] **[Stop]** Preview's `DATABASE_URL` is `primecart-dev`, with Clerk and Paystack **test** keys.
 - [ ] **Not set** in Production: `RESEND_BASE_URL`, `BACKUP_ON_BUILD`, `BACKUP_PREFIX`, `BACKUP_SOURCE` (tests and backups only).
 - [ ] Remove if present (no longer used): `PAYSTACK_PLAN_CODE`, `PAYSTACK_PUBLIC_KEY`.
