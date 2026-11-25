@@ -20,9 +20,9 @@
 ## 1. Decisions and accounts
 
 - [ ] **[Stop] Vercel plan.** Vercel's Hobby plan is for personal, non-commercial use. PrimeCart charges merchants, so check that the account is on a plan that allows it (Pro).
-- [ ] **[Stop] Paystack business account approved for live payments.** The Live toggle must work. Ask whether a published refund policy is required. Decided: refunds to shoppers are each merchant's own (`/terms` sections 9 and 13; a shop can publish its policy at `<shop>/returns`), and subscription payments aren't refunded (section 4), so point them there.
+- [x] **[Stop] Paystack business account approved for live payments** (owner, 2026-11-25). The Live toggle must work. Ask whether a published refund policy is required. Decided: refunds to shoppers are each merchant's own (`/terms` sections 9 and 13; a shop can publish its policy at `<shop>/returns`), and subscription payments aren't refunded (section 4), so point them there.
 - [ ] **[Stop] Paystack split payments / subaccounts allowed** on the live account, for both bank and mobile money payouts.
-- [ ] **[Stop] Chargebacks.** The payment is made through PrimeCart's Paystack account, with the merchant as a subaccount. Ask Paystack: when a bank reverses a payment, whose balance is debited, who must answer it and by when, and can the merchant be the one to answer?
+- [ ] **Chargebacks.** Settled (owner, 2026-11-25): the merchant pays for a reversed payment and its charges; Paystack returns no charges, so neither does PrimeCart (`/terms` section 9). Still to ask: who must answer it and by when. The payment is made through PrimeCart's Paystack account, with the merchant as a subaccount. Ask Paystack: when a bank reverses a payment, whose balance is debited, who must answer it and by when, and can the merchant be the one to answer?
 - [ ] **Paystack's fee rate** confirmed for your account. PrimeCart pays it out of its 3%, on the whole payment including delivery.
 - [ ] **Resend plan** sends enough: each order can send 2 or 3 emails. Check the daily limit on your plan.
 - [ ] **MongoDB Atlas** tier chosen. A free M0 cluster has no managed backups and small limits. Part 2's backups exist because of that.
@@ -155,8 +155,8 @@ Trials start on the production deploy, and the 12 founding months start on the d
 
 ## 10. Legal, and telling people
 
-- [ ] **[Stop]** `/privacy` and `/terms` reviewed by someone qualified, including the 3% on delivery fees, the hashed IP and phone numbers, and the 60-day backups.
-- [ ] **[Stop]** The reviewer confirms these choices in the drafts: merchants handle refunds and disputes alone and PrimeCart takes no part; the 3% isn't returned on a refund; reversed payments are the merchant's cost; subscription payments are never refunded (access continues to the end of the paid period), with no exception written for shops we close or suspend; 30 days' notice of a fee change and 14 of new terms; the liability limit; what must be kept after an account closes; who is responsible for order data.
+- [ ] **After launch (owner, 2026-11-25: no lawyer affordable yet, a few months at most).** `/privacy` and `/terms` reviewed by someone qualified, including the 3% on delivery fees, the hashed IP and phone numbers, and the 60-day backups.
+- [ ] **After launch.** The reviewer confirms these choices in the drafts: merchants handle refunds and disputes alone and PrimeCart takes no part; the 3% isn't returned on a refund; reversed payments are the merchant's cost; subscription payments are never refunded (access continues to the end of the paid period), with no exception written for shops we close or suspend; 30 days' notice of a fee change and 14 of new terms; the liability limit; what must be kept after an account closes; who is responsible for order data.
 - [ ] You can do what the pages promise: answer data requests, delete an account by hand, email all merchants.
 - [x] `src/app/(app)/dashboard/error-test` has been removed.
 - [ ] Data Protection Commission registration (Act 843) done or under way.
