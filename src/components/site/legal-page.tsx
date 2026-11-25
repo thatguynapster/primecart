@@ -22,7 +22,7 @@ export function LegalPage({
   children: ReactNode;
 }) {
   return (
-    <div className="flex min-h-full flex-col bg-[#F5F5F4] text-neutral-900">
+    <div className="flex min-h-dvh flex-col bg-[#F5F5F4] text-neutral-900">
       <SiteHeader />
       <main className="mx-auto w-full max-w-2xl flex-1 px-5 py-14 sm:px-8 sm:py-20">
         <h1 className="font-display text-3xl font-extrabold tracking-[-0.03em] sm:text-[2.5rem]">

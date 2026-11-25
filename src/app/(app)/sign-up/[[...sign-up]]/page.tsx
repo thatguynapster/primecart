@@ -7,7 +7,7 @@ export const metadata = {
 
 export default function SignUpPage() {
   return (
-    <div className="flex min-h-full flex-col items-center justify-center gap-6 bg-[#F5F5F4] px-5 py-16">
+    <div className="flex min-h-dvh flex-col items-center justify-center gap-6 bg-[#F5F5F4] px-5 py-16">
       <div className="text-center">
         <h1 className="font-display text-2xl font-extrabold tracking-[-0.03em] text-neutral-900">
           Start your free trial

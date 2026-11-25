@@ -19,7 +19,7 @@ export default async function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-full bg-[#F5F5F4] text-neutral-900">
+    <div className="min-h-dvh bg-[#F5F5F4] text-neutral-900">
       <header className="border-b border-neutral-200/70">
         <div className="mx-auto flex h-16 max-w-2xl items-center gap-2.5 px-5 sm:px-8">
           <Image
