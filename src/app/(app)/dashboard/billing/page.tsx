@@ -111,8 +111,8 @@ export default async function BillingPage({
           {billing.locked ? (
             <p className="mt-2 text-sm leading-relaxed text-nk-neutral-400">
               {billing.offline
-                ? "Your storefront is off and your dashboard is locked. "
-                : `Your shop isn\u2019t taking new orders and your dashboard is locked. Your storefront goes off on ${
+                ? "Your storefront is off. Your dashboard is locked apart from Orders, where you can still handle the orders you have. "
+                : `Your shop isn\u2019t taking new orders. Your dashboard is locked apart from Orders, where you can still handle the orders you have. Your storefront goes off on ${
                     billing.offlineAt ? formatLongDate(billing.offlineAt) : "its closing date"
                   }. `}
               Choose a plan below to reopen both. Your storefront can take up
@@ -125,7 +125,8 @@ export default async function BillingPage({
                 {billing.closesAt && formatLongDate(billing.closesAt)}. Until
                 then you can view your dashboard and handle orders, but not
                 change products or settings. After that, your shop stops taking
-                new orders and your dashboard locks until you pay. Your
+                new orders and the rest of your dashboard locks until you
+                pay, apart from Orders, so you can finish the orders you have. Your
                 storefront goes off completely on{" "}
                 {billing.offlineAt && formatLongDate(billing.offlineAt)}.
               </p>

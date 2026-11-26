@@ -69,7 +69,7 @@ export default function TermsPage() {
       <ul>
         <li>Your storefront doesn&rsquo;t take new orders. Shoppers can still view it until <strong>10 days</strong> after your trial or paid time ran out.</li>
         <li>From then, your storefront is switched off and shows a message that it is no longer active. Shoppers who already ordered can still open their order page.</li>
-        <li>You can&rsquo;t use your dashboard beyond the billing page. You&rsquo;re still responsible for orders already placed, including any payment a shopper completes for one, so handle them directly with the shopper.</li>
+        <li>Your dashboard opens only the billing page and your orders. You can still see and handle orders already placed, and you&rsquo;re still responsible for them, including any payment a shopper completes for one.</li>
       </ul>
 
       <h2>6. Orders without online checkout</h2>
