@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 
 import { TRIAL_DAYS, addDays } from "@/lib/billing/plans";
+import { TERMS_VERSION } from "@/lib/legal";
 import { requireMerchant } from "@/lib/merchant/current";
 import { invalidateStorefront } from "@/lib/merchant/lookup";
 import { GHANA_PHONE_ERROR, normalizeGhanaPhone } from "@/lib/phone";
@@ -94,6 +95,9 @@ export async function completeOnboarding(
       where: { id: merchant.id },
       data: {
         ...subscription,
+        // "By opening your shop you agree to the Terms" (onboarding-form).
+        termsVersion: TERMS_VERSION,
+        termsAcceptedAt: now,
         // Setting the whole composite works through Prisma Client; only
         // partial updates of a single embedded field require $runCommandRaw.
         storefront: {

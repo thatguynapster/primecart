@@ -62,6 +62,12 @@ model Merchant {
   shopSharedAt  DateTime? // first use of a share or copy button
   setupHiddenAt DateTime? // the merchant hid the list
 
+  // The Terms this merchant last agreed to (TERMS_VERSION in
+  // src/lib/legal.ts) and when: on opening the shop, and again on each
+  // subscription payment. Null for shops opened before 2026-11-26.
+  termsVersion    String?
+  termsAcceptedAt DateTime?
+
   // The shop's delivery areas and prices, plus pickup and "agreed on WhatsApp".
   // Empty = shoppers aren't asked and no fee is added (as before).
   deliveryOptions DeliveryOption[]
@@ -319,6 +325,9 @@ model SubscriptionPayment {
   // 2026-11-18.
   authorizationUrl  String?
   channel           String? // Paystack channel, e.g. "mobile_money", "card"
+  // The Terms the merchant agreed to by starting this payment, including
+  // that the paid time starts at once (section 4).
+  termsVersion      String?
   paidAt            DateTime?
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
