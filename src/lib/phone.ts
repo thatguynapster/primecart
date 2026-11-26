@@ -33,6 +33,24 @@ export const GHANA_PHONE_ERROR =
   "Enter a Ghanaian WhatsApp number, like 024 400 0000 or +233 24 400 0000.";
 
 /**
+ * A Ghanaian mobile number, for mobile money payouts. Mobile numbers start
+ * 02x or 05x. A landline (03x) or toll-free number (0800) can't hold a
+ * wallet, so they're turned away here instead of by Paystack.
+ */
+export function normalizeGhanaMobile(raw: string): string | null {
+  const e164 = normalizeGhanaPhone(raw);
+  return e164 && /^\+233[25]/.test(e164) ? e164 : null;
+}
+
+export const GHANA_MOMO_ERROR =
+  "Enter a Ghanaian mobile money number, like 024 400 0000.";
+
+/** `+233244000000` to `0244000000`, the form Paystack takes for MoMo accounts. */
+export function ghanaNational(e164: string): string {
+  return `0${e164.slice(4)}`;
+}
+
+/**
  * The digits `wa.me` wants: international format, no `+`. Accepts an E.164
  * number or anything `normalizeGhanaPhone` understands. For other input (a
  * number saved before normalisation existed) it strips non-digits, which is

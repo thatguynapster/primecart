@@ -19,8 +19,19 @@ import {
   updateStorefrontSocials,
 } from "@/lib/merchant/storefront";
 import { parseDeliveryForm } from "@/lib/orders/delivery";
-import { PaystackError, createSubaccount, updateSubaccount } from "@/lib/paystack";
-import { GHANA_PHONE_ERROR, normalizeGhanaPhone } from "@/lib/phone";
+import {
+  PaystackError,
+  createSubaccount,
+  listGhanaianBanks,
+  updateSubaccount,
+} from "@/lib/paystack";
+import {
+  GHANA_MOMO_ERROR,
+  GHANA_PHONE_ERROR,
+  ghanaNational,
+  normalizeGhanaMobile,
+  normalizeGhanaPhone,
+} from "@/lib/phone";
 import { prisma } from "@/lib/prisma";
 import {
   ImageUploadError,
@@ -265,18 +276,39 @@ export async function removeBannerImage(): Promise<void> {
 // Storefront checkout add-on (D-18a, D-18d)
 // ---------------------------------------------------------------------------
 
-function parsePayoutFields(formData: FormData):
+/** Whether a Paystack bank code is a mobile money provider. False if unsure. */
+async function isMobileMoney(bankCode: string): Promise<boolean> {
+  try {
+    const banks = await listGhanaianBanks();
+    return banks.some((bank) => bank.code === bankCode && bank.type === "mobile_money");
+  } catch {
+    return false; // Paystack still checks the number when the subaccount is made.
+  }
+}
+
+/**
+ * A MoMo number is checked like every other phone number (the form uses the
+ * phone field for it) and sent to Paystack as `0244000000`. A bank account
+ * number is digits, with any spaces taken out.
+ */
+async function parsePayoutFields(formData: FormData): Promise<
   | { ok: true; bankCode: string; accountNumber: string }
-  | { ok: false; fieldErrors: Record<string, string> } {
+  | { ok: false; fieldErrors: Record<string, string> }
+> {
   const bankCode = String(formData.get("bankCode") ?? "").trim();
-  const accountNumber = String(formData.get("accountNumber") ?? "").trim();
+  const typed = String(formData.get("accountNumber") ?? "").trim();
+  let accountNumber = typed.replace(/[\s-]/g, "");
 
   const fieldErrors: Record<string, string> = {};
   if (!bankCode) {
     fieldErrors.bankCode = "Choose where you want to be paid.";
   }
-  if (!accountNumber) {
+  if (!typed) {
     fieldErrors.accountNumber = "Enter your account or mobile money number.";
+  } else if (bankCode && (await isMobileMoney(bankCode))) {
+    const mobile = normalizeGhanaMobile(typed);
+    if (mobile) accountNumber = ghanaNational(mobile);
+    else fieldErrors.accountNumber = GHANA_MOMO_ERROR;
   } else if (!/^[0-9]{5,20}$/.test(accountNumber)) {
     fieldErrors.accountNumber = "Use digits only.";
   }
@@ -304,7 +336,7 @@ export async function enableStorefrontPayments(
   if (!storefront) return { error: "Finish setting up your shop first." };
 
   if (!merchant.paystackSubaccountCode) {
-    const payout = parsePayoutFields(formData);
+    const payout = await parsePayoutFields(formData);
     if (!payout.ok) return { fieldErrors: payout.fieldErrors };
 
     try {
@@ -437,7 +469,7 @@ export async function updatePayoutDetails(
   const storefront = merchant.storefront;
   if (!storefront) return { error: "Finish setting up your shop first." };
 
-  const payout = parsePayoutFields(formData);
+  const payout = await parsePayoutFields(formData);
   if (!payout.ok) return { fieldErrors: payout.fieldErrors };
   const { bankCode, accountNumber } = payout;
 
