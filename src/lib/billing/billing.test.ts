@@ -15,7 +15,7 @@ import {
 } from "./plans.ts";
 import { closesAt, daysLeft, effectiveStatus, isClosed, isOffline, offlineAt } from "./status.ts";
 import { reminderFor } from "./reminder-due.ts";
-import { normalizeGhanaPhone, waMeLink } from "../phone.ts";
+import { ghanaNational, normalizeGhanaMobile, normalizeGhanaPhone, waMeLink } from "../phone.ts";
 
 const d = (iso: string) => new Date(iso);
 const none = { priceOverridePercent: null, priceOverrideEndsAt: null };
@@ -220,6 +220,14 @@ describe("normalizeGhanaPhone", () => {
     for (const good of ["0204000000", "0234000000", "0554000000", "0594000000", "0302000000"]) {
       assert.ok(normalizeGhanaPhone(good), good);
     }
+  });
+  it("takes only mobile numbers for mobile money", () => {
+    assert.equal(normalizeGhanaMobile("024 400 0000"), "+233244000000");
+    assert.equal(normalizeGhanaMobile("+233 50 400 0000"), "+233504000000");
+    for (const bad of ["0302000000", "0800000000", "02440000000", "024400000"]) {
+      assert.equal(normalizeGhanaMobile(bad), null, bad);
+    }
+    assert.equal(ghanaNational("+233244000000"), "0244000000");
   });
   it("builds wa.me links", () => {
     assert.equal(waMeLink("+233244000000"), "https://wa.me/233244000000");

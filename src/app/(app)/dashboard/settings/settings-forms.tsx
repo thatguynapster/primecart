@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useId, useState } from "react";
+import { useActionState, useEffect, useId, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 
 import { Field, FormError, inputClass } from "@/components/dashboard/fields";
@@ -407,10 +407,30 @@ function PayoutFields({
   const bankOptions = banks.filter((b) => b.type !== "mobile_money");
   const momoOptions = banks.filter((b) => b.type === "mobile_money");
 
+  // A MoMo account number is a phone number, so it gets the phone field.
+  const select = useRef<HTMLSelectElement>(null);
+  const [bankCode, setBankCode] = useState("");
+  const isMomo = momoOptions.some((b) => b.code === bankCode);
+  useEffect(() => {
+    // React resets the form after the action runs, and the select with it.
+    const form = select.current?.form;
+    if (!form) return;
+    const cleared = () => setBankCode("");
+    form.addEventListener("reset", cleared);
+    return () => form.removeEventListener("reset", cleared);
+  }, []);
+
   return (
     <>
       <Field label={bankLabel} htmlFor={ids.bankCode} error={fieldErrors.bankCode}>
-        <select id={ids.bankCode} name="bankCode" defaultValue="" className={inputClass}>
+        <select
+          ref={select}
+          id={ids.bankCode}
+          name="bankCode"
+          defaultValue=""
+          onChange={(event) => setBankCode(event.currentTarget.value)}
+          className={inputClass}
+        >
           <option value="" disabled>
             {banks.length === 0 ? "Couldn't load banks — refresh to try again" : "Choose one"}
           </option>
@@ -436,18 +456,31 @@ function PayoutFields({
       </Field>
 
       <Field
-        label="Account or mobile money number"
+        label={!bankCode ? "Account or mobile money number" : isMomo ? "Mobile money number" : "Account number"}
         htmlFor={ids.accountNumber}
-        error={fieldErrors.accountNumber}
+        error={isMomo ? undefined : fieldErrors.accountNumber}
       >
-        <input
-          id={ids.accountNumber}
-          name="accountNumber"
-          inputMode="numeric"
-          placeholder="0244000000"
-          autoComplete="off"
-          className={inputClass}
-        />
+        {isMomo ? (
+          <GhanaPhoneInput
+            id={ids.accountNumber}
+            name="accountNumber"
+            mobile
+            required
+            requiredMessage="Enter your mobile money number."
+            className={`${inputClass} aria-invalid:border-nk-accent-300`}
+            error={fieldErrors.accountNumber}
+            errorClassName="mt-1.5 text-xs text-nk-accent-300"
+          />
+        ) : (
+          <input
+            id={ids.accountNumber}
+            name="accountNumber"
+            inputMode="numeric"
+            placeholder={bankCode ? "Account number" : "0244000000"}
+            autoComplete="off"
+            className={inputClass}
+          />
+        )}
       </Field>
     </>
   );

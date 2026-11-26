@@ -12,13 +12,21 @@ import {
 import GhanaFlag from "country-flag-icons/react/3x2/GH";
 import PhoneNumberInput from "react-phone-number-input/input";
 
-import { GHANA_PHONE_ERROR, normalizeGhanaPhone } from "@/lib/phone";
+import {
+  GHANA_MOMO_ERROR,
+  GHANA_PHONE_ERROR,
+  normalizeGhanaMobile,
+  normalizeGhanaPhone,
+} from "@/lib/phone";
 
 /**
- * A Ghanaian WhatsApp number, formatted as it's typed (`024 400 0000`, or
- * `+233 24 400 0000` when typed with the code).
+ * A Ghanaian phone number, formatted as it's typed (`024 400 0000`, or
+ * `+233 24 400 0000` when typed with the code). Every phone field in the app
+ * uses this: onboarding, checkout, settings (WhatsApp and the MoMo payout
+ * number) and manual orders.
  *
- * The check is `normalizeGhanaPhone`, the same one the server runs, on the
+ * The check is `normalizeGhanaPhone` (or `normalizeGhanaMobile` with
+ * `mobile`), the same one the server runs, on the
  * text the server will receive, so the two can't disagree. It works through
  * the browser's own form validation: a bad number stops the submit, whatever
  * handles it, and the message shows under the field instead of a browser
@@ -41,6 +49,7 @@ export function GhanaPhoneInput({
   required = false,
   requiredMessage = "Enter a WhatsApp number.",
   placeholder = "024 400 0000",
+  mobile = false,
   error,
 }: {
   id: string;
@@ -57,6 +66,8 @@ export function GhanaPhoneInput({
   required?: boolean;
   requiredMessage?: string;
   placeholder?: string;
+  /** Mobile numbers only (02x, 05x), for mobile money. */
+  mobile?: boolean;
   /** From the server. */
   error?: string;
 }) {
@@ -72,17 +83,19 @@ export function GhanaPhoneInput({
     (raw: string): string | null => {
       const text = raw.trim();
       const found = !text
-      ? required
-        ? requiredMessage
-        : null
-        : normalizeGhanaPhone(text)
+        ? required
+          ? requiredMessage
+          : null
+        : (mobile ? normalizeGhanaMobile : normalizeGhanaPhone)(text)
           ? null
-          : GHANA_PHONE_ERROR;
+          : mobile
+            ? GHANA_MOMO_ERROR
+            : GHANA_PHONE_ERROR;
       ref.current?.setCustomValidity(found ?? "");
       setProblem(found);
       return found;
     },
-    [required, requiredMessage]
+    [required, requiredMessage, mobile]
   );
 
   const message = (shown ? problem : null) ?? error;
