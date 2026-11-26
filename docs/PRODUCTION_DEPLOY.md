@@ -1,6 +1,6 @@
 # Production deploy: everything left to do
 
-**For:** the owner. **Rewritten:** 2026-11-23. Replaces the earlier version (which described a removed Paystack plan and a removed trial cron job).
+**For:** the owner. **Rewritten:** 2026-11-23, **accounts added** 2026-11-26. Replaces the earlier version (which described a removed Paystack plan and a removed trial cron job).
 
 **Assumes none of this version has been deployed to production yet.** An older version answers at `primecart.app` (checked 2026-11-23): it advertises the old pricing and its sign-up page is open, so do part 0 today. If an item already exists, check it against what's written here and tick it. Work top to bottom: later parts depend on earlier ones. Parts 1 to 10 come **before** the merge to `main`, because that merge starts the production build.
 
@@ -17,17 +17,37 @@
 - [ ] Atlas → production `Merchant`: check for accounts you don't recognise. Any with a shop get a 14-day trial on the deploy. Contact them, don't just delete them.
 - [ ] Don't delete the old deployment or the Clerk instance: existing merchants use both.
 
+## Accounts this deploy needs
+
+Every service PrimeCart runs on, and what production needs from it. Most already exist because dev uses them; production mostly needs a **live** version of what dev has, and a paid plan where the free one isn't allowed or isn't enough. Each row points to the part that sets it up.
+
+| Service | Used for | Already set up | Production needs | Part |
+| --- | --- | --- | --- | --- |
+| GitHub | Code, pull requests, daily backup job | Yes | `main` protected, backup secrets | 8 |
+| Vercel | Hosting, builds, DNS for `primecart.app` | Yes, dev builds from `feat/v2`; DNS already on Vercel (checked 2026-11-26) | **Pro plan**, production settings and variables, domains | 1, 7 |
+| Domain registrar | Owns `primecart.app` | Yes | Auto-renew on | 1 |
+| MongoDB Atlas | Database | Yes, dev database `primecart-dev` | Production database and users, a tier with enough room | 1, 3 |
+| Clerk | Merchant sign-in | Dev instance; a production instance exists if the old site has merchants | Production instance on `primecart.app`, live keys | 0, 4 |
+| Paystack | Shop payments, subscriptions, payouts | Yes, test mode; live approved 2026-11-25 | Live secret key, live webhook, split payments allowed, MoMo and card on | 1, 8 |
+| Cloudflare R2 | Product photos, database backups | Image bucket for dev | Private backup bucket and token; image bucket decision | 2, 6 |
+| Resend | Order, billing and alert emails | Yes | `primecart.app` verified, production key, a plan with enough daily sends | 1, 5 |
+| Zoho Mail | The support mailbox | `primecart.app` mail already goes to Zoho (checked 2026-11-26) | The `SUPPORT_EMAIL` mailbox exists and is read | 5 |
+| cron-job.org | The three scheduled jobs | Dev jobs | Three production jobs with the production secret | 12b |
+| Password manager | Every `[Keep]` value | Yours | Somewhere to keep them | All |
+
+- [ ] **Billing:** each paid plan (Vercel Pro, and Atlas, Resend or Clerk if you go past their free tiers) has a payment method that won't expire soon, and billing emails go to an inbox you read. A failed card can take the site or emails down.
+
 ## 1. Decisions and accounts
 
-- [ ] **[Stop] Vercel plan.** Vercel's Hobby plan is for personal, non-commercial use. PrimeCart charges merchants, so check that the account is on a plan that allows it (Pro).
+- [ ] **[Stop] Vercel plan.** Vercel's Hobby plan is for personal, non-commercial use. PrimeCart charges merchants, so the account must be on a plan that allows it: Vercel → your team's Settings → Billing → upgrade to **Pro**, with a payment method.
 - [x] **[Stop] Paystack business account approved for live payments** (owner, 2026-11-25). The Live toggle must work. Ask whether a published refund policy is required. Decided: refunds to shoppers are each merchant's own (`/terms` sections 9 and 13; a shop can publish its policy at `<shop>/returns`), and subscription payments aren't refunded (section 4), so point them there.
 - [ ] **[Stop] Paystack split payments / subaccounts allowed** on the live account, for both bank and mobile money payouts.
 - [ ] **Chargebacks.** Settled (owner, 2026-11-25): the merchant pays for a reversed payment and its charges; Paystack returns no charges, so neither does PrimeCart (`/terms` section 9). Still to ask: who must answer it and by when. The payment is made through PrimeCart's Paystack account, with the merchant as a subaccount. Ask Paystack: when a bank reverses a payment, whose balance is debited, who must answer it and by when, and can the merchant be the one to answer?
 - [ ] **Paystack's fee rate** confirmed for your account. PrimeCart pays it out of its 3%, on the whole payment including delivery.
 - [ ] **Resend plan** sends enough: each order can send 2 or 3 emails. Check the daily limit on your plan.
-- [ ] **MongoDB Atlas** tier chosen. A free M0 cluster has no managed backups and small limits. Part 2's backups exist because of that.
+- [ ] **MongoDB Atlas** tier chosen. A free M0 cluster has no managed backups and small limits. Part 2's backups exist because of that. Check Atlas's current limits and prices for the tier you pick.
 - [ ] **Clerk plan** covers a production instance and the number of merchants you expect.
-- [ ] **Who can log in** to Vercel, GitHub, Atlas, Cloudflare, Clerk, Paystack, Resend, cron-job.org and the domain registrar: two-factor authentication on for each, recovery codes saved.
+- [ ] **Who can log in** to Vercel, GitHub, Atlas, Cloudflare, Clerk, Paystack, Resend, Zoho, cron-job.org and the domain registrar: two-factor authentication on for each, recovery codes saved.
 - [ ] **Domain `primecart.app`**: auto-renew on.
 
 ## 2. Backups (the production build fails without them)
@@ -39,7 +59,7 @@
 
 ## 3. MongoDB Atlas
 
-- [ ] **[Stop]** Production database `primecart`, separate from dev's `primecart-dev`.
+- [ ] **[Stop]** Production database `primecart`, separate from dev's `primecart-dev`. Safest is its own Atlas **project** (Atlas → Projects → New Project → create a cluster in it): database users and network rules belong to a project, so nothing made for dev can reach production. Put the cluster in the region nearest the Vercel function region (part 7a).
 - [ ] **[Stop] [Keep]** A database user for the app: read and write on `primecart` only. Its connection string must name the database: `mongodb+srv://…/primecart?retryWrites=true&w=majority`.
 - [ ] **[Keep]** A second user, **read-only** on `primecart`, for the GitHub backup (part 8).
 - [ ] **[Stop]** Network access: allow `0.0.0.0/0`. Vercel and GitHub have no fixed addresses. The password is the protection, so make it long and random.
@@ -59,10 +79,10 @@
 
 ## 5. Email (Resend)
 
-- [ ] **[Stop]** Sending domain `primecart.app` shows **Verified**, with its SPF and DKIM records in Vercel's DNS.
+- [ ] **[Stop]** Sending domain `primecart.app` shows **Verified**, with its SPF and DKIM records in Vercel's DNS. Resend puts its SPF and bounce records on the `send` subdomain, so they don't clash with Zoho's. A name can have only one SPF record: if Resend ever asks for one on `primecart.app` itself, merge it into Zoho's rather than adding a second.
 - [ ] A DMARC record for `primecart.app` (start with `p=none`), so order emails don't land in spam.
 - [ ] **[Keep]** A production API key with sending access only.
-- [ ] **[Stop]** The `SUPPORT_EMAIL` mailbox exists and someone reads it. It is printed on `/privacy` and `/terms`. If it's on `primecart.app`, the domain needs MX records in Vercel's DNS.
+- [ ] **[Stop]** The `SUPPORT_EMAIL` mailbox exists and someone reads it. It is printed on `/privacy` and `/terms`, and defaults to `support@primecart.app`. Mail for `primecart.app` already goes to Zoho (its MX records are in Vercel's DNS), so create `support@` in Zoho as a mailbox or an alias of yours, then send it a test email from another account.
 - [ ] Your own inbox for `ADMIN_NOTIFICATION_EMAIL` (server errors and the weekly digest).
 
 ## 6. Images (Cloudflare R2)
@@ -82,7 +102,7 @@
 - [ ] Deploy failure notifications go to an inbox you read.
 
 ### 7b. Domains
-- [ ] **[Stop]** Nameservers at the registrar are `ns1.vercel-dns.com` and `ns2.vercel-dns.com` (wildcard certificates need this). Before any change, copy every existing DNS record, because they must be added again in Vercel.
+- [x] **[Stop]** Nameservers at the registrar are `ns1.vercel-dns.com` and `ns2.vercel-dns.com` (wildcard certificates need this). Checked 2026-11-26. If they're ever moved, copy every DNS record first, including Zoho's MX and SPF.
 - [ ] **[Stop]** `primecart.app` and `*.primecart.app` are both added, assigned to **Production**, and not redirected.
 - [ ] If `www.primecart.app` is added, it redirects **to** `primecart.app`, never the other way round.
 - [ ] `dev.primecart.app` and `*.dev.primecart.app` still point at `feat/v2`.
@@ -99,7 +119,7 @@ Never give Preview a production value or the other way round: Preview builds run
 | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | `pk_live_…` | Every page fails |
 | `CLERK_SECRET_KEY` | `sk_live_…` | Every page fails |
 | `PAYSTACK_SECRET_KEY` | `sk_live_…` (Paystack, Live mode) | No payments, no webhooks |
-| `CRON_SECRET` | New random string, different from dev's. ASCII only: `node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"` | Scheduled jobs refused; also protects the hashed phone numbers and IPs used for order limits |
+| `CRON_SECRET` | The production cron secret you saved from `.env.cron.prod` (`PROD_SECRET_1`). Or a new random string, different from dev's, ASCII only: `node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"`. The same value goes in all three cron-job.org jobs (part 12b) | Scheduled jobs refused; also protects the hashed phone numbers and IPs used for order limits |
 | `R2_ACCOUNT_ID` | Cloudflare account id | No uploads, no backups |
 | `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` | Part 6 image token | No uploads |
 | `R2_BUCKET_NAME` | Image bucket | No uploads |
@@ -122,7 +142,9 @@ The production build checks all of these first (`scripts/production-env.mjs`): t
 ## 8. Other services to prepare
 
 **Paystack, Live mode**
+- [ ] **[Stop] [Keep]** Settings → API Keys & Webhooks, in **Live** mode → copy the live secret key `sk_live_…` for `PAYSTACK_SECRET_KEY`. The public key isn't used.
 - [ ] **[Stop]** Settings → API Keys & Webhooks → Webhook URL: `https://primecart.app/api/webhooks/paystack`. One URL covers orders and subscriptions. Without it no payment is ever confirmed.
+- [ ] **[Stop]** Mobile money and card are both switched on as live payment channels. Shop checkout and subscriptions offer both.
 - [ ] Test mode webhook is still `https://dev.primecart.app/api/webhooks/paystack`.
 - [ ] Your own settlement account is correct: subscriptions and the 3% go there.
 - [ ] Business name and support details are what buyers should see on the payment page and receipts.
