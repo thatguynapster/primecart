@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { LegalPage, supportEmail } from "@/components/site/legal-page";
+import { BusinessDetails, LegalPage, supportEmail } from "@/components/site/legal-page";
 
 export const metadata = {
   title: "Privacy Policy — PrimeCart",
@@ -16,7 +16,7 @@ export default function PrivacyPage() {
   const email = supportEmail();
 
   return (
-    <LegalPage title="Privacy Policy" updated="24 November 2026">
+    <LegalPage title="Privacy Policy" updated="26 November 2026">
       <p>
         PrimeCart is software for shops in Ghana: a tool for inventory, orders, profit and customer records, plus an online storefront. This policy explains what personal data we handle, why, and what you can ask us to do about it. It follows Ghana&rsquo;s Data Protection Act, 2012 (Act 843).
       </p>
@@ -134,9 +134,10 @@ export default function PrivacyPage() {
         If we change this policy in a way that matters, we&rsquo;ll update the date above and email merchants before it applies.
       </p>
 
-      <h2>Contact</h2>
+      <h2>Who we are</h2>
+      <BusinessDetails />
       <p>
-        PrimeCart, Accra, Ghana. <a href={`mailto:${email}`}>{email}</a>. See also our <Link href="/terms">Terms of Service</Link>.
+        See also our <Link href="/terms">Terms of Service</Link>.
       </p>
     </LegalPage>
   );

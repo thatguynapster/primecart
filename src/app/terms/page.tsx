@@ -1,6 +1,7 @@
 import Link from "next/link";
 
-import { LegalPage, supportEmail } from "@/components/site/legal-page";
+import { BusinessDetails, LegalPage } from "@/components/site/legal-page";
+import { BUSINESS, TERMS_VERSION, formatLegalDate } from "@/lib/legal";
 
 export const metadata = {
   title: "Terms of Service — PrimeCart",
@@ -14,13 +15,11 @@ export const metadata = {
  * founding terms here, by design: those are agreed privately.
  */
 export default function TermsPage() {
-  const email = supportEmail();
-
   return (
-    <LegalPage title="Terms of Service" updated="25 November 2026">
+    <LegalPage title="Terms of Service" updated={formatLegalDate(TERMS_VERSION)}>
       <p>
-        These terms are an agreement between you and PrimeCart, Accra, Ghana
-        (&ldquo;we&rdquo;). Sections 1 to 12 and 14 to 17 are for{" "}
+        These terms are an agreement between you and {BUSINESS.name}, of{" "}
+        {BUSINESS.address} (&ldquo;we&rdquo;). Our full details are at the end. Sections 1 to 12 and 14 to 17 are for{" "}
         <strong>merchants</strong>. Section 13 is for <strong>shoppers</strong>.
         By creating a shop you agree to them and to our{" "}
         <Link href="/privacy">Privacy Policy</Link>.
@@ -54,8 +53,9 @@ export default function TermsPage() {
         <li>After the trial, PrimeCart is a prepaid subscription, paid monthly, quarterly or yearly at the prices shown in your dashboard when you pay.</li>
         <li>Payments are one-off, by mobile money or card through Paystack. <strong>Nothing renews automatically.</strong></li>
         <li>Paying before your trial or current period ends adds the new time after it, so you don&rsquo;t lose any days.</li>
+        <li>By paying, you ask us to start the time you&rsquo;ve paid for straight away, and you agree it starts as soon as your payment is confirmed. If your trial or a paid period is still running, it starts when that ends.</li>
         <li>You can cancel at any time by not paying for another period. You keep full use of PrimeCart until the period you&rsquo;ve paid for ends, then section 5 applies.</li>
-        <li><strong>Subscription payments aren&rsquo;t refunded</strong>, in full or in part, including when you cancel or stop using PrimeCart before your period ends.</li>
+        <li><strong>Subscription payments aren&rsquo;t refunded</strong>, in full or in part, including when you cancel or stop using PrimeCart before your period ends. The only exceptions are in section 16, and any refund the law gives you a right to.</li>
         <li>We may change prices for future periods. Time you&rsquo;ve already paid for isn&rsquo;t affected.</li>
       </ul>
 
@@ -163,7 +163,9 @@ export default function TermsPage() {
       <p>
         You can cancel at any time, as section 4 explains. To close your shop and
         have your data deleted, email us. Closing it early ends your access
-        and isn&rsquo;t refunded. We may keep records the law requires.
+        and isn&rsquo;t refunded. If we close your account and you haven&rsquo;t
+        broken these terms, we&rsquo;ll refund the part of your paid time you
+        haven&rsquo;t used. We may keep records the law requires.
         You must still settle what you owe us, and your open orders and refunds with shoppers.
         Sections 9, 12, 15 and 17 continue to apply.
       </p>
@@ -173,12 +175,11 @@ export default function TermsPage() {
         <li>If we change these terms in a way that matters, we&rsquo;ll email merchants at least 14 days before. If you don&rsquo;t agree, you can stop using PrimeCart before then.</li>
         <li>If you and PrimeCart disagree about something, we&rsquo;ll both try to settle it by talking first. These terms are governed by the laws of Ghana, and its courts can decide disputes.</li>
         <li>If one section can&rsquo;t be enforced, the rest still applies.</li>
+        <li>Nothing in these terms takes away a right the law gives you that can&rsquo;t be excluded.</li>
       </ul>
 
-      <h2>Contact</h2>
-      <p>
-        PrimeCart, Accra, Ghana. <a href={`mailto:${email}`}>{email}</a>
-      </p>
+      <h2>Who we are</h2>
+      <BusinessDetails />
     </LegalPage>
   );
 }

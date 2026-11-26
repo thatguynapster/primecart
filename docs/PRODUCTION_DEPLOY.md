@@ -156,11 +156,12 @@ Trials start on the production deploy, and the 12 founding months start on the d
 ## 10. Legal, and telling people
 
 - [ ] **After launch (owner, 2026-11-25: no lawyer affordable yet, a few months at most).** `/privacy` and `/terms` reviewed by someone qualified, including the 3% on delivery fees, the hashed IP and phone numbers, and the 60-day backups.
-- [ ] **After launch.** The reviewer confirms these choices in the drafts: merchants handle refunds and disputes alone and PrimeCart takes no part; the 3% isn't returned on a refund; reversed payments are the merchant's cost; subscription payments are never refunded (access continues to the end of the paid period), with no exception written for shops we close or suspend; 30 days' notice of a fee change and 14 of new terms; the liability limit; what must be kept after an account closes; who is responsible for order data.
+- [ ] **After launch.** The reviewer confirms these choices in the drafts: merchants handle refunds and disputes alone and PrimeCart takes no part; the 3% isn't returned on a refund; reversed payments are the merchant's cost; subscription payments aren't refunded (access continues to the end of the paid period), except unused time when we close a shop that broke no rule (refunded by hand) or where the law gives a right; paid time starts at once with the merchant's agreement, which is meant to meet the Electronic Transactions Act's 7-day cancellation exception (s.49); 30 days' notice of a fee change and 14 of new terms; the liability limit; what must be kept after an account closes; who is responsible for order data.
 - [ ] You can do what the pages promise: answer data requests, delete an account by hand, email all merchants.
 - [x] `src/app/(app)/dashboard/error-test` has been removed.
-- [ ] Data Protection Commission registration (Act 843) done or under way.
-- [ ] Registered business name and number, if you have one: tell me and I'll add it to the footer.
+- [ ] **[Stop]** Data Protection Commission registration (Act 843) done or under way. Processing personal data unregistered is an offence.
+- [x] Business name, legal status, address, phone and email on `/terms` and `/privacy` (Electronic Transactions Act s.47; owner, 2026-11-26). Kept in `src/lib/legal.ts`.
+- [ ] When the business registration is issued: put its number and legal form in `status` in `src/lib/legal.ts`, and change `TERMS_VERSION` with the date on `/terms`.
 - [ ] **[Stop] Existing merchants told before the deploy.** Text to send: *"PrimeCart is now GHS 89/month with everything included, after a 14-day free trial (no payment details needed). Your shop works the same, but online checkout is now optional and starts off: shoppers place orders without paying, you get an email with their WhatsApp number, and you confirm the order and arrange payment yourself. Stock comes off when you confirm or mark it paid. If you'd rather take payment online, switch on 'Take payments on your storefront' in Settings. PrimeCart keeps 3% of each payment, delivery included, with payment fees covered."* Ask them to keep checkout **off** until you've done part 13.
 
 ---
