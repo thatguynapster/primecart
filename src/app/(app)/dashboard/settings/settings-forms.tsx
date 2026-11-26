@@ -686,6 +686,24 @@ export function ReturnsPolicyForm({ policy }: { policy: string | null }) {
         </p>
       </div>
 
+      {/* Electronic Transactions Act 2008, ss.47, 49 and 54. */}
+      <div className="rounded-md border border-nk-neutral-800 px-4 py-3 text-xs leading-relaxed text-nk-neutral-400">
+        <p className="font-medium text-nk-text">What Ghana&rsquo;s law says</p>
+        <ul className="mt-1.5 list-disc space-y-1 pl-4">
+          <li>
+            Shoppers who buy online can usually cancel within 14 days of
+            receiving their goods, whatever your policy says. Food, perishable
+            goods and items made to order are among the exceptions.
+          </li>
+          <li>
+            Shoppers must be able to see your business name, address, phone
+            and email. If they can&rsquo;t, they can cancel and get a refund.
+            Put them in your policy.
+          </li>
+        </ul>
+        <p className="mt-1.5">A short summary, not legal advice.</p>
+      </div>
+
       <FormError message={state.error} />
 
       <Field label="Your policy" htmlFor={id} hint="Optional">
