@@ -1,4 +1,5 @@
 import { aggregate, isoDate, oid } from "@/lib/db/aggregate";
+import { HAS_HOLD } from "@/lib/orders/expiry-filter";
 import { LEGACY_D16_FEE_CAP_PESEWAS, STOREFRONT_FEE_RATE } from "@/lib/paystack";
 
 /**
@@ -34,9 +35,36 @@ function daysAgo(days: number): Date {
 // Overview
 // ---------------------------------------------------------------------------
 
+/**
+ * Orders still in hand, of any age: not yet delivered, cancelled or expired.
+ * Leaves out a storefront order whose shopper is still on Paystack (unpaid,
+ * with a hold): it becomes an order when paid, or expires within minutes.
+ * Keeps a late payment on an expired order, which needs the merchant.
+ */
+const OPEN_ORDER = {
+	$or: [
+		{
+			status: { $in: ["PENDING", "CONFIRMED", "PROCESSING", "SHIPPED"] },
+			$nor: [
+				{
+					status: "PENDING",
+					paymentStatus: "UNPAID",
+					reservedUntil: { $gt: isoDate(HAS_HOLD) }
+				}
+			]
+		},
+		{ status: "EXPIRED", paymentStatus: "PAID" }
+	]
+};
+
 export type OverviewKpis = {
 	revenue: number;
+	/** Paid in the last 30 days. */
 	orders: number;
+	/** In hand now, of any age (OPEN_ORDER). */
+	openOrders: number;
+	/** Of those, new ones the merchant hasn't confirmed. */
+	newOrders: number;
 	averageOrder: number;
 	stockValue: number;
 	lowStockCount: number;
@@ -45,7 +73,7 @@ export type OverviewKpis = {
 export async function getOverviewKpis(
 	merchantId: string
 ): Promise<OverviewKpis> {
-	const [sales, stock, low] = await Promise.all([
+	const [sales, open, stock, low] = await Promise.all([
 		// Paid orders only — an unpaid reservation is not revenue.
 		aggregate<{ revenue: number; orders: number }>("Order", [
 			{
@@ -60,6 +88,17 @@ export async function getOverviewKpis(
 					_id: null,
 					revenue: { $sum: SALES },
 					orders: { $sum: 1 }
+				}
+			}
+		]),
+
+		aggregate<{ open: number; fresh: number }>("Order", [
+			{ $match: { merchantId: oid(merchantId), ...OPEN_ORDER } },
+			{
+				$group: {
+					_id: null,
+					open: { $sum: 1 },
+					fresh: { $sum: { $cond: [{ $eq: ["$status", "PENDING"] }, 1, 0] } }
 				}
 			}
 		]),
@@ -101,6 +140,8 @@ export async function getOverviewKpis(
 	return {
 		revenue,
 		orders,
+		openOrders: open[0]?.open ?? 0,
+		newOrders: open[0]?.fresh ?? 0,
 		averageOrder: orders > 0 ? revenue / orders : 0,
 		stockValue: stock[0]?.value ?? 0,
 		lowStockCount: low[0]?.count ?? 0

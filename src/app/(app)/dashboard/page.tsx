@@ -88,9 +88,14 @@ export default async function OverviewPage() {
     },
     {
       label: "Orders",
-      value: String(kpis.orders),
-      delta: "Last 30 days",
-      attention: false,
+      value: String(kpis.openOrders),
+      delta:
+        kpis.newOrders > 0
+          ? `${kpis.newOrders} new to confirm`
+          : kpis.openOrders > 0
+            ? "Not yet delivered"
+            : "Nothing waiting",
+      attention: kpis.newOrders > 0,
     },
     {
       label: "Average order",
