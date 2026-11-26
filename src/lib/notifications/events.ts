@@ -404,13 +404,13 @@ export async function notifyBillingReminder(params: {
     expired: {
       subject: "Your PrimeCart plan has expired",
       title: "Your plan has expired",
-      body: `Your shop keeps taking orders until <strong>${closes}</strong>, and until then you can still view your dashboard and handle orders. After that, your shop stops taking new orders and your dashboard locks until you choose a plan. Your storefront goes off on <strong>${goesOff}</strong>.`,
+      body: `Your shop keeps taking orders until <strong>${closes}</strong>, and until then you can still view your dashboard and handle orders. After that, your shop stops taking new orders and your dashboard locks until you choose a plan, apart from your orders, which you can still handle. Your storefront goes off on <strong>${goesOff}</strong>.`,
       cta: "Renew",
     },
     "closing-1": {
       subject: "Your shop stops taking orders soon",
       title: "Your shop stops taking orders soon",
-      body: `Your PrimeCart plan has expired. On <strong>${closes}</strong> your shop stops taking new orders and your dashboard locks, so you won't be able to see or handle existing orders there. Your storefront goes off on <strong>${goesOff}</strong>. Renew to keep everything open.`,
+      body: `Your PrimeCart plan has expired. On <strong>${closes}</strong> your shop stops taking new orders and your dashboard locks, apart from your orders, which you can still handle. Your storefront goes off on <strong>${goesOff}</strong>. Renew to keep everything open.`,
       cta: "Renew now",
     },
   };

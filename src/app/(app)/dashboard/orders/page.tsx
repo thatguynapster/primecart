@@ -65,7 +65,7 @@ function titleCase(value: string): string {
 export default async function OrdersPage({
   searchParams,
 }: PageProps<"/dashboard/orders">) {
-  const merchant = await requireDashboardMerchant();
+  const merchant = await requireDashboardMerchant({ ordersPage: true });
   const storefront = merchant.storefront!;
   const params = await searchParams;
 

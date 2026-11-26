@@ -53,7 +53,7 @@ export default async function OrderDetailPage({
   params,
   searchParams,
 }: PageProps<"/dashboard/orders/[orderId]">) {
-  const merchant = await requireDashboardMerchant();
+  const merchant = await requireDashboardMerchant({ ordersPage: true });
   const storefront = merchant.storefront!;
   const { orderId } = await params;
   const { from } = await searchParams;

@@ -66,7 +66,7 @@ export function closesAt(
   return end ? new Date(end.getTime() + GRACE_DAYS * DAY_MS) : null;
 }
 
-/** D-24: past the grace period. No new orders; only billing opens. */
+/** D-24: past the grace period. No new orders; only billing and existing orders open. */
 export function isClosed(
   merchant: Pick<StatusFields, "trialEndsAt" | "currentPeriodEnd">,
   now: Date

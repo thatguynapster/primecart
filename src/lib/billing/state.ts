@@ -29,7 +29,7 @@ export type BillingState = {
   /** When the current trial or paid time ends; null when lapsed. */
   endsAt: Date | null;
   daysLeft: number;
-  /** Lapsed only: when orders stop and the dashboard locks (D-24). */
+  /** Lapsed only: when orders stop and the dashboard locks, except orders (D-24). */
   closesAt: Date | null;
   /** That moment has passed. */
   locked: boolean;
@@ -67,8 +67,10 @@ export function getBillingState(merchant: Merchant): BillingState {
  * Still allowed then: billing; confirming, advancing, marking paid and
  * cancelling existing orders; switching storefront checkout off; and updating
  * payout details (both protect money that's still moving). The storefront and
- * its checkout keep working. After that, `isLocked`: only billing works and the
- * storefront takes no new orders. From OFFLINE_DAYS the storefront is off (D-25).
+ * its checkout keep working. After that, `isLocked`: the storefront takes no
+ * new orders, and only billing and existing orders work in the dashboard
+ * (handling them stays open however long the lapse). From OFFLINE_DAYS the
+ * storefront is off (D-25).
  */
 export const LAPSED_MESSAGE =
   "Your plan has expired, so changes are paused. Renew on the Billing page to make changes.";

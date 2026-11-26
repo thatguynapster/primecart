@@ -258,7 +258,7 @@ Only after the split and payout are proven: tell merchants they can switch check
 - [ ] First trial reminder goes out 3 days before the trials end (day 11 after the deploy): check it arrived.
 - [ ] Trials end on day 14: check what an unpaid shop sees (billing first, dashboard read-only, shop still taking orders).
 - [ ] Day 20: unpaid shops get "Your shop stops taking orders soon".
-- [ ] Day 21, 7 days later: an unpaid shop takes no new orders and its dashboard opens billing only. Paying reopens both.
+- [ ] Day 21, 7 days later: an unpaid shop takes no new orders and its dashboard opens only billing and orders (existing orders can still be handled). Paying reopens both.
 - [ ] Day 24, 10 days after the lapse: its storefront shows "This storefront is no longer active" (existing order pages still open). Paying brings it back within a minute.
 - [ ] Newest file in `primecart-backups` is less than a day old. GitHub stops scheduled jobs after 60 days with no commits.
 - [ ] Orders under **Needs review** handled.
