@@ -23,7 +23,7 @@ import {
   PaystackError,
   storefrontFeePesewas,
 } from "@/lib/paystack";
-import { GHANA_PHONE_ERROR, normalizeGhanaPhone } from "@/lib/phone";
+import { GHANA_WHATSAPP_ERROR, normalizeGhanaPhone } from "@/lib/phone";
 import { prisma } from "@/lib/prisma";
 import { clientIp, withinLimit } from "@/lib/rate-limit";
 
@@ -174,7 +174,7 @@ export async function checkout(
 
   const phone = normalizeGhanaPhone(rawPhone);
   if (!phone) {
-    return { ok: false, error: GHANA_PHONE_ERROR };
+    return { ok: false, error: GHANA_WHATSAPP_ERROR };
   }
 
   // ---- merchant -------------------------------------------------------------

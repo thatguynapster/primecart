@@ -29,7 +29,12 @@ export function normalizeGhanaPhone(raw: string): string | null {
   return isValidPhoneNumber(e164) ? e164 : null;
 }
 
+/** For fields labelled "Phone". */
 export const GHANA_PHONE_ERROR =
+  "Enter a Ghanaian phone number, like 024 400 0000 or +233 24 400 0000.";
+
+/** For fields labelled "WhatsApp number". */
+export const GHANA_WHATSAPP_ERROR =
   "Enter a Ghanaian WhatsApp number, like 024 400 0000 or +233 24 400 0000.";
 
 /**

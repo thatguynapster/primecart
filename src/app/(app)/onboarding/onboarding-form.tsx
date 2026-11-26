@@ -186,6 +186,7 @@ export function OnboardingForm({
         <GhanaPhoneInput
           id={ids.whatsapp}
           name="whatsappNumber"
+          whatsapp
           required
           requiredMessage="Enter your WhatsApp number."
           wrapperClassName="mt-2"
