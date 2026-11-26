@@ -11,6 +11,7 @@ import {
   type ApplyOutcome,
 } from "@/lib/billing/subscription";
 import { getDashboardOrigin } from "@/lib/domain";
+import { TERMS_VERSION } from "@/lib/legal";
 import { requireMerchant } from "@/lib/merchant/current";
 import { PaystackError, initializeSubscriptionTransaction } from "@/lib/paystack";
 import { prisma } from "@/lib/prisma";
@@ -41,6 +42,8 @@ export async function startSubscriptionPayment(
   const amount = pricePesewas(merchant, interval, periodStart);
   const reference = subscriptionReference(merchant.id, now);
 
+  // Pressing Pay agrees to the Terms and asks for the time to start at once
+  // (the note under the button). Kept with the payment and the merchant.
   await prisma.subscriptionPayment.create({
     data: {
       merchantId: merchant.id,
@@ -49,7 +52,12 @@ export async function startSubscriptionPayment(
       amount: amount / 100,
       quotedPeriodStart: periodStart,
       status: "PENDING",
+      termsVersion: TERMS_VERSION,
     },
+  });
+  await prisma.merchant.update({
+    where: { id: merchant.id },
+    data: { termsVersion: TERMS_VERSION, termsAcceptedAt: now },
   });
 
   let authorizationUrl: string;
