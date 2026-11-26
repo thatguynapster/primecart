@@ -12,6 +12,7 @@ import { generateOrderNumber } from "@/lib/orders/order-number";
 import { OversellError, reserveStock, restoreStock, type StockLine } from "@/lib/orders/stock";
 import { canCancel, holdsReservedStock, nextStatus } from "@/lib/orders/transitions";
 import { validateCustomization } from "@/lib/products/customization";
+import { GHANA_PHONE_ERROR, normalizeGhanaPhone } from "@/lib/phone";
 import { prisma } from "@/lib/prisma";
 
 export type OrderActionResult = { error?: string };
@@ -331,7 +332,8 @@ export async function createManualOrder(
 
   const source = formData.get("source") === "WHATSAPP" ? "WHATSAPP" : "MANUAL";
   const name = String(formData.get("name") ?? "").trim();
-  const phone = String(formData.get("phone") ?? "").trim();
+  const rawPhone = String(formData.get("phone") ?? "").trim();
+  const phone = normalizeGhanaPhone(rawPhone) ?? "";
   const email = String(formData.get("email") ?? "").trim();
   const address = String(formData.get("address") ?? "").trim();
   const city = String(formData.get("city") ?? "").trim();
@@ -343,7 +345,8 @@ export async function createManualOrder(
 
   const fieldErrors: Record<string, string> = {};
   if (!name) fieldErrors.name = "Enter the customer's name.";
-  if (!phone) fieldErrors.phone = "Enter a phone number.";
+  if (!rawPhone) fieldErrors.phone = "Enter a phone number.";
+  else if (!phone) fieldErrors.phone = GHANA_PHONE_ERROR;
 
   if (rawDeliveryFee && deliveryFee == null) {
     fieldErrors.deliveryFee = "Enter an amount like 25 or 25.50.";

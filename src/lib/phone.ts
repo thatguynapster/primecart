@@ -5,7 +5,14 @@
  * `233244000000`, `+233 24 400 0000`) and normalises to E.164
  * (`+233244000000`). Anything else is rejected rather than guessed at: a
  * wrong WhatsApp number means the merchant can't reach the buyer at all.
+ *
+ * The shape check is then confirmed by libphonenumber's rules for Ghana (the
+ * same check react-phone-number-input's `isValidPhoneNumber` makes), which
+ * turns away numbers no Ghanaian line starts with, like 014 or 044. The
+ * browser runs this same function (src/components/phone-input.tsx), so the
+ * two always agree.
  */
+import { isValidPhoneNumber } from "libphonenumber-js/min";
 
 const SEPARATORS = /[\s\-().]/g;
 
@@ -17,7 +24,9 @@ export function normalizeGhanaPhone(raw: string): string | null {
     /^233([1-9]\d{8})$/.exec(compact) ??
     /^\+233([1-9]\d{8})$/.exec(compact);
 
-  return match ? `+233${match[1]}` : null;
+  if (!match) return null;
+  const e164 = `+233${match[1]}`;
+  return isValidPhoneNumber(e164) ? e164 : null;
 }
 
 export const GHANA_PHONE_ERROR =

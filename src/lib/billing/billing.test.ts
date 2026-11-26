@@ -212,8 +212,13 @@ describe("normalizeGhanaPhone", () => {
     assert.equal(normalizeGhanaPhone(" +233244000000 "), "+233244000000");
   });
   it("rejects anything else", () => {
-    for (const bad of ["", "24400000", "02440000000", "+2330244000000", "+44 7700 900000", "00233244000000", "abc", "0044000000"]) {
+    for (const bad of ["", "24400000", "02440000000", "+2330244000000", "+44 7700 900000", "00233244000000", "abc", "0044000000", "0144000000", "0444000000", "+233744000000"]) {
       assert.equal(normalizeGhanaPhone(bad), null, bad);
+    }
+  });
+  it("accepts every kind of Ghanaian number", () => {
+    for (const good of ["0204000000", "0234000000", "0554000000", "0594000000", "0302000000"]) {
+      assert.ok(normalizeGhanaPhone(good), good);
     }
   });
   it("builds wa.me links", () => {

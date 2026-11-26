@@ -20,6 +20,7 @@ import {
 } from "@/lib/merchant/storefront";
 import { parseDeliveryForm } from "@/lib/orders/delivery";
 import { PaystackError, createSubaccount, updateSubaccount } from "@/lib/paystack";
+import { GHANA_PHONE_ERROR, normalizeGhanaPhone } from "@/lib/phone";
 import { prisma } from "@/lib/prisma";
 import {
   ImageUploadError,
@@ -476,8 +477,6 @@ export async function updatePayoutDetails(
 // ---------------------------------------------------------------------------
 
 const URL_LIKE = /^https?:\/\/.+/i;
-const WHATSAPP_NUMBER = /^\+?[0-9]{7,15}$/;
-
 export async function updateReturnsPolicy(
   _prev: SettingsState,
   formData: FormData
@@ -507,7 +506,8 @@ export async function updateSocials(
 
   const facebookUrl = String(formData.get("facebookUrl") ?? "").trim();
   const instagramUrl = String(formData.get("instagramUrl") ?? "").trim();
-  const whatsappNumber = String(formData.get("whatsappNumber") ?? "").trim();
+  const rawWhatsapp = String(formData.get("whatsappNumber") ?? "").trim();
+  const whatsappNumber = rawWhatsapp ? normalizeGhanaPhone(rawWhatsapp) : null;
 
   const fieldErrors: Record<string, string> = {};
   if (facebookUrl && !URL_LIKE.test(facebookUrl)) {
@@ -516,15 +516,13 @@ export async function updateSocials(
   if (instagramUrl && !URL_LIKE.test(instagramUrl)) {
     fieldErrors.instagramUrl = "Enter a full link, starting with https://";
   }
-  if (whatsappNumber && !WHATSAPP_NUMBER.test(whatsappNumber)) {
-    fieldErrors.whatsappNumber = "Enter digits only, with an optional leading +.";
-  }
+  if (rawWhatsapp && !whatsappNumber) fieldErrors.whatsappNumber = GHANA_PHONE_ERROR;
   if (Object.keys(fieldErrors).length > 0) return { fieldErrors };
 
   await updateStorefrontSocials(merchant.id, storefront.subdomain, {
     facebookUrl: facebookUrl || null,
     instagramUrl: instagramUrl || null,
-    whatsappNumber: whatsappNumber || null,
+    whatsappNumber,
   });
 
   revalidatePath("/dashboard/settings");

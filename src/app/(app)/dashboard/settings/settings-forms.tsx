@@ -5,6 +5,7 @@ import { useFormStatus } from "react-dom";
 
 import { Field, FormError, inputClass } from "@/components/dashboard/fields";
 import { ImagePicker } from "@/components/dashboard/image-picker";
+import { GhanaPhoneInput } from "@/components/phone-input";
 import { MAX_RETURNS_POLICY } from "@/lib/merchant/returns-policy";
 import type { PaystackBank, PaystackSubaccountDetails } from "@/lib/paystack";
 import {
@@ -770,15 +771,14 @@ export function SocialsForm({
           label="WhatsApp number"
           htmlFor={ids.whatsapp}
           hint="Customers can message you directly"
-          error={fieldErrors.whatsappNumber}
         >
-          <input
+          <GhanaPhoneInput
             id={ids.whatsapp}
             name="whatsappNumber"
-            inputMode="tel"
-            placeholder="0244000000"
-            defaultValue={whatsappNumber ?? ""}
-            className={inputClass}
+            defaultValue={whatsappNumber}
+            className={`${inputClass} aria-invalid:border-nk-accent-300`}
+            error={fieldErrors.whatsappNumber}
+            errorClassName="mt-1.5 text-xs text-nk-accent-300"
           />
         </Field>
 
