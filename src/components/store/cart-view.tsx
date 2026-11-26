@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useId, useState } from "react";
 
+import { GhanaPhoneInput } from "@/components/phone-input";
 import { checkout } from "@/app/store/[subdomain]/cart/actions";
 import { getDashboardOrigin } from "@/lib/domain";
 import { formatGhs } from "@/lib/format";
@@ -408,19 +409,16 @@ export function CartView({
               <label htmlFor={ids.phone} className="text-[13px] font-medium">
                 WhatsApp number
               </label>
-              <input
+              <GhanaPhoneInput
                 id={ids.phone}
                 name="phone"
-                type="tel"
-                inputMode="tel"
-                autoComplete="tel"
                 required
-                placeholder="024 400 0000"
-                className={`mt-1.5 ${inputClass}`}
+                requiredMessage="Enter your WhatsApp number."
+                className={`mt-1.5 ${inputClass} aria-invalid:border-red-500`}
+                errorClassName="mt-1 text-[12px] text-red-600"
+                hint={`${storeName} will contact you here about your order.`}
+                hintClassName="mt-1 text-[12px] text-neutral-500"
               />
-              <p className="mt-1 text-[12px] text-neutral-500">
-                {storeName} will contact you here about your order.
-              </p>
             </div>
 
             <div>

@@ -6,6 +6,7 @@ import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 
 import { Field, FormError, inputClass } from "@/components/dashboard/fields";
+import { GhanaPhoneInput } from "@/components/phone-input";
 import { ButtonSecondary } from "@/components/dashboard/nocturne/ui";
 import { formatGhs } from "@/lib/format";
 import { addGhs, parseFee } from "@/lib/orders/delivery";
@@ -264,8 +265,16 @@ export function NewOrderForm({ products }: { products: PickableProduct[] }) {
           <Field label="Name" htmlFor={ids.name} error={fieldErrors.name}>
             <input id={ids.name} name="name" className={inputClass} />
           </Field>
-          <Field label="Phone" htmlFor={ids.phone} error={fieldErrors.phone}>
-            <input id={ids.phone} name="phone" type="tel" className={inputClass} />
+          <Field label="Phone" htmlFor={ids.phone}>
+            <GhanaPhoneInput
+              id={ids.phone}
+              name="phone"
+              required
+              requiredMessage="Enter a phone number."
+              className={`${inputClass} aria-invalid:border-nk-accent-300`}
+              error={fieldErrors.phone}
+              errorClassName="mt-1.5 text-xs text-nk-accent-300"
+            />
           </Field>
         </div>
 

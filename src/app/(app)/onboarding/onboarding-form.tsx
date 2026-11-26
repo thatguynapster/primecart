@@ -3,6 +3,8 @@
 import { useActionState, useEffect, useId, useState } from "react";
 import { useFormStatus } from "react-dom";
 
+import { GhanaPhoneInput } from "@/components/phone-input";
+
 import { checkSubdomain, completeOnboarding } from "./actions";
 import type { OnboardingState } from "./actions";
 
@@ -181,21 +183,17 @@ export function OnboardingForm({
         >
           WhatsApp number
         </label>
-        <input
+        <GhanaPhoneInput
           id={ids.whatsapp}
           name="whatsappNumber"
-          type="tel"
-          inputMode="tel"
-          autoComplete="tel"
-          placeholder="024 400 0000"
-          className="mt-2 w-full rounded-xl border border-neutral-300 bg-white px-4 py-2.5 text-base outline-none focus:border-neutral-900"
+          required
+          requiredMessage="Enter your WhatsApp number."
+          className="mt-2 w-full rounded-xl border border-neutral-300 bg-white px-4 py-2.5 text-base outline-none focus:border-neutral-900 aria-invalid:border-red-500"
+          error={fieldErrors.whatsappNumber}
+          errorClassName="mt-1.5 text-[13px] text-red-600"
+          hint="Shown on your shop so shoppers can message you about their orders."
+          hintClassName="mt-1.5 text-[13px] text-neutral-500"
         />
-        {!fieldErrors.whatsappNumber && (
-          <p className="mt-1.5 text-[13px] text-neutral-500">
-            Shown on your shop so shoppers can message you about their orders.
-          </p>
-        )}
-        <FieldError message={fieldErrors.whatsappNumber} />
       </div>
 
       <div>
