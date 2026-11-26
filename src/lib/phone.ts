@@ -33,13 +33,32 @@ export const GHANA_PHONE_ERROR =
   "Enter a Ghanaian WhatsApp number, like 024 400 0000 or +233 24 400 0000.";
 
 /**
- * A Ghanaian mobile number, for mobile money payouts. Mobile numbers start
- * 02x or 05x. A landline (03x) or toll-free number (0800) can't hold a
- * wallet, so they're turned away here instead of by Paystack.
+ * The prefixes Ghana's mobile networks use today. Add one here when a
+ * network is given a new range.
+ */
+export const GHANA_MOBILE_PREFIXES = [
+  // MTN
+  "024", "025", "053", "054", "055", "059",
+  // Telecel (formerly Vodafone)
+  "020", "050",
+  // AT (AirtelTigo)
+  "026", "027", "056", "057",
+] as const;
+
+const MOBILE_PREFIX = new RegExp(
+  `^\\+233(${GHANA_MOBILE_PREFIXES.map((p) => p.slice(1)).join("|")})`
+);
+
+/**
+ * A Ghanaian mobile number, for mobile money payouts. Only the networks'
+ * current prefixes pass. libphonenumber also accepts old or unused ranges
+ * (021, 023, 028, 058...), and a payout number starting with one is far more
+ * likely a typo than a real wallet. Landlines (03x) and toll-free numbers
+ * (0800) can't hold a wallet either.
  */
 export function normalizeGhanaMobile(raw: string): string | null {
   const e164 = normalizeGhanaPhone(raw);
-  return e164 && /^\+233[25]/.test(e164) ? e164 : null;
+  return e164 && MOBILE_PREFIX.test(e164) ? e164 : null;
 }
 
 export const GHANA_MOMO_ERROR =

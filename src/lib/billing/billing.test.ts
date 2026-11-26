@@ -15,7 +15,7 @@ import {
 } from "./plans.ts";
 import { closesAt, daysLeft, effectiveStatus, isClosed, isOffline, offlineAt } from "./status.ts";
 import { reminderFor } from "./reminder-due.ts";
-import { ghanaNational, normalizeGhanaMobile, normalizeGhanaPhone, waMeLink } from "../phone.ts";
+import { GHANA_MOBILE_PREFIXES, ghanaNational, normalizeGhanaMobile, normalizeGhanaPhone, waMeLink } from "../phone.ts";
 
 const d = (iso: string) => new Date(iso);
 const none = { priceOverridePercent: null, priceOverrideEndsAt: null };
@@ -226,6 +226,21 @@ describe("normalizeGhanaPhone", () => {
     assert.equal(normalizeGhanaMobile("+233 50 400 0000"), "+233504000000");
     for (const bad of ["0302000000", "0800000000", "02440000000", "024400000"]) {
       assert.equal(normalizeGhanaMobile(bad), null, bad);
+    }
+  });
+  it("takes every current network prefix, and no other", () => {
+    assert.deepEqual(
+      [...GHANA_MOBILE_PREFIXES].sort(),
+      ["020", "024", "025", "026", "027", "050", "053", "054", "055", "056", "057", "059"]
+    );
+    for (const prefix of GHANA_MOBILE_PREFIXES) {
+      assert.equal(normalizeGhanaMobile(`${prefix}1234567`), `+233${prefix.slice(1)}1234567`, prefix);
+      assert.ok(normalizeGhanaMobile(`+233 ${prefix.slice(1)} 123 4567`), prefix);
+    }
+    // Valid to libphonenumber, but no network uses them now.
+    for (const unused of ["021", "022", "023", "028", "029", "051", "052", "058"]) {
+      assert.ok(normalizeGhanaPhone(`${unused}1234567`), unused);
+      assert.equal(normalizeGhanaMobile(`${unused}1234567`), null, unused);
     }
     assert.equal(ghanaNational("+233244000000"), "0244000000");
   });
