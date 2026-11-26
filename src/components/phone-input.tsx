@@ -9,6 +9,7 @@ import {
   type ComponentPropsWithoutRef,
   type ReactNode,
 } from "react";
+import GhanaFlag from "country-flag-icons/react/3x2/GH";
 import PhoneNumberInput from "react-phone-number-input/input";
 
 import { GHANA_PHONE_ERROR, normalizeGhanaPhone } from "@/lib/phone";
@@ -25,11 +26,14 @@ import { GHANA_PHONE_ERROR, normalizeGhanaPhone } from "@/lib/phone";
  * soon as the number is right.
  *
  * Styles come from the form, which passes its own input and error classes.
+ * A Ghana flag sits inside the field on the left, as numbers from elsewhere
+ * aren't accepted.
  */
 export function GhanaPhoneInput({
   id,
   name,
   className,
+  wrapperClassName,
   errorClassName,
   hint,
   hintClassName,
@@ -42,6 +46,8 @@ export function GhanaPhoneInput({
   id: string;
   name: string;
   className: string;
+  /** Spacing above the field goes here, not on the input, so the flag lines up. */
+  wrapperClassName?: string;
   errorClassName: string;
   /** Shown under the field while there's no error. */
   hint?: ReactNode;
@@ -85,33 +91,39 @@ export function GhanaPhoneInput({
 
   return (
     <>
-      <PhoneNumberInput
-        ref={ref}
-        id={id}
-        name={name}
-        type="tel"
-        autoComplete="tel"
-        placeholder={placeholder}
-        defaultCountry="GH"
-        value={initial}
-        onChange={ignore}
-        inputComponent={TextInput}
-        onText={check}
-        onBlur={(event: React.FocusEvent<HTMLInputElement>) => {
-          if (event.currentTarget.value.trim()) setShown(true);
-        }}
-        onInvalid={(event: React.InvalidEvent<HTMLInputElement>) => {
-          // Show our message instead of the browser's bubble.
-          event.preventDefault();
-          setShown(true);
-          const firstInvalid = event.currentTarget.form?.querySelector(":invalid");
-          if (firstInvalid === event.currentTarget) event.currentTarget.focus();
-        }}
-        aria-required={required || undefined}
-        aria-invalid={message ? true : undefined}
-        aria-describedby={message ? errorId : hint ? hintId : undefined}
-        className={className}
-      />
+      <div className={`relative ${wrapperClassName ?? ""}`}>
+        <GhanaFlag
+          aria-hidden="true"
+          className="pointer-events-none absolute top-1/2 left-3.5 h-3.5 w-auto -translate-y-1/2 rounded-xs"
+        />
+        <PhoneNumberInput
+          ref={ref}
+          id={id}
+          name={name}
+          type="tel"
+          autoComplete="tel"
+          placeholder={placeholder}
+          defaultCountry="GH"
+          value={initial}
+          onChange={ignore}
+          inputComponent={TextInput}
+          onText={check}
+          onBlur={(event: React.FocusEvent<HTMLInputElement>) => {
+            if (event.currentTarget.value.trim()) setShown(true);
+          }}
+          onInvalid={(event: React.InvalidEvent<HTMLInputElement>) => {
+            // Show our message instead of the browser's bubble.
+            event.preventDefault();
+            setShown(true);
+            const firstInvalid = event.currentTarget.form?.querySelector(":invalid");
+            if (firstInvalid === event.currentTarget) event.currentTarget.focus();
+          }}
+          aria-required={required || undefined}
+          aria-invalid={message ? true : undefined}
+          aria-describedby={message ? errorId : hint ? hintId : undefined}
+          className={`${className} pl-11!`}
+        />
+      </div>
       {message ? (
         <p id={errorId} className={errorClassName}>
           {message}
@@ -153,5 +165,8 @@ function toE164(saved: string | null | undefined): string | undefined {
   const ghana = normalizeGhanaPhone(saved);
   if (ghana) return ghana;
   const digits = saved.replace(/\D/g, "");
-  return digits ? `+${digits}` : undefined;
+  if (!digits) return undefined;
+  // 0XXXXXXXXX is a Ghanaian number written nationally.
+  if (/^0\d{9}$/.test(digits)) return `+233${digits.slice(1)}`;
+  return `+${digits}`;
 }

@@ -188,7 +188,8 @@ export function OnboardingForm({
           name="whatsappNumber"
           required
           requiredMessage="Enter your WhatsApp number."
-          className="mt-2 w-full rounded-xl border border-neutral-300 bg-white px-4 py-2.5 text-base outline-none focus:border-neutral-900 aria-invalid:border-red-500"
+          wrapperClassName="mt-2"
+          className="w-full rounded-xl border border-neutral-300 bg-white px-4 py-2.5 text-base outline-none focus:border-neutral-900 aria-invalid:border-red-500"
           error={fieldErrors.whatsappNumber}
           errorClassName="mt-1.5 text-[13px] text-red-600"
           hint="Shown on your shop so shoppers can message you about their orders."

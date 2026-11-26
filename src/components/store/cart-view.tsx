@@ -414,7 +414,8 @@ export function CartView({
                 name="phone"
                 required
                 requiredMessage="Enter your WhatsApp number."
-                className={`mt-1.5 ${inputClass} aria-invalid:border-red-500`}
+                wrapperClassName="mt-1.5"
+                className={`${inputClass} aria-invalid:border-red-500`}
                 errorClassName="mt-1 text-[12px] text-red-600"
                 hint={`${storeName} will contact you here about your order.`}
                 hintClassName="mt-1 text-[12px] text-neutral-500"
