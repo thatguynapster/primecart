@@ -826,6 +826,7 @@ export function SocialsForm({
           <GhanaPhoneInput
             id={ids.whatsapp}
             name="whatsappNumber"
+            whatsapp
             defaultValue={whatsappNumber}
             className={`${inputClass} aria-invalid:border-nk-accent-300`}
             error={fieldErrors.whatsappNumber}

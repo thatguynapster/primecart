@@ -27,7 +27,7 @@ import {
 } from "@/lib/paystack";
 import {
   GHANA_MOMO_ERROR,
-  GHANA_PHONE_ERROR,
+  GHANA_WHATSAPP_ERROR,
   ghanaNational,
   normalizeGhanaMobile,
   normalizeGhanaPhone,
@@ -548,7 +548,7 @@ export async function updateSocials(
   if (instagramUrl && !URL_LIKE.test(instagramUrl)) {
     fieldErrors.instagramUrl = "Enter a full link, starting with https://";
   }
-  if (rawWhatsapp && !whatsappNumber) fieldErrors.whatsappNumber = GHANA_PHONE_ERROR;
+  if (rawWhatsapp && !whatsappNumber) fieldErrors.whatsappNumber = GHANA_WHATSAPP_ERROR;
   if (Object.keys(fieldErrors).length > 0) return { fieldErrors };
 
   await updateStorefrontSocials(merchant.id, storefront.subdomain, {

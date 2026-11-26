@@ -15,6 +15,7 @@ import PhoneNumberInput from "react-phone-number-input/input";
 import {
   GHANA_MOMO_ERROR,
   GHANA_PHONE_ERROR,
+  GHANA_WHATSAPP_ERROR,
   normalizeGhanaMobile,
   normalizeGhanaPhone,
 } from "@/lib/phone";
@@ -47,9 +48,10 @@ export function GhanaPhoneInput({
   hintClassName,
   defaultValue,
   required = false,
-  requiredMessage = "Enter a WhatsApp number.",
+  requiredMessage = "Enter a phone number.",
   placeholder = "024 400 0000",
   mobile = false,
+  whatsapp = false,
   error,
 }: {
   id: string;
@@ -68,6 +70,8 @@ export function GhanaPhoneInput({
   placeholder?: string;
   /** Mobile numbers only (02x, 05x), for mobile money. */
   mobile?: boolean;
+  /** The field asks for a WhatsApp number, so the error says so. */
+  whatsapp?: boolean;
   /** From the server. */
   error?: string;
 }) {
@@ -90,12 +94,14 @@ export function GhanaPhoneInput({
           ? null
           : mobile
             ? GHANA_MOMO_ERROR
-            : GHANA_PHONE_ERROR;
+            : whatsapp
+              ? GHANA_WHATSAPP_ERROR
+              : GHANA_PHONE_ERROR;
       ref.current?.setCustomValidity(found ?? "");
       setProblem(found);
       return found;
     },
-    [required, requiredMessage, mobile]
+    [required, requiredMessage, mobile, whatsapp]
   );
 
   const message = (shown ? problem : null) ?? error;

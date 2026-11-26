@@ -412,6 +412,7 @@ export function CartView({
               <GhanaPhoneInput
                 id={ids.phone}
                 name="phone"
+                whatsapp
                 required
                 requiredMessage="Enter your WhatsApp number."
                 wrapperClassName="mt-1.5"

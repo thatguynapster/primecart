@@ -6,7 +6,7 @@ import { TRIAL_DAYS, addDays } from "@/lib/billing/plans";
 import { TERMS_VERSION } from "@/lib/legal";
 import { requireMerchant } from "@/lib/merchant/current";
 import { invalidateStorefront } from "@/lib/merchant/lookup";
-import { GHANA_PHONE_ERROR, normalizeGhanaPhone } from "@/lib/phone";
+import { GHANA_WHATSAPP_ERROR, normalizeGhanaPhone } from "@/lib/phone";
 import { prisma } from "@/lib/prisma";
 import { checkSubdomainAvailable } from "@/lib/storefront/subdomain";
 
@@ -47,7 +47,7 @@ export async function completeOnboarding(
   );
 
   const fieldErrors: Record<string, string> = {};
-  if (!whatsappNumber) fieldErrors.whatsappNumber = GHANA_PHONE_ERROR;
+  if (!whatsappNumber) fieldErrors.whatsappNumber = GHANA_WHATSAPP_ERROR;
 
   if (!businessName) {
     fieldErrors.businessName = "Enter your business name.";
