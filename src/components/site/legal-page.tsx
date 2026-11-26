@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 
 import { SiteFooter } from "@/components/site/site-footer";
 import { SiteHeader } from "@/components/site/site-header";
+import { BUSINESS } from "@/lib/legal";
 
 /**
  * Where people write to PrimeCart about their data or their account. Set
@@ -9,6 +10,25 @@ import { SiteHeader } from "@/components/site/site-header";
  */
 export function supportEmail(): string {
   return process.env.SUPPORT_EMAIL || "support@primecart.app";
+}
+
+/** Who we are and how to reach us, for the end of /terms and /privacy. */
+export function BusinessDetails() {
+  const email = supportEmail();
+  return (
+    <ul>
+      <li>
+        {BUSINESS.name} is {BUSINESS.status}.
+      </li>
+      <li>Address: {BUSINESS.address}</li>
+      <li>
+        Phone: <a href={BUSINESS.phoneHref}>{BUSINESS.phone}</a>
+      </li>
+      <li>
+        Email: <a href={`mailto:${email}`}>{email}</a>
+      </li>
+    </ul>
+  );
 }
 
 /** Shared shell for /privacy and /terms (T14). */
