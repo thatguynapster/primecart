@@ -6,7 +6,7 @@
  */
 export const BUSINESS = {
   name: "PrimeCart",
-  status: "a business based in Ghana. Its business registration is in progress; we'll add the registration number here once it's issued",
+  status: "a business based in Ghana. Its business registration is in progress; we’ll add the registration number here once it’s issued",
   address: "No. 3 Nickel Cl, Ofankor, Accra, Ghana",
   phone: "+233 55 836 0280",
   phoneHref: "tel:+233558360280",
