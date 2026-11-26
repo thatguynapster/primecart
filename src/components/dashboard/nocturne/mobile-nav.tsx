@@ -97,7 +97,7 @@ export function MobileNav({ ordersNeedingAction }: { ordersNeedingAction: number
                 {href === "/dashboard/orders" && ordersNeedingAction > 0 && (
                   <span className="absolute top-1 left-1/2 ml-2 rounded-full bg-nk-accent-700 px-1.5 text-[10px] leading-4 text-nk-accent-100">
                     {ordersNeedingAction > 99 ? "99+" : ordersNeedingAction}
-                    <span className="sr-only"> orders need action</span>
+                    <span className="sr-only"> to act on</span>
                   </span>
                 )}
               </Link>
